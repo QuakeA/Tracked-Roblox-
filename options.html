@@ -1,0 +1,168 @@
+
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <title>Ayarlar - Tracked</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <div class="bg-noise"></div>
+  
+  <div class="container">
+    <header>
+      <div class="header-content">
+        <div class="logo-circle">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3"></circle></svg>
+        </div>
+        <div>
+          <h1>Tracked Ayarlar</h1>
+          <p class="subtitle">Performans, görünüm ve bağlantı yapılandırması</p>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <!-- Appearance & Experience -->
+      <section class="card">
+        <h2>Görünüm ve Deneyim</h2>
+        
+        <div class="setting-row">
+          <div class="setting-label">
+            <span>Arka Plan Animasyonları</span>
+            <small>Performans için "blooms" efektlerini kapatabilirsiniz.</small>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="chk-animations">
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="setting-row">
+          <div class="setting-label">
+            <span>Sessiz Mod</span>
+            <small>Ekran altındaki bilgi mesajlarını (Toast) gizler.</small>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="chk-silent">
+            <span class="slider"></span>
+          </label>
+        </div>
+      </section>
+
+      <!-- Connection Settings (Redesigned) -->
+      <section class="card">
+        <h2>Bağlantı Ayarları</h2>
+
+        <!-- Numeric Metrics Grid with Custom Steppers -->
+        <div class="settings-grid">
+            <div class="metric-card">
+                <div class="metric-label">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                    Ping Zaman Aşımı
+                </div>
+                <div class="metric-input-group">
+                    <button class="step-btn" data-action="dec">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                    </button>
+                    <input type="number" id="inp-timeout" class="big-input" min="500" max="10000" step="100" value="3000">
+                    <button class="step-btn" data-action="inc">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                    </button>
+                    <span class="metric-unit">ms</span>
+                </div>
+            </div>
+            
+            <div class="metric-card">
+                <div class="metric-label">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                    Önbellek Süresi
+                </div>
+                <div class="metric-input-group">
+                    <button class="step-btn" data-action="dec">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                    </button>
+                    <input type="number" id="inp-cache" class="big-input" min="1" max="60" value="10">
+                    <button class="step-btn" data-action="inc">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                    </button>
+                    <span class="metric-unit">dk</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Toggles List -->
+        <div class="settings-list">
+            <div class="setting-row">
+              <div class="setting-label">
+                <span>Yeni Sekmede Aç</span>
+                <small>Katıl butonuna basınca oyun yeni sekmede açılır.</small>
+              </div>
+              <label class="switch">
+                <input type="checkbox" id="chk-newtab">
+                <span class="slider"></span>
+              </label>
+            </div>
+
+            <div class="setting-row">
+              <div class="setting-label">
+                <span>URL Bölge Parametresi</span>
+                <small>Linke <code>?rotaRegion=CODE</code> parametresi ekler (Deneysel).</small>
+              </div>
+              <label class="switch">
+                <input type="checkbox" id="chk-appendparam">
+                <span class="slider"></span>
+              </label>
+            </div>
+        </div>
+      </section>
+
+      <!-- Probe Settings -->
+      <section class="card">
+        <div class="card-header-row">
+            <h2>Ping Noktaları (Problar)</h2>
+            <span class="badge">Gelişmiş</span>
+        </div>
+        <p class="info-text">Bölgesel gecikmeyi ölçmek için kullanılan sunucu adresleri. İsimler sabittir, sadece test adreslerini değiştirebilirsiniz.</p>
+        
+        <div id="probe-list" class="probe-list">
+          <!-- JS injects rows here securely -->
+        </div>
+      </section>
+
+      <!-- Data Management (Danger Zone) -->
+      <section class="card danger-zone">
+        <h2>Veri Yönetimi</h2>
+        <div class="danger-row">
+          <div class="setting-label">
+            <span>Favorileri Temizle</span>
+            <small>Kaydedilen tüm oyunları kütüphaneden siler.</small>
+          </div>
+          <button id="btn-clear-favs" class="btn danger-outline">Temizle</button>
+        </div>
+        <div class="danger-row">
+          <div class="setting-label">
+             <span>Fabrika Ayarlarına Dön</span>
+             <small>Tüm ayarları ve yapılandırmaları sıfırlar.</small>
+          </div>
+          <button id="btn-reset" class="btn danger-outline">Sıfırla</button>
+        </div>
+      </section>
+
+      <!-- Actions -->
+      <div class="actions-footer">
+        <span id="unsaved-indicator" style="opacity: 0;">Değişiklikler var...</span>
+        <button id="btn-save" class="btn primary large">Ayarları Kaydet</button>
+      </div>
+
+      <div class="footer-signature">
+        Tracked v1.1 • Developed by Darkzzers
+      </div>
+    </main>
+  </div>
+  
+  <div id="toast-container"></div>
+
+  <script src="options.js"></script>
+</body>
+</html>

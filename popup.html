@@ -1,0 +1,193 @@
+
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=360, initial-scale=1.0">
+  <title>Tracked</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  
+  <!-- Background Ambient Blooms -->
+  <div class="blooms">
+    <div class="bloom bloom-1"></div>
+    <div class="bloom bloom-2"></div>
+  </div>
+
+  <div id="root" class="sheet">
+    <!-- Header -->
+    <header class="header">
+      <div class="header-left">
+        <div class="orb"></div>
+        <div class="header-titles">
+          <h1>Tracked</h1>
+          <span class="status-badge" id="global-status">Hazır</span>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button id="btn-theme" class="icon-btn" aria-label="Temayı Değiştir">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+        </button>
+        <button id="btn-options" class="icon-btn" aria-label="Ayarlar">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+        </button>
+      </div>
+    </header>
+
+    <div class="scroll-container">
+      
+      <!-- NEW Module: Network Identity -->
+      <section class="module identity-module">
+          <div class="identity-header">
+              <div class="id-label">AĞ KİMLİĞİ</div>
+              <div class="id-status" id="vpn-status">Analiz Ediliyor...</div>
+          </div>
+          <div class="identity-grid">
+              <div class="id-item">
+                  <span class="id-key">IP LOKASYON</span>
+                  <span class="id-value" id="net-location">--</span>
+              </div>
+              <div class="id-item">
+                  <span class="id-key">ISP / AĞ</span>
+                  <span class="id-value" id="net-isp">--</span>
+              </div>
+          </div>
+      </section>
+
+      <!-- Module 1: Controls -->
+      <section class="module control-module">
+        <div class="segmented-control">
+          <div class="segment-bg"></div>
+          <button class="segment-btn active" data-mode="auto">Otomatik</button>
+          <button class="segment-btn" data-mode="manual">Elle</button>
+        </div>
+        
+        <div class="control-row" style="margin-top: 12px;">
+          <button id="btn-join-strategy" class="dropdown-trigger full-width">
+            <span class="label">Katılma Modu</span>
+            <div class="value-group">
+              <span id="lbl-strategy">Hızlı Rota</span>
+              <svg class="chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </div>
+          </button>
+        </div>
+
+        <!-- Manual Region Selector (Hidden by default) -->
+        <div class="control-row" id="manual-region-row" style="display: none; margin-top: 8px;">
+           <button id="btn-manual-region" class="dropdown-trigger full-width">
+            <span class="label">Bölge Seçimi</span>
+            <div class="value-group">
+              <span id="lbl-manual-region">Seçiniz...</span>
+              <svg class="chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </div>
+          </button>
+        </div>
+      </section>
+
+      <!-- Module 2: Ping & Intelligence -->
+      <section class="module ping-module">
+        <div class="module-header">
+          <h2>Bölgesel Ping</h2>
+          <div class="actions">
+            <button id="btn-toggle-graph" class="icon-btn-small" aria-label="Grafik">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+            </button>
+            <button id="btn-refresh-ping" class="icon-btn-small" aria-label="Yenile">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- New Network Intelligence Dashboard -->
+        <div id="net-dashboard" class="net-dashboard" style="display: none;">
+            <div class="net-grade-box">
+                <div class="grade-label">AĞ NOTU</div>
+                <div id="val-grade" class="grade-value">?</div>
+            </div>
+            <div class="net-stats">
+                <div class="stat-item">
+                    <span class="stat-label">Ortalama</span>
+                    <span id="val-avg-ping" class="stat-value">--ms</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Jitter</span>
+                    <span id="val-jitter" class="stat-value">--ms</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">En İyi</span>
+                    <span id="val-best-region" class="stat-value tiny">--</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- View 1: List -->
+        <div class="ping-list" id="ping-list">
+          <!-- Skeleton Loading State -->
+          <div class="ping-item skeleton"></div>
+          <div class="ping-item skeleton"></div>
+          <div class="ping-item skeleton"></div>
+        </div>
+
+        <!-- View 2: Graph -->
+        <div class="ping-graph-container" id="ping-graph-container" style="display: none;">
+          <svg id="ping-chart-svg" class="ping-chart" viewBox="0 0 300 120" preserveAspectRatio="none">
+            <!-- Injected by JS -->
+          </svg>
+          <div class="graph-legend" id="graph-legend"></div>
+        </div>
+      </section>
+
+      <!-- Module 3: Library -->
+      <section class="module library-module">
+        <div class="module-header">
+          <h2>Oyun Kütüphanesi</h2>
+          <button id="btn-add-fav" class="pill-btn primary">+ EKLE</button>
+        </div>
+        
+        <div class="search-container">
+          <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          <input type="text" id="inp-search-library" class="search-input" placeholder="Oyun Ara (İsim veya ID)...">
+          <button id="btn-voice-search" class="voice-search-btn" aria-label="Sesli Arama">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
+          </button>
+        </div>
+
+        <div class="library-viewport" id="library-list">
+          <!-- Default Empty State -->
+          <div class="empty-state">
+              <div class="empty-icon">📂</div>
+              <div class="empty-title">Kütüphaneniz Boş</div>
+              <div class="empty-desc">Roblox oyun sayfasına gidin ve <strong>+ EKLE</strong> butonuna basarak oyunları buraya sabitleyin.</div>
+          </div>
+        </div>
+      </section>
+
+      <div class="footer-note">
+        Tracked v1.1 • Developed by Darkzzers
+      </div>
+    </div>
+
+    <!-- Portal Overlay Root for Dropdowns/Toasts -->
+    <div id="overlay-root" class="overlay-root"></div>
+    
+    <!-- Server Scanner Modal (Hidden by Default) -->
+    <div id="server-scanner-modal" class="scanner-modal" style="display: none;">
+      <div class="scanner-content">
+        <div class="scanner-header">
+           <h3>Sunucu Tarayıcı</h3>
+           <button id="btn-close-scanner" class="icon-btn-small">✕</button>
+        </div>
+        <div class="scanner-status" id="scanner-status">Roblox API bağlanıyor...</div>
+        <div class="scanner-list" id="scanner-list">
+           <!-- Server items will go here -->
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="ping_utils.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

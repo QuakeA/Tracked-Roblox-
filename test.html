@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <title>Tracked - Test Suite</title>
+  <link rel="stylesheet" href="popup.css">
+  <style>
+    body { height: auto; min-height: 100vh; overflow-y: auto; padding: 20px; }
+    .test-container { max-width: 600px; margin: 0 auto; }
+    .test-header { margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid var(--stroke); }
+    .test-log { font-family: 'SF Mono', monospace; font-size: 13px; display: flex; flex-direction: column; gap: 8px; }
+    .log-entry { padding: 10px 14px; border-radius: 8px; background: rgba(255,255,255,0.05); border: 1px solid var(--stroke); }
+    .log-entry.pass { border-left: 4px solid var(--accent-green); color: var(--accent-green); }
+    .log-entry.fail { border-left: 4px solid var(--accent-red); color: var(--accent-red); }
+    .log-entry.info { border-left: 4px solid var(--accent-blue); color: var(--text-primary); }
+    .status-icon { margin-right: 8px; }
+  </style>
+</head>
+<body>
+  <div class="blooms">
+    <div class="bloom bloom-1"></div>
+    <div class="bloom bloom-2"></div>
+  </div>
+
+  <div class="test-container">
+    <div class="test-header">
+      <h1>Automated Tests</h1>
+      <p style="color: var(--text-secondary);">Ping Logic Verification</p>
+    </div>
+    
+    <div id="test-output" class="test-log">
+      <!-- Results injected here -->
+      <div class="log-entry info">Initializing tests...</div>
+    </div>
+  </div>
+
+  <!-- Mock DOM for popup.js -->
+  <div id="mock-dom" style="display:none;">
+    <div id="root"></div>
+    <div id="overlay-root"></div>
+    <div id="btn-options"></div>
+    <div id="btn-theme"></div>
+    <div id="btn-refresh-ping"><svg></svg></div>
+    <div id="btn-toggle-graph"></div>
+    <div id="btn-add-fav"></div>
+    <div id="ping-list"></div>
+    <div id="ping-graph-container"></div>
+    <div id="ping-chart-svg"></div>
+    <div id="graph-legend"></div>
+    <div id="library-list"></div>
+    <div id="global-status"></div>
+    <div id="btn-join-strategy"></div>
+    <div id="lbl-strategy"></div>
+    <div id="btn-manual-region"></div>
+    <div id="lbl-manual-region"></div>
+    <div id="manual-region-row"></div>
+    <div id="inp-search-library"></div>
+    <div id="btn-voice-search"></div>
+    <div class="segment-bg"></div>
+    <div class="segment-btn" data-mode="auto"></div>
+    <div class="segment-btn" data-mode="manual"></div>
+    <div class="segmented-control"></div>
+  </div>
+
+  <script>
+    // Chrome Mock Setup
+    window.mockChrome = {
+        tabs: {
+            create: (args) => { console.log('Mock create:', args); },
+            update: (args) => { console.log('Mock update:', args); },
+            query: async () => ([{ id: 1, url: 'https://www.roblox.com/games/123456/Test-Game', title: 'Test Game - Roblox' }]),
+            sendMessage: async () => ({ title: 'Test Game' })
+        },
+        storage: {
+            local: {
+                get: async (keys) => {
+                    // Return basic defaults to prevent startup errors
+                    return {
+                        rota_settings: {
+                            timeoutMs: 100,
+                            cacheMinutes: 10,
+                            openInNewTab: false,
+                            appendRegionParam: false,
+                            probes: { "TestRegion": "https://example.com" }
+                        },
+                        rota_favorites: []
+                    };
+                },
+                set: async (items) => { console.log('Mock storage set:', items); }
+            },
+            onChanged: {
+                addListener: (cb) => { console.log('Mock storage.onChanged listener added'); }
+            }
+        },
+        runtime: {
+            openOptionsPage: () => { console.log('Mock openOptionsPage'); },
+            getURL: (path) => `mock-extension://${path}`
+        },
+        alarms: {
+            create: () => {},
+            onAlarm: { addListener: () => {} }
+        }
+    };
+    window.chrome = window.mockChrome;
+  </script>
+
+  <script src="ping_utils.js"></script>
+  <script src="popup.js"></script>
+  <script src="test.js"></script>
+</body>
+</html>

@@ -1,0 +1,51 @@
+
+{
+  "manifest_version": 3,
+  "name": "Tracked - Roblox Route Optimizer",
+  "version": "1.1.0",
+  "description": "Roblox için gelişmiş rota takibi, ping ölçümü, VPN tespiti ve oyun kütüphanesi yöneticisi.",
+  "permissions": [
+    "storage",
+    "activeTab",
+    "alarms"
+  ],
+  "host_permissions": [
+    "https://www.roblox.com/*",
+    "https://users.roblox.com/*",
+    "https://presence.roblox.com/*",
+    "https://games.roblox.com/*",
+    "http://*/*",
+    "https://*/*"
+  ],
+  "background": {
+    "service_worker": "service_worker.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Tracked",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "options_page": "options.html",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.roblox.com/games/*"
+      ],
+      "css": [
+        "content_styles.css"
+      ],
+      "js": [
+        "content_script.js"
+      ]
+    }
+  ]
+}
