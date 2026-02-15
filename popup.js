@@ -60,7 +60,8 @@ const state = {
     theme: 'dark',
     pingCache: null,
     viewMode: 'list', // 'list' | 'graph'
-    ipInfo: null
+    ipInfo: null,
+    gameData: {} // v3.7: Live game activity data
 };
 
 // DOM Elements
@@ -86,7 +87,6 @@ const ui = {
     lblManualRegion: document.getElementById('lbl-manual-region'),
     manualRegionRow: document.getElementById('manual-region-row'),
     inpSearch: document.getElementById('inp-search-library'),
-    btnVoiceSearch: document.getElementById('btn-voice-search'),
     blooms: document.querySelector('.blooms'),
     // Dashboard Els
     netDashboard: document.getElementById('net-dashboard'),
@@ -113,8 +113,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!ui.root) return; 
 
     await loadState();
+    
+    // v3.7: Apply language from settings
+    if (state.settings.language) {
+        TrackedI18n.setLocale(state.settings.language);
+    }
+    applyTranslations();
+    
     setupEventListeners();
     renderUI();
+    
+    // v3.7: Trigger initial game library tracking
+    triggerGameLibraryUpdate();
     
     // Check network status before measuring
     if (navigator.onLine) {
@@ -124,6 +134,35 @@ document.addEventListener('DOMContentLoaded', async () => {
         handleOfflineState();
     }
 });
+
+// v3.7: Apply translations to all elements with data-i18n attribute
+function applyTranslations() {
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (key) {
+            el.textContent = TrackedI18n.t(key);
+        }
+    });
+    
+    document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+        const key = el.getAttribute('data-i18n-placeholder');
+        if (key) {
+            el.placeholder = TrackedI18n.t(key);
+        }
+    });
+}
+
+/**
+ * v3.7: Trigger background game library update
+ */
+async function triggerGameLibraryUpdate() {
+    try {
+        // Request background update
+        chrome.runtime.sendMessage({ action: 'refreshGameLibrary' });
+    } catch (e) {
+        console.log('[Popup] Could not trigger library update:', e);
+    }
+}
 
 async function loadState() {
     try {
@@ -135,7 +174,8 @@ async function loadState() {
             STORAGE_KEYS.JOIN_STRATEGY, 
             STORAGE_KEYS.THEME,
             STORAGE_KEYS.PING_CACHE,
-            STORAGE_KEYS.PING_HISTORY
+            STORAGE_KEYS.PING_HISTORY,
+            'rota_game_data' // v3.7: Game activity data
         ]);
         console.log('[Popup] Loaded state:', data);
 
@@ -147,12 +187,18 @@ async function loadState() {
         state.theme = data[STORAGE_KEYS.THEME] || 'dark';
         state.pingCache = data[STORAGE_KEYS.PING_CACHE] || null;
         state.pingHistory = data[STORAGE_KEYS.PING_HISTORY] || [];
+        state.gameData = data.rota_game_data || {}; // v3.7: Live game data
+
+        // v3.7: Set language from settings
+        if (state.settings.language) {
+            TrackedI18n.setLocale(state.settings.language);
+        }
 
         applyTheme(state.theme);
         applyAppearanceSettings();
     } catch (err) {
         console.error('[Popup] Failed to load state:', err);
-        showToast('Ayarlar yüklenirken hata oluştu.', 'error');
+        showToast(TrackedI18n.t('settingsLoadError'), 'error');
         // Fallback to defaults allows the app to render even if storage fails
         applyTheme('dark');
     }
@@ -177,34 +223,34 @@ async function safeStorageSet(items) {
         await chrome.storage.local.set(items);
     } catch (err) {
         console.error('[Popup] Storage save failed:', err);
-        showToast('Veriler kaydedilemedi. Depolama hatası.', 'error');
+        showToast(TrackedI18n.t('settingsLoadError'), 'error');
     }
 }
 
 function handleOfflineState() {
     if (ui.globalStatus) {
-        ui.globalStatus.textContent = "Çevrimdışı";
+        ui.globalStatus.textContent = TrackedI18n.t('statusOffline');
         ui.globalStatus.style.color = "var(--accent-red)";
     }
     if (ui.pingList) {
-        ui.pingList.innerHTML = `<div class="empty-state"><p>İnternet bağlantısı yok.</p></div>`;
+        ui.pingList.innerHTML = `<div class="empty-state"><p>${TrackedI18n.t('statusOffline')}.</p></div>`;
     }
     if (ui.netDashboard) ui.netDashboard.style.display = 'none';
 }
 
 function formatPlaytime(seconds) {
-    if (!seconds) return '0 dk';
-    if (seconds < 60) return '< 1 dk';
+    if (!seconds) return `0 ${TrackedI18n.t('minutes')}`;
+    if (seconds < 60) return TrackedI18n.t('lessThanMinute');
     
     const minutes = Math.floor(seconds / 60);
     const hours = Math.floor(minutes / 60);
     
     if (hours > 0) {
-        // e.g. 1.5 sa
+        // e.g. 1.5 h
         const displayHours = (minutes / 60).toFixed(1).replace('.0', '');
-        return `${displayHours} sa`;
+        return `${displayHours} ${TrackedI18n.t('hours')}`;
     }
-    return `${minutes} dk`;
+    return `${minutes} ${TrackedI18n.t('minutes')}`;
 }
 
 function setupEventListeners() {
@@ -236,14 +282,14 @@ function setupEventListeners() {
         ui.btnJoinStrategy.addEventListener('click', (e) => {
             openDropdown(ui.btnJoinStrategy, [
                 { 
-                    label: 'Normal Giriş', 
+                    label: TrackedI18n.t('normalJoin'), 
                     value: 'normal', 
-                    desc: 'Standart Roblox bağlantısı ile oyuna katılır.' 
+                    desc: TrackedI18n.t('normalJoinDesc')
                 },
                 { 
-                    label: 'Hızlı Rota (Önerilen)', 
+                    label: TrackedI18n.t('fastRoute'), 
                     value: 'fast', 
-                    desc: 'En düşük ping değerine sahip bölge üzerinden yönlendirme yapar.' 
+                    desc: TrackedI18n.t('fastRouteDesc')
                 }
             ], (val) => {
                 console.log('[Popup] Strategy changed to:', val);
@@ -283,11 +329,6 @@ function setupEventListeners() {
         ui.inpSearch.addEventListener('input', () => renderLibrary());
     }
 
-    // Voice Search
-    if (ui.btnVoiceSearch) {
-        setupVoiceSearch();
-    }
-    
     // Close Scanner Modal
     if (ui.btnCloseScanner) {
         ui.btnCloseScanner.addEventListener('click', () => {
@@ -318,64 +359,16 @@ function setupEventListeners() {
                 state.settings = { ...DEFAULT_SETTINGS, ...changes[STORAGE_KEYS.SETTINGS].newValue };
                 applyAppearanceSettings();
             }
+            // v3.7: Listen for game data updates
+            if (changes.rota_game_data) {
+                state.gameData = changes.rota_game_data.newValue || {};
+                renderLibrary();
+            }
         }
     });
 }
 
-function setupVoiceSearch() {
-    if (!('webkitSpeechRecognition' in window)) {
-        ui.btnVoiceSearch.style.display = 'none'; // Hide if not supported
-        return;
-    }
 
-    const recognition = new webkitSpeechRecognition();
-    recognition.continuous = false;
-    recognition.interimResults = false;
-    recognition.lang = 'tr-TR'; // Turkish context
-
-    let isListening = false;
-
-    ui.btnVoiceSearch.addEventListener('click', () => {
-        if (isListening) {
-            recognition.stop();
-        } else {
-            recognition.start();
-        }
-    });
-
-    recognition.onstart = () => {
-        isListening = true;
-        ui.btnVoiceSearch.classList.add('listening');
-        showToast('Dinleniyor...', 'info');
-    };
-
-    recognition.onend = () => {
-        isListening = false;
-        ui.btnVoiceSearch.classList.remove('listening');
-    };
-
-    recognition.onresult = (event) => {
-        const transcript = event.results[0][0].transcript;
-        if (ui.inpSearch) {
-            ui.inpSearch.value = transcript;
-            // Remove ending punctuation that might interfere with search
-            ui.inpSearch.value = ui.inpSearch.value.replace(/[.,?!]$/, '');
-            renderLibrary();
-            showToast(`"${ui.inpSearch.value}" aranıyor.`, 'success');
-        }
-    };
-
-    recognition.onerror = (event) => {
-        isListening = false;
-        ui.btnVoiceSearch.classList.remove('listening');
-        console.error('[Popup] Speech recognition error', event.error);
-        if (event.error === 'not-allowed') {
-            showToast('Mikrofon izni verilmedi.', 'error');
-        } else {
-            showToast('Ses anlaşılamadı.', 'error');
-        }
-    };
-}
 
 /**
  * THEME LOGIC
@@ -426,7 +419,7 @@ function renderControls() {
     if (ui.manualRegionRow) ui.manualRegionRow.style.display = isManual ? 'block' : 'none';
 
     // Update Labels
-    if (ui.lblStrategy) ui.lblStrategy.textContent = state.joinStrategy === 'normal' ? 'Normal Giriş' : 'Hızlı Rota';
+    if (ui.lblStrategy) ui.lblStrategy.textContent = state.joinStrategy === 'normal' ? TrackedI18n.t('normalJoin') : TrackedI18n.t('fastRoute');
     if (ui.lblManualRegion) ui.lblManualRegion.textContent = state.selectedRegion || 'Seçiniz';
 }
 
@@ -460,7 +453,7 @@ function toggleGraphView() {
 async function checkNetworkIdentity() {
     if (ui.netLocation) ui.netLocation.textContent = '...';
     if (ui.netIsp) ui.netIsp.textContent = '...';
-    if (ui.vpnStatus) ui.vpnStatus.textContent = 'Analiz Ediliyor...';
+    if (ui.vpnStatus) ui.vpnStatus.textContent = TrackedI18n.t('analyzing');
 
     try {
         // Fetch from a free JSON IP API (http required for some, https for others, check manifest)
@@ -485,26 +478,26 @@ async function checkNetworkIdentity() {
                 // If I am pinging Germany best, and my IP is Germany, it's consistent.
                 const bestCode = state.bestRegion.match(/\(([A-Z]+)\)/)?.[1];
                 if (bestCode && data.countryCode === bestCode) {
-                    pingHint = " (Optimum)";
+                    pingHint = TrackedI18n.t('optimum');
                 }
             }
 
             if (browserTz !== ipTz) {
-                ui.vpnStatus.textContent = "Muhtemel VPN" + pingHint;
+                ui.vpnStatus.textContent = TrackedI18n.t('probableVPN') + pingHint;
                 ui.vpnStatus.style.color = "var(--accent-purple)";
             } else {
-                ui.vpnStatus.textContent = "Direkt Bağlantı" + pingHint;
+                ui.vpnStatus.textContent = TrackedI18n.t('directConnection') + pingHint;
                 ui.vpnStatus.style.color = "var(--accent-green)";
             }
 
         } else {
-            ui.vpnStatus.textContent = "Bilinmiyor";
-            ui.netLocation.textContent = "Hata";
+            ui.vpnStatus.textContent = TrackedI18n.t('unknown');
+            ui.netLocation.textContent = TrackedI18n.t('statusError');
         }
 
     } catch (e) {
         console.warn('Network identity check failed:', e);
-        if (ui.vpnStatus) ui.vpnStatus.textContent = "Servis Dışı";
+        if (ui.vpnStatus) ui.vpnStatus.textContent = TrackedI18n.t('serviceUnavailable');
     }
 }
 
@@ -532,7 +525,7 @@ async function measurePings(force = false) {
             
             if (state.viewMode === 'graph') renderGraph();
             if (ui.globalStatus) {
-                ui.globalStatus.textContent = "Hazır (Önbellek)";
+                ui.globalStatus.textContent = TrackedI18n.t('statusReadyCache');
                 ui.globalStatus.style.color = "var(--accent-green)";
             }
             return;
@@ -553,13 +546,13 @@ async function measurePings(force = false) {
     if (ui.netDashboard) ui.netDashboard.style.display = 'none'; // Hide while loading
 
     if (ui.globalStatus) {
-        ui.globalStatus.textContent = "Ölçülüyor...";
+        ui.globalStatus.textContent = TrackedI18n.t('statusMeasuring');
         ui.globalStatus.style.color = "var(--accent-yellow)";
     }
 
     const probes = state.settings.probes;
     if (!probes || Object.keys(probes).length === 0) {
-        showToast('Ayarlarda tanımlı prob bulunamadı.', 'error');
+        showToast(TrackedI18n.t('noProbesFound'), 'error');
         if (ui.pingList) ui.pingList.innerHTML = '';
         return;
     }
@@ -620,14 +613,14 @@ async function measurePings(force = false) {
 
         if (ui.btnRefreshPing) ui.btnRefreshPing.querySelector('svg').classList.remove('spin');
         if (ui.globalStatus) {
-            ui.globalStatus.textContent = "Güncel";
+            ui.globalStatus.textContent = TrackedI18n.t('statusReady');
             ui.globalStatus.style.color = "var(--accent-green)";
         }
     } catch (err) {
         console.error('[Popup] Ping measurement failed:', err);
-        showToast('Ping ölçümü başarısız.', 'error');
+        showToast(TrackedI18n.t('pingMeasureFailed'), 'error');
         if (ui.btnRefreshPing) ui.btnRefreshPing.querySelector('svg').classList.remove('spin');
-        if (ui.globalStatus) ui.globalStatus.textContent = "Hata";
+        if (ui.globalStatus) ui.globalStatus.textContent = TrackedI18n.t('statusError');
     }
 }
 
@@ -647,8 +640,8 @@ function renderDashboard(grade, jitter, avgPing) {
     ui.valGrade.textContent = grade;
     
     // Update stats
-    ui.valAvgPing.textContent = avgPing > 0 ? `${avgPing}ms` : '--';
-    ui.valJitter.textContent = jitter >= 0 ? `${jitter}ms` : '--';
+    ui.valAvgPing.textContent = avgPing > 0 ? `${avgPing}${TrackedI18n.t('ms')}` : '--';
+    ui.valJitter.textContent = jitter >= 0 ? `${jitter}${TrackedI18n.t('ms')}` : '--';
     
     const bestReg = state.bestRegion ? state.bestRegion.split(' ')[0] : '--';
     ui.valBestRegion.textContent = bestReg;
@@ -669,7 +662,7 @@ function renderPingList(results) {
     // Check if all failed
     const allFailed = results.every(r => r.ms >= 999);
     if (allFailed) {
-        ui.pingList.innerHTML = `<div class="empty-state"><p>Tüm sunuculardan yanıt alınamadı. Güvenlik duvarınızı kontrol edin.</p></div>`;
+        ui.pingList.innerHTML = `<div class="empty-state"><p>${TrackedI18n.t('allServersFailed')}</p></div>`;
         return;
     }
 
@@ -680,8 +673,8 @@ function renderPingList(results) {
         // Use shared logic for color
         const colorClass = PingUtils.getStatus(res.ms);
 
-        // Display > 900 as "Hata/Timeout"
-        const msDisplay = res.ms >= 900 ? 'Hata' : `${res.ms}ms`;
+        // Display > 900 as "Error/Timeout"
+        const msDisplay = res.ms >= 900 ? TrackedI18n.t('error') : `${res.ms}${TrackedI18n.t('ms')}`;
         // If it's an error, force red dot
         const finalColorClass = res.ms >= 900 ? 'red' : colorClass;
 
@@ -705,7 +698,7 @@ function renderGraph() {
     legend.innerHTML = '';
 
     if (!history || history.length < 2) {
-        svg.innerHTML = '<text x="150" y="60" text-anchor="middle" fill="#888" font-size="12">Yeterli veri yok.</text>';
+        svg.innerHTML = `<text x="150" y="60" text-anchor="middle" fill="#888" font-size="12">${TrackedI18n.t('noData')}</text>`;
         return;
     }
 
@@ -799,21 +792,21 @@ async function addToFavorites() {
         const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
         
         if (!tab || !tab.url.includes('roblox.com/games/')) {
-            showToast('Lütfen bir Roblox oyun sayfasındayken deneyin.', 'error');
+            showToast(TrackedI18n.t('notRobloxPage'), 'error');
             return;
         }
 
         // Extract ID from URL
         const match = tab.url.match(/games\/(\d+)\//);
         if (!match) {
-            showToast('Oyun ID\'si URL\'den okunamadı.', 'error');
+            showToast(TrackedI18n.t('idNotFound'), 'error');
             return;
         }
         const placeId = match[1];
 
         // Check duplicate
         if (state.favorites.some(f => f.placeId === placeId)) {
-            showToast('Bu oyun zaten listenizde ekli.', 'info');
+            showToast(TrackedI18n.t('alreadyInLibrary'), 'info');
             return;
         }
 
@@ -838,15 +831,15 @@ async function addToFavorites() {
         state.favorites.unshift(newItem); // Add to top
         safeStorageSet({ [STORAGE_KEYS.FAVORITES]: state.favorites });
         renderLibrary();
-        showToast('Kütüphaneye eklendi.', 'success');
+        showToast(TrackedI18n.t('addedToLibrary'), 'success');
     } catch (err) {
         console.error('[Popup] Add Favorites failed:', err);
-        showToast('Beklenmedik bir hata oluştu.', 'error');
+        showToast(TrackedI18n.t('errorOccurred'), 'error');
     }
 }
 
 function cleanTitle(t) {
-    if (!t) return 'İsimsiz Oyun';
+    if (!t) return 'Untitled Game';
     return t.replace(' - Roblox', '').trim();
 }
 
@@ -870,10 +863,10 @@ function renderLibrary() {
         // -- UPDATED EMPTY STATE LOGIC --
         const isSearching = !!searchTerm;
         const icon = isSearching ? '🔍' : '📂';
-        const title = isSearching ? 'Sonuç Bulunamadı' : 'Kütüphaneniz Boş';
+        const title = isSearching ? TrackedI18n.t('noResults') : TrackedI18n.t('emptyLibraryTitle');
         const desc = isSearching 
-            ? `"${searchTerm}" ile eşleşen oyun yok.` 
-            : 'Roblox oyun sayfasına gidin ve <strong>+ EKLE</strong> butonuna basarak oyunları buraya sabitleyin.';
+            ? `"${searchTerm}" ${TrackedI18n.t('noResultsDesc')}` 
+            : TrackedI18n.t('emptyLibraryDesc');
         
         ui.libraryList.innerHTML = `
             <div class="empty-state">
@@ -889,19 +882,56 @@ function renderLibrary() {
         el.className = 'lib-item';
         
         const playtimeStr = formatPlaytime(game.playtimeSeconds || 0);
+        
+        // v3.7: Get live game data
+        const liveData = state.gameData && state.gameData[game.placeId];
+        const playerCount = liveData ? liveData.playerCount : null;
+        const trendIcon = liveData ? liveData.trendIcon : '';
+        const hasUpdate = liveData && liveData.hasRecentUpdate;
+        const updateText = liveData ? liveData.updateTimeText : '';
 
-        // Modern Card Layout
+        // v3.7: Build live stats HTML
+        let liveStatsHtml = '';
+        if (playerCount !== null) {
+            liveStatsHtml = `
+                <div class="live-stats">
+                    <span class="player-count-badge">
+                        <span class="live-dot"></span>
+                        ${playerCount.toLocaleString()} ${TrackedI18n.t('players')}
+                    </span>
+                    <span class="trend-indicator" title="Trend">${trendIcon}</span>
+                </div>
+            `;
+        }
+        
+        // v3.7: Update badge HTML
+        let updateBadgeHtml = '';
+        if (hasUpdate) {
+            updateBadgeHtml = `
+                <div class="update-badge">
+                    🆕 ${TrackedI18n.t('newUpdate')}
+                    <span class="update-time">${updateText}</span>
+                </div>
+            `;
+        }
+
+        // Modern Card Layout - v3.7 Enhanced
         el.innerHTML = `
             <div class="lib-header">
                 <div class="lib-icon-box">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
                 </div>
                 <div class="lib-info">
-                    <div class="lib-title">${game.title}</div>
+                    <div class="lib-title">
+                        ${game.title}
+                        ${trendIcon ? `<span class="title-trend">${trendIcon}</span>` : ''}
+                    </div>
                     <div class="lib-sub">
                         <span>ID: ${game.placeId}</span>
                         <span class="playtime-badge">• ${playtimeStr}</span>
                     </div>
+                    ${liveStatsHtml}
+                    ${updateBadgeHtml}
                 </div>
                 <button class="icon-btn-danger delete-btn" data-original-idx="${game.originalIndex}" data-id="${game.placeId}">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
@@ -910,11 +940,11 @@ function renderLibrary() {
             <div class="lib-actions-row">
                 <button class="pill-btn scan" data-id="${game.placeId}">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                    TARA
+                    ${TrackedI18n.t('scan')}
                 </button>
                 <button class="pill-btn join" data-id="${game.placeId}">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-                    KATIL
+                    ${TrackedI18n.t('join')}
                 </button>
             </div>
         `;
@@ -945,7 +975,7 @@ function renderLibrary() {
  */
 async function scanServers(placeId) {
     ui.modalScanner.style.display = 'flex';
-    ui.scannerStatus.textContent = 'Sunucular taranıyor...';
+    ui.scannerStatus.textContent = TrackedI18n.t('scanning');
     ui.scannerList.innerHTML = '';
     
     try {
@@ -953,7 +983,7 @@ async function scanServers(placeId) {
         const data = await res.json();
         
         if (!data.data || data.data.length === 0) {
-            ui.scannerStatus.textContent = 'Aktif sunucu bulunamadı.';
+            ui.scannerStatus.textContent = TrackedI18n.t('noActiveServer');
             return;
         }
 
@@ -1002,18 +1032,28 @@ async function scanServers(placeId) {
             
             // FPS Formatting
             const fpsDisplay = server.fps ? `${Math.round(server.fps)} FPS` : '';
+            
+            // v3.7: Generate Insight Tags
+            let insightTagsHtml = '';
+            if (window.PingUtils && window.PingUtils.analyzeServerPlayers) {
+                const insight = window.PingUtils.analyzeServerPlayers(server);
+                insightTagsHtml = insight.badges.map(b => 
+                    `<span class="insight-tag ${b.type}" title="${TrackedI18n.t(b.type + 'User') || b.label}">${b.icon}</span>`
+                ).join('');
+            }
 
             row.innerHTML = `
                 <div class="server-details">
-                   <div class="player-count">${server.playing} / ${server.maxPlayers} Oyuncu</div>
+                   <div class="player-count">${server.playing} / ${server.maxPlayers} ${TrackedI18n.t('players')}</div>
                    <div class="server-stats-row">
                        <span class="stat-badge ${pingClass}">${pingDisplay}</span>
                        ${fpsDisplay ? `<span class="stat-badge">${fpsDisplay}</span>` : ''}
                    </div>
+                   ${insightTagsHtml ? `<div class="insight-tags-row">${insightTagsHtml}</div>` : ''}
                 </div>
                 <!-- Direct Join Button using chrome.tabs.update -->
                 <button class="server-action-btn join-server" data-place-id="${placeId}" data-job-id="${server.id}">
-                    KATIL
+                    ${TrackedI18n.t('join')}
                 </button>
             `;
             
@@ -1093,7 +1133,7 @@ function joinGame(placeId) {
     // Only apply routing logic if "Fast Rota" is active and we have a valid region
     if (isFast && region) {
         const flag = REGION_FLAGS[region] || '';
-        showToast(`Rota: ${region} ${flag} üzerinden bağlanılıyor...`, 'success');
+        showToast(TrackedI18n.t('connectingTo', { region: `${region} ${flag}` }), 'success');
         
         // Append URL parameter if enabled in settings
         if (state.settings.appendRegionParam) {

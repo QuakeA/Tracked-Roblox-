@@ -22,7 +22,7 @@
         <div class="orb"></div>
         <div class="header-titles">
           <h1>Tracked</h1>
-          <span class="status-badge" id="global-status">Hazır</span>
+          <span class="status-badge" id="global-status" data-i18n="statusReady">Hazır</span>
         </div>
       </div>
       <div class="header-actions">
@@ -40,16 +40,16 @@
       <!-- NEW Module: Network Identity -->
       <section class="module identity-module">
           <div class="identity-header">
-              <div class="id-label">AĞ KİMLİĞİ</div>
-              <div class="id-status" id="vpn-status">Analiz Ediliyor...</div>
+              <div class="id-label" data-i18n="networkIdentity">AĞ KİMLİĞİ</div>
+              <div class="id-status" id="vpn-status" data-i18n="analyzing">Analiz Ediliyor...</div>
           </div>
           <div class="identity-grid">
               <div class="id-item">
-                  <span class="id-key">IP LOKASYON</span>
+                  <span class="id-key" data-i18n="ipLocation">IP LOKASYON</span>
                   <span class="id-value" id="net-location">--</span>
               </div>
               <div class="id-item">
-                  <span class="id-key">ISP / AĞ</span>
+                  <span class="id-key" data-i18n="ispNetwork">ISP / AĞ</span>
                   <span class="id-value" id="net-isp">--</span>
               </div>
           </div>
@@ -59,13 +59,13 @@
       <section class="module control-module">
         <div class="segmented-control">
           <div class="segment-bg"></div>
-          <button class="segment-btn active" data-mode="auto">Otomatik</button>
-          <button class="segment-btn" data-mode="manual">Elle</button>
+          <button class="segment-btn active" data-mode="auto" data-i18n="automatic">Otomatik</button>
+          <button class="segment-btn" data-mode="manual" data-i18n="manual">Elle</button>
         </div>
         
         <div class="control-row" style="margin-top: 12px;">
           <button id="btn-join-strategy" class="dropdown-trigger full-width">
-            <span class="label">Katılma Modu</span>
+            <span class="label" data-i18n="joinMode">Katılma Modu</span>
             <div class="value-group">
               <span id="lbl-strategy">Hızlı Rota</span>
               <svg class="chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
@@ -88,7 +88,7 @@
       <!-- Module 2: Ping & Intelligence -->
       <section class="module ping-module">
         <div class="module-header">
-          <h2>Bölgesel Ping</h2>
+          <h2 data-i18n="regionalPing">Bölgesel Ping</h2>
           <div class="actions">
             <button id="btn-toggle-graph" class="icon-btn-small" aria-label="Grafik">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
@@ -102,20 +102,20 @@
         <!-- New Network Intelligence Dashboard -->
         <div id="net-dashboard" class="net-dashboard" style="display: none;">
             <div class="net-grade-box">
-                <div class="grade-label">AĞ NOTU</div>
+                <div class="grade-label" data-i18n="networkGrade">AĞ NOTU</div>
                 <div id="val-grade" class="grade-value">?</div>
             </div>
             <div class="net-stats">
                 <div class="stat-item">
-                    <span class="stat-label">Ortalama</span>
+                    <span class="stat-label" data-i18n="average">Ortalama</span>
                     <span id="val-avg-ping" class="stat-value">--ms</span>
                 </div>
                 <div class="stat-item">
-                    <span class="stat-label">Jitter</span>
+                    <span class="stat-label" data-i18n="jitter">Jitter</span>
                     <span id="val-jitter" class="stat-value">--ms</span>
                 </div>
                 <div class="stat-item">
-                    <span class="stat-label">En İyi</span>
+                    <span class="stat-label" data-i18n="best">En İyi</span>
                     <span id="val-best-region" class="stat-value tiny">--</span>
                 </div>
             </div>
@@ -141,16 +141,13 @@
       <!-- Module 3: Library -->
       <section class="module library-module">
         <div class="module-header">
-          <h2>Oyun Kütüphanesi</h2>
-          <button id="btn-add-fav" class="pill-btn primary">+ EKLE</button>
+          <h2 data-i18n="gameLibrary">Oyun Kütüphanesi</h2>
+          <button id="btn-add-fav" class="pill-btn primary" data-i18n="add">+ EKLE</button>
         </div>
         
         <div class="search-container">
           <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-          <input type="text" id="inp-search-library" class="search-input" placeholder="Oyun Ara (İsim veya ID)...">
-          <button id="btn-voice-search" class="voice-search-btn" aria-label="Sesli Arama">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
-          </button>
+          <input type="text" id="inp-search-library" class="search-input" data-i18n-placeholder="searchPlaceholder" placeholder="Oyun Ara (İsim veya ID)..." style="padding-right: 12px;">
         </div>
 
         <div class="library-viewport" id="library-list">
@@ -164,7 +161,7 @@
       </section>
 
       <div class="footer-note">
-        Tracked v1.1 • Developed by Darkzzers
+        Tracked v3.7 • <span data-i18n="appTagline">Smart Activity Tracking</span>
       </div>
     </div>
 
@@ -175,10 +172,10 @@
     <div id="server-scanner-modal" class="scanner-modal" style="display: none;">
       <div class="scanner-content">
         <div class="scanner-header">
-           <h3>Sunucu Tarayıcı</h3>
+           <h3 data-i18n="serverScanner">Sunucu Tarayıcı</h3>
            <button id="btn-close-scanner" class="icon-btn-small">✕</button>
         </div>
-        <div class="scanner-status" id="scanner-status">Roblox API bağlanıyor...</div>
+        <div class="scanner-status" id="scanner-status" data-i18n="connecting">Roblox API bağlanıyor...</div>
         <div class="scanner-list" id="scanner-list">
            <!-- Server items will go here -->
         </div>
@@ -187,7 +184,9 @@
 
   </div>
 
+  <script src="i18n.js"></script>
   <script src="ping_utils.js"></script>
+  <script src="ui.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>

@@ -190,6 +190,34 @@ input[type=number] { -moz-appearance: textfield; }
     border-radius: 10px; padding: 4px; gap: 8px;
 }
 
+/* Language Select */
+.language-select {
+    background: rgba(0,0,0,0.3);
+    border: 1px solid var(--card-border);
+    border-radius: 10px;
+    padding: 10px 14px;
+    color: var(--text);
+    font-size: 14px;
+    cursor: pointer;
+    min-width: 160px;
+    outline: none;
+    transition: all 0.2s ease;
+}
+
+.language-select:hover {
+    border-color: rgba(255,255,255,0.2);
+}
+
+.language-select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(10, 132, 255, 0.15);
+}
+
+.language-select option {
+    background: var(--card-bg);
+    color: var(--text);
+}
+
 .step-btn {
     width: 32px; height: 32px;
     border-radius: 8px;

@@ -1,214 +1,832 @@
+/* content_styles.css - Tracked Extension v2.4.2 */
+/* Final Stable Version */
 
-/* content_styles.css */
-
-h1.game-name, h1[data-testid="game-name"] {
-  display: inline-flex !important;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 12px;
+:root {
+  --tr-accent-blue: #0A84FF;
+  --tr-accent-green: #30D158;
+  --tr-accent-red: #FF453A;
+  --tr-accent-yellow: #FFD60A;
+  --tr-accent-purple: #BF5AF2;
+  --tr-text-primary: rgba(255, 255, 255, 0.95);
+  --tr-text-secondary: rgba(255, 255, 255, 0.7);
+  --tr-text-tertiary: rgba(255, 255, 255, 0.5);
 }
 
-/* --- Tracked Game Bar (Web Page Injection) --- */
+/* ============================================
+   GAME BAR - v2.4.2 STABLE
+   ============================================ */
 .tracked-game-bar {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    background: #232527; /* Matching dark theme gray */
-    padding: 8px 12px;
-    border-radius: 8px;
-    margin-top: 12px;
-    width: 100%;
-    max-width: 600px; /* Limit width */
-    box-sizing: border-box;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    animation: fadeIn 0.4s ease;
+  /* v2.4.2: Z-index ve pozisyon */
+  z-index: 999999 !important;
+  position: relative !important;
+  
+  /* v2.4.2: Flexbox - nowrap ile buton kaymasını engelle */
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  flex-wrap: nowrap !important;
+  flex-direction: row !important;
+  gap: 4px !important;
+  
+  /* v2.4.2: Genişlik */
+  width: fit-content !important;
+  min-width: fit-content !important;
+  max-width: 100% !important;
+  
+  /* v2.4.2: Margin ve clear - Roblox butonlarıyla çakışmayı önle */
+  margin: 5px 0 !important;
+  clear: both !important;
+  float: none !important;
+  
+  /* Glassmorphism */
+  background: linear-gradient(180deg, 
+    rgba(255,255,255,0.12) 0%, 
+    rgba(255,255,255,0.06) 100%) !important;
+  backdrop-filter: blur(20px) saturate(1.5) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(1.5) !important;
+  
+  border-radius: 12px !important;
+  padding: 5px 8px !important;
+  box-shadow: 
+    inset 0 1px 0 rgba(255,255,255,0.2),
+    0 4px 16px rgba(0,0,0,0.25),
+    inset 0 0 0 1px rgba(255,255,255,0.08) !important;
+  
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  animation: tr-fade-in 0.3s ease;
+  
+  /* v2.4.2: Flex kontrol */
+  flex-shrink: 0 !important;
+  flex-grow: 0 !important;
+  
+  overflow: visible !important;
+  box-sizing: border-box !important;
 }
 
-@keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes tr-fade-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 
 .tracked-bar-logo {
-    color: #0A84FF;
-    display: flex;
-    align-items: center;
-    margin-right: 8px;
+  color: var(--tr-accent-blue) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+  flex-grow: 0 !important;
+  margin-right: 2px !important;
+  width: 18px !important;
+  height: 18px !important;
 }
 
 .tracked-bar-btn {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid transparent;
-    border-radius: 6px;
-    padding: 6px 12px;
-    color: white;
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    font-family: 'Gotham SSm', 'HCo Gotham SSm', sans-serif;
-    transition: all 0.2s;
+  /* v2.4.2: Flex düzeni */
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+  flex-grow: 0 !important;
+  gap: 3px !important;
+  
+  /* v2.4.2: Sabit boyut - kaymayı önle */
+  height: 28px !important;
+  min-height: 28px !important;
+  max-height: 28px !important;
+  
+  background: linear-gradient(180deg,
+    rgba(255,255,255,0.1) 0%,
+    rgba(255,255,255,0.05) 100%) !important;
+  border: none !important;
+  border-radius: 8px !important;
+  padding: 0 8px !important;
+  color: var(--tr-text-primary) !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  white-space: nowrap !important;
+  transition: all 0.15s ease !important;
+  box-shadow: 
+    inset 0 1px 0 rgba(255,255,255,0.15),
+    0 1px 3px rgba(0,0,0,0.2) !important;
+  
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  min-width: fit-content !important;
+  max-width: none !important;
+  line-height: 1 !important;
 }
 
 .tracked-bar-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
-    border-color: rgba(255, 255, 255, 0.2);
+  background: linear-gradient(180deg,
+    rgba(255,255,255,0.18) 0%,
+    rgba(255,255,255,0.1) 100%) !important;
+  transform: translateY(-1px) !important;
 }
 
 .tracked-bar-btn:active {
-    transform: scale(0.96);
+  transform: scale(0.97) !important;
 }
 
-.tracked-bar-btn:disabled {
-    opacity: 0.5;
-    cursor: wait;
+.tracked-bar-btn:disabled,
+.tracked-bar-btn.scanning {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+  pointer-events: none !important;
+}
+
+.tracked-bar-btn.btn-new-server {
+  background: linear-gradient(180deg,
+    rgba(191,90,242,0.15) 0%,
+    rgba(191,90,242,0.08) 100%) !important;
+  color: #E8D5F7 !important;
+}
+
+.tracked-bar-btn.btn-new-server:hover {
+  background: linear-gradient(180deg,
+    rgba(191,90,242,0.25) 0%,
+    rgba(191,90,242,0.15) 100%) !important;
+  box-shadow: 
+    inset 0 1px 0 rgba(255,255,255,0.2),
+    0 0 12px rgba(191,90,242,0.3) !important;
+}
+
+/* ============================================
+   v2.4.2+: FORCE BUTTON - Kırmızı/Deneysel
+   ============================================ */
+.tracked-bar-btn.btn-force {
+  background: linear-gradient(180deg,
+    rgba(255,69,58,0.2) 0%,
+    rgba(255,69,58,0.1) 100%) !important;
+  color: #FFD6D4 !important;
+  border: 1px solid rgba(255,69,58,0.2) !important;
+}
+
+.tracked-bar-btn.btn-force:hover {
+  background: linear-gradient(180deg,
+    rgba(255,69,58,0.35) 0%,
+    rgba(255,69,58,0.2) 100%) !important;
+  box-shadow: 
+    inset 0 1px 0 rgba(255,255,255,0.2),
+    0 0 12px rgba(255,69,58,0.4) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* ============================================
+   v3.0: AUTO-PILOT BUTTON - Mor/Akıllı Filtreleme
+   ============================================ */
+.tracked-bar-btn.btn-autopilot {
+  background: linear-gradient(180deg,
+    rgba(191,90,242,0.25) 0%,
+    rgba(191,90,242,0.12) 100%) !important;
+  color: #F0E0FF !important;
+  border: 1px solid rgba(191,90,242,0.3) !important;
+  flex-shrink: 0 !important;
+  white-space: nowrap !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.2) !important;
+}
+
+.tracked-bar-btn.btn-autopilot:hover {
+  background: linear-gradient(180deg,
+    rgba(191,90,242,0.4) 0%,
+    rgba(191,90,242,0.25) 100%) !important;
+  box-shadow: 
+    inset 0 1px 0 rgba(255,255,255,0.25),
+    0 0 20px rgba(191,90,242,0.6),
+    0 0 40px rgba(191,90,242,0.3) !important;
+  transform: translateY(-1px) !important;
+}
+
+.tracked-bar-btn.btn-autopilot.scanning {
+  animation: autopilot-pulse 1s infinite !important;
+}
+
+@keyframes autopilot-pulse {
+  0%, 100% { 
+    box-shadow: 0 0 0 0 rgba(191,90,242,0.4),
+                inset 0 1px 0 rgba(255,255,255,0.25) !important;
+  }
+  50% { 
+    box-shadow: 0 0 16px 3px rgba(191,90,242,0.7),
+                inset 0 1px 0 rgba(255,255,255,0.35) !important;
+  }
+}
+
+.tracked-bar-btn.scanning::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, 
+    transparent, 
+    rgba(10,132,255,0.3), 
+    transparent);
+  animation: tr-shimmer 1s infinite;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+/* v2.5: Force Mode - Kırmızı shimmer */
+.tracked-game-bar.force-mode-active .tracked-bar-btn.scanning::after {
+  background: linear-gradient(90deg, 
+    transparent, 
+    rgba(255,69,58,0.5), 
+    transparent);
+  animation: tr-shimmer-force 0.6s infinite;
+}
+
+@keyframes tr-shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+@keyframes tr-shimmer-force {
+  0% { transform: translateX(-100%); }
+  50% { transform: translateX(0%); }
+  100% { transform: translateX(100%); }
+}
+
+/* ============================================
+   v2.5: Instance Trigger - Progress Bar
+   ============================================ */
+.force-progress-container {
+  position: absolute !important;
+  bottom: -3px !important;
+  left: 8px !important;
+  right: 8px !important;
+  height: 2px !important;
+  background: rgba(255,69,58,0.2) !important;
+  border-radius: 1px !important;
+  overflow: hidden !important;
+  pointer-events: none !important;
+}
+
+.force-progress-bar {
+  height: 100% !important;
+  width: 0% !important;
+  background: linear-gradient(90deg, 
+    rgba(255,69,58,1), 
+    rgba(255,100,80,1)) !important;
+  transition: width 0.2s ease !important;
+  box-shadow: 0 0 6px rgba(255,69,58,0.6) !important;
+}
+
+.force-progress-bar.failover {
+  background: linear-gradient(90deg, 
+    rgba(255,214,10,1), 
+    rgba(255,180,50,1)) !important;
+  box-shadow: 0 0 6px rgba(255,214,10,0.6) !important;
+}
+
+.tracked-game-bar.force-mode-active {
+  box-shadow: 
+    inset 0 1px 0 rgba(255,255,255,0.2),
+    0 4px 16px rgba(255,69,58,0.25),
+    inset 0 0 0 1px rgba(255,69,58,0.15) !important;
+  border: 1px solid rgba(255,69,58,0.1) !important;
 }
 
 .tracked-divider {
-    width: 1px;
-    height: 16px;
-    background: rgba(255, 255, 255, 0.15);
-    margin: 0 4px;
+  width: 1px !important;
+  height: 16px !important;
+  min-height: 16px !important;
+  max-height: 16px !important;
+  background: linear-gradient(180deg,
+    transparent,
+    rgba(255,255,255,0.2),
+    transparent) !important;
+  flex-shrink: 0 !important;
+  flex-grow: 0 !important;
+  margin: 0 1px !important;
+  align-self: center !important;
 }
 
 .tracked-status {
-    font-size: 11px;
-    margin-left: auto;
-    font-weight: 500;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+  font-size: 10px !important;
+  color: var(--tr-text-secondary) !important;
+  margin-left: 4px !important;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+  flex-grow: 0 !important;
+  max-width: 120px !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  line-height: 1 !important;
 }
 
-/* --- Decision Modal (Glassmorphism) --- */
+.tracked-status.error {
+  color: var(--tr-accent-red) !important;
+}
+
+/* ============================================
+   FALLBACK CONTAINER
+   ============================================ */
+#tracked-fallback-container {
+  position: fixed !important;
+  top: 120px !important;
+  right: 20px !important;
+  left: auto !important;
+  z-index: 999999 !important;
+  pointer-events: none !important;
+  width: auto !important;
+  height: auto !important;
+}
+
+#tracked-fallback-container .tracked-game-bar {
+  pointer-events: auto !important;
+}
+
+/* ============================================
+   MODALS
+   ============================================ */
 .tracked-modal-overlay {
-    position: fixed;
-    inset: 0;
-    z-index: 99999;
-    background: rgba(0, 0, 0, 0.6);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    animation: modalFadeIn 0.3s ease;
+  position: fixed;
+  inset: 0;
+  z-index: 999999 !important;
+  background: rgba(0,0,0,0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: tr-overlay-in 0.2s ease;
+  padding: 20px;
 }
 
-@keyframes modalFadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
+@keyframes tr-overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .tracked-modal {
-    background: #1e1e24; /* Dark gray */
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 16px;
-    padding: 24px;
-    width: 340px;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    font-family: 'Gotham SSm', 'HCo Gotham SSm', sans-serif;
-    animation: modalPopUp 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  background: linear-gradient(180deg,
+    rgba(45,45,50,0.98) 0%,
+    rgba(28,28,32,1) 100%);
+  border-radius: 20px;
+  padding: 28px;
+  width: 360px;
+  max-width: 90vw;
+  text-align: center;
+  box-shadow: 
+    inset 0 1px 0 rgba(255,255,255,0.1),
+    0 25px 50px rgba(0,0,0,0.5),
+    0 0 0 1px rgba(255,255,255,0.05);
+  animation: tr-modal-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  max-height: 90vh;
+  overflow-y: auto;
 }
 
-@keyframes modalPopUp {
-    from { transform: scale(0.95); opacity: 0; }
-    to { transform: scale(1); opacity: 1; }
+@keyframes tr-modal-in {
+  from { 
+    opacity: 0; 
+    transform: scale(0.9) translateY(20px); 
+  }
+  to { 
+    opacity: 1; 
+    transform: scale(1) translateY(0); 
+  }
 }
 
 .tracked-modal-icon {
-    width: 50px; height: 50px;
-    background: rgba(255, 214, 10, 0.1);
-    color: #FFD60A; /* Warning Yellow */
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    margin-bottom: 16px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  margin: 0 auto 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg,
+    rgba(10,132,255,0.2),
+    rgba(10,132,255,0.05));
+  color: var(--tr-accent-blue);
+  box-shadow: 
+    inset 0 1px 0 rgba(255,255,255,0.2),
+    0 0 20px rgba(10,132,255,0.2);
+}
+
+.tracked-modal-icon.warning {
+  background: linear-gradient(135deg,
+    rgba(255,214,10,0.2),
+    rgba(255,214,10,0.05));
+  color: var(--tr-accent-yellow);
+}
+
+.tracked-modal-icon.error {
+  background: linear-gradient(135deg,
+    rgba(255,69,58,0.2),
+    rgba(255,69,58,0.05));
+  color: var(--tr-accent-red);
 }
 
 .tracked-modal h3 {
-    margin: 0 0 8px 0;
-    color: white;
-    font-size: 18px;
-    font-weight: 700;
+  color: var(--tr-text-primary);
+  font-size: 20px;
+  font-weight: 700;
+  margin: 0 0 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
 
 .tracked-modal p {
-    margin: 0 0 20px 0;
-    color: rgba(255, 255, 255, 0.6);
-    font-size: 13px;
-    line-height: 1.5;
+  color: var(--tr-text-secondary);
+  font-size: 14px;
+  margin: 0 0 20px;
+  line-height: 1.5;
 }
 
-/* Improved Stats Layout */
-.tracked-modal-stat {
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 10px;
-    padding: 12px;
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: space-evenly;
-    margin-bottom: 20px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
+.new-badge {
+  background: linear-gradient(135deg, rgba(191,90,242,0.3), rgba(191,90,242,0.15));
+  color: #E8D5F7;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 12px;
+  border: 1px solid rgba(191,90,242,0.3);
+  animation: new-pulse 2s infinite;
 }
 
-.stat-col {
-    display: flex; flex-direction: column; align-items: center; gap: 4px;
+/* v2.5: Instance Trigger Force Badge */
+.force-badge {
+  background: linear-gradient(135deg, rgba(255,69,58,0.4), rgba(255,100,50,0.2));
+  color: #FFD6D4;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,69,58,0.4);
+  animation: force-pulse 1.5s infinite;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
 }
 
-.stat-col .label {
-    font-size: 10px; font-weight: 700; color: rgba(255, 255, 255, 0.4); letter-spacing: 0.5px;
+@keyframes force-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255,69,58,0.5); }
+  50% { box-shadow: 0 0 0 6px rgba(255,69,58,0); }
 }
-.stat-col .value {
-    font-size: 15px; font-weight: 700; color: white;
+
+@keyframes hunting-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
 }
-.stat-col .value.good { color: #30D158; }
-.stat-col .value.warn { color: #FFD60A; }
-.stat-col .value.bad { color: #FF453A; }
+
+/* v2.7: Durdur butonu */
+.tracked-bar-btn.btn-stop-hunt {
+  background: linear-gradient(180deg,
+    rgba(255,69,58,0.4) 0%,
+    rgba(255,69,58,0.2) 100%) !important;
+  color: #fff !important;
+  animation: stop-pulse 1.5s infinite;
+}
+
+@keyframes stop-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255,69,58,0.4); }
+  50% { box-shadow: 0 0 0 4px rgba(255,69,58,0.2); }
+}
+
+@keyframes new-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(191,90,242,0.4); }
+  50% { box-shadow: 0 0 0 8px rgba(191,90,242,0); }
+}
+
+/* Stats */
+.tracked-modal-stats {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.stat-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--tr-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.stat-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--tr-text-primary);
+}
+
+.stat-value.good { color: var(--tr-accent-green); }
+.stat-value.warn { color: var(--tr-accent-yellow); }
+.stat-value.bad { color: var(--tr-accent-red); }
 
 .stat-divider {
-    width: 1px; height: 24px; background: rgba(255, 255, 255, 0.1);
+  width: 1px;
+  height: 32px;
+  background: linear-gradient(180deg,
+    transparent,
+    rgba(255,255,255,0.15),
+    transparent);
 }
 
+/* Buttons */
 .tracked-modal-actions {
-    display: flex;
-    gap: 12px;
-    width: 100%;
-    margin-bottom: 12px;
+  display: flex;
+  gap: 10px;
 }
 
-.tracked-modal-btn {
-    border: none;
-    border-radius: 8px;
-    padding: 10px 16px;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-    font-family: inherit;
+.btn-primary,
+.btn-secondary,
+.btn-danger {
+  flex: 1;
+  padding: 12px 16px;
+  border: none;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
 }
 
-.tracked-modal-btn.primary {
-    background: #0A84FF;
-    color: white;
-    flex: 1;
+.btn-primary {
+  background: linear-gradient(180deg, var(--tr-accent-blue), rgba(10,132,255,0.8));
+  color: white;
+  box-shadow: 
+    inset 0 1px 0 rgba(255,255,255,0.25),
+    0 4px 12px rgba(10,132,255,0.3);
 }
-.tracked-modal-btn.primary:hover { background: #0077ED; }
 
-.tracked-modal-btn.secondary {
-    background: rgba(255, 255, 255, 0.1);
-    color: white;
-    flex: 1;
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 
+    inset 0 1px 0 rgba(255,255,255,0.3),
+    0 6px 16px rgba(10,132,255,0.4);
 }
-.tracked-modal-btn.secondary:hover { background: rgba(255, 255, 255, 0.15); }
 
-.tracked-modal-btn.ghost {
-    background: transparent;
-    color: rgba(255, 255, 255, 0.5);
-    padding: 8px;
-    font-size: 12px;
-    width: 100%;
+.btn-secondary {
+  background: rgba(255,255,255,0.08);
+  color: var(--tr-text-secondary);
+  box-shadow: 
+    inset 0 1px 0 rgba(255,255,255,0.1),
+    inset 0 0 0 1px rgba(255,255,255,0.05);
 }
-.tracked-modal-btn.ghost:hover { color: white; }
+
+.btn-secondary:hover {
+  background: rgba(255,255,255,0.12);
+  color: var(--tr-text-primary);
+}
+
+.btn-danger {
+  background: linear-gradient(180deg, var(--tr-accent-red), rgba(255,69,58,0.8));
+  color: white;
+  box-shadow: 
+    inset 0 1px 0 rgba(255,255,255,0.25),
+    0 4px 12px rgba(255,69,58,0.3);
+}
+
+/* Server list */
+.server-list {
+  max-height: 280px;
+  overflow-y: auto;
+  margin-bottom: 16px;
+}
+
+.server-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 8px;
+  margin-bottom: 6px;
+  transition: background 0.15s ease;
+}
+
+.server-item:hover {
+  background: rgba(255,255,255,0.1);
+}
+
+.server-item.new-server-item {
+  background: linear-gradient(90deg, 
+    rgba(191,90,242,0.08) 0%, 
+    rgba(255,255,255,0.05) 100%);
+  border: 1px solid rgba(191,90,242,0.15);
+}
+
+.server-item.new-server-item:hover {
+  background: linear-gradient(90deg, 
+    rgba(191,90,242,0.15) 0%, 
+    rgba(255,255,255,0.08) 100%);
+  border-color: rgba(191,90,242,0.25);
+}
+
+.server-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--tr-text-secondary);
+}
+
+.server-rank {
+  font-weight: 700;
+  color: var(--tr-accent-blue);
+  min-width: 28px;
+}
+
+.server-ping {
+  font-size: 11px;
+}
+
+.server-ping.good { color: var(--tr-accent-green); }
+.server-ping.warn { color: var(--tr-accent-yellow); }
+.server-ping.bad { color: var(--tr-accent-red); }
+
+.freshness-badge {
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(191,90,242,0.2);
+  color: #E8D5F7;
+  text-transform: uppercase;
+}
+
+.new-badge-small {
+  font-size: 8px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 8px;
+  background: rgba(191,90,242,0.3);
+  color: white;
+  margin-left: 4px;
+}
+
+.server-join-btn {
+  background: var(--tr-accent-blue);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.server-join-btn:hover {
+  background: #0066CC;
+  transform: translateY(-1px);
+}
+
+.server-join-btn.btn-new {
+  background: linear-gradient(135deg, var(--tr-accent-purple), rgba(191,90,242,0.8));
+  box-shadow: 0 2px 8px rgba(191,90,242,0.3);
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+@media (max-width: 768px) {
+  .tracked-game-bar {
+    padding: 4px 6px !important;
+    gap: 3px !important;
+  }
+  
+  .tracked-bar-btn {
+    padding: 0 6px !important;
+    font-size: 10px !important;
+    height: 26px !important;
+    min-height: 26px !important;
+  }
+  
+  .tracked-bar-btn span {
+    display: none !important;
+  }
+  
+  .tracked-bar-btn svg {
+    width: 14px !important;
+    height: 14px !important;
+  }
+  
+  .tracked-divider {
+    height: 14px !important;
+    min-height: 14px !important;
+  }
+  
+  .tracked-status {
+    max-width: 80px !important;
+  }
+}
+
+/* ============================================
+   ROBLOX OVERRIDE FIXES
+   ============================================ */
+.container-main .tracked-game-bar,
+.game-main-content .tracked-game-bar,
+#game-details-page .tracked-game-bar {
+  z-index: 999999 !important;
+  position: relative !important;
+  display: inline-flex !important;
+  flex-wrap: nowrap !important;
+}
+
+/* Roblox play button container sonrası */
+#game-details-play-button-container ~ .tracked-game-bar,
+.game-details-button-container ~ .tracked-game-bar {
+  margin-top: 5px !important;
+  margin-bottom: 5px !important;
+}
+
+/* ============================================
+   v3.7: PLAYER INSIGHT BADGES (Universal)
+   ============================================ */
+.server-quality-badges,
+.insight-badges {
+  display: flex !important;
+  gap: 6px !important;
+  margin-top: 6px !important;
+  flex-wrap: wrap !important;
+}
+
+.insight-badge {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+  padding: 4px 10px !important;
+  border-radius: 6px !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  white-space: nowrap !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  transition: all 0.2s ease !important;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+}
+
+.insight-badge:hover {
+  transform: translateY(-1px) scale(1.05) !important;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2) !important;
+}
+
+/* 💎 Elit Sunucu */
+.insight-badge.elite {
+  background: linear-gradient(135deg, rgba(255,215,0,0.3), rgba(191,90,242,0.25)) !important;
+  color: #FFD700 !important;
+  border: 1px solid rgba(255,215,0,0.5) !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.3) !important;
+  box-shadow: 0 0 12px rgba(255,215,0,0.2), 0 2px 4px rgba(0,0,0,0.1) !important;
+}
+
+/* ⭐ Güvenli Kullanıcı */
+.insight-badge.safe {
+  background: linear-gradient(135deg, rgba(48,209,88,0.25), rgba(30,180,80,0.2)) !important;
+  color: #30D158 !important;
+  border: 1px solid rgba(48,209,88,0.45) !important;
+  box-shadow: 0 0 10px rgba(48,209,88,0.15), 0 2px 4px rgba(0,0,0,0.1) !important;
+}
+
+/* 🤓 Yeni Kullanıcı */
+.insight-badge.newbie {
+  background: linear-gradient(135deg, rgba(100,180,255,0.25), rgba(80,150,255,0.2)) !important;
+  color: #64B4FF !important;
+  border: 1px solid rgba(100,180,255,0.45) !important;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+}
+
+/* 🛡️ Stabil */
+.insight-badge.stable {
+  background: linear-gradient(135deg, rgba(191,90,242,0.25), rgba(150,60,200,0.2)) !important;
+  color: #BF5AF2 !important;
+  border: 1px solid rgba(191,90,242,0.45) !important;
+  box-shadow: 0 0 10px rgba(191,90,242,0.15), 0 2px 4px rgba(0,0,0,0.1) !important;
+}
+
+/* ⚠️ Riskli */
+.insight-badge.risky {
+  background: linear-gradient(135deg, rgba(255,159,10,0.25), rgba(255,120,0,0.2)) !important;
+  color: #FF9F0A !important;
+  border: 1px solid rgba(255,159,10,0.45) !important;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+  animation: risky-pulse 2s ease-in-out infinite !important;
+}
+
+@keyframes risky-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.8; }
+}

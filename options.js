@@ -1,5 +1,5 @@
 
-// options.js
+// options.js - Tracked Extension v3.7 - Multi-language Support
 
 const DEFAULT_SETTINGS = {
     timeoutMs: 3000,
@@ -8,6 +8,7 @@ const DEFAULT_SETTINGS = {
     appendRegionParam: false,
     animationsEnabled: true,
     silentMode: false,
+    language: 'tr', // v3.7: Default language
     probes: {
         "Almanya (DE)": "https://www.google.de/favicon.ico",
         "Hollanda (NL)": "https://www.google.nl/favicon.ico",
@@ -29,6 +30,7 @@ const ui = {
     chkAppendParam: document.getElementById('chk-appendparam'),
     chkAnimations: document.getElementById('chk-animations'),
     chkSilent: document.getElementById('chk-silent'),
+    selLanguage: document.getElementById('sel-language'),
     probeList: document.getElementById('probe-list'),
     btnSave: document.getElementById('btn-save'),
     btnReset: document.getElementById('btn-reset'),
@@ -44,20 +46,45 @@ let hasChanges = false;
 document.addEventListener('DOMContentLoaded', () => {
     loadSettings();
     setupStepperControls();
+    applyTranslations(); // v3.7: Apply translations on load
     // Initialize footer state
     clearUnsaved();
 });
+
 ui.btnSave.addEventListener('click', saveSettings);
 ui.btnReset.addEventListener('click', restoreDefaults);
 ui.btnClearFavs.addEventListener('click', clearFavorites);
 
 // Add change listeners
-[ui.inpTimeout, ui.inpCache, ui.chkNewTab, ui.chkAppendParam, ui.chkAnimations, ui.chkSilent].forEach(el => {
+[ui.inpTimeout, ui.inpCache, ui.chkNewTab, ui.chkAppendParam, ui.chkAnimations, ui.chkSilent, ui.selLanguage].forEach(el => {
     if(el) { // Check existence
         el.addEventListener('change', markUnsaved);
         el.addEventListener('input', markUnsaved);
     }
 });
+
+// v3.7: Apply translations to all elements with data-i18n attribute
+function applyTranslations() {
+    if (typeof TrackedI18n === 'undefined') return;
+    
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (key) {
+            const translation = TrackedI18n.t(key);
+            if (translation !== key) {
+                el.textContent = translation;
+            }
+        }
+    });
+    
+    // Handle placeholders
+    document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+        const key = el.getAttribute('data-i18n-placeholder');
+        if (key) {
+            el.placeholder = TrackedI18n.t(key);
+        }
+    });
+}
 
 function markUnsaved() {
     hasChanges = true;
@@ -70,7 +97,7 @@ function markUnsaved() {
         ui.actionsFooter.classList.remove('no-changes');
     }
     
-    ui.btnSave.textContent = 'Kaydet *';
+    ui.btnSave.textContent = TrackedI18n.t('saveSettings') + ' *';
 }
 
 function clearUnsaved() {
@@ -84,7 +111,7 @@ function clearUnsaved() {
         ui.actionsFooter.classList.add('no-changes');
     }
     
-    ui.btnSave.textContent = 'Ayarları Kaydet';
+    ui.btnSave.textContent = TrackedI18n.t('saveSettings');
 }
 
 // Logic for custom +/- buttons
@@ -129,12 +156,21 @@ async function loadSettings() {
     // Merge with defaults to ensure new keys exist
     const settings = { ...DEFAULT_SETTINGS, ...data.rota_settings };
     
+    // v3.7: Set language first
+    if (settings.language && typeof TrackedI18n !== 'undefined') {
+        TrackedI18n.setLocale(settings.language);
+    }
+    
     ui.inpTimeout.value = settings.timeoutMs;
     ui.inpCache.value = settings.cacheMinutes;
     ui.chkNewTab.checked = settings.openInNewTab;
     ui.chkAppendParam.checked = settings.appendRegionParam;
     ui.chkAnimations.checked = settings.animationsEnabled !== false;
     ui.chkSilent.checked = settings.silentMode === true;
+    
+    if (ui.selLanguage) {
+        ui.selLanguage.value = settings.language || 'tr';
+    }
     
     renderProbes(settings.probes);
 }
@@ -169,7 +205,7 @@ function renderProbes(userProbes) {
         resetBtn.addEventListener('click', () => {
             input.value = defaultUrl;
             markUnsaved();
-            showToast(`${regionName} varsayılana döndü.`);
+            showToast(`${regionName} ${TrackedI18n.t('resetToDefault')}`);
         });
 
         input.addEventListener('input', markUnsaved);
@@ -191,6 +227,14 @@ async function saveSettings() {
             newProbes[region] = DEFAULT_SETTINGS.probes[region];
         }
     });
+    
+    // v3.7: Get selected language
+    const selectedLanguage = ui.selLanguage ? ui.selLanguage.value : 'tr';
+    
+    // v3.7: Update language immediately
+    if (typeof TrackedI18n !== 'undefined') {
+        TrackedI18n.setLocale(selectedLanguage);
+    }
 
     const newSettings = {
         timeoutMs: parseInt(ui.inpTimeout.value) || 3000,
@@ -199,29 +243,40 @@ async function saveSettings() {
         appendRegionParam: ui.chkAppendParam.checked,
         animationsEnabled: ui.chkAnimations.checked,
         silentMode: ui.chkSilent.checked,
+        language: selectedLanguage, // v3.7: Save language
         probes: newProbes
     };
 
     console.log('[Options] Saving settings:', newSettings);
     await chrome.storage.local.set({ 'rota_settings': newSettings });
     
+    // v3.7: Re-apply translations with new language
+    applyTranslations();
+    
     clearUnsaved();
-    showToast('Ayarlar başarıyla kaydedildi.');
+    showToast(TrackedI18n.t('settingsSaved'));
 }
 
 async function restoreDefaults() {
-    if (confirm('DİKKAT: Tüm ayarları fabrika varsayılanlarına döndürmek istediğinize emin misiniz?')) {
+    if (confirm(TrackedI18n.t('confirmReset'))) {
         await chrome.storage.local.set({ 'rota_settings': DEFAULT_SETTINGS });
+        
+        // v3.7: Reset language
+        if (typeof TrackedI18n !== 'undefined') {
+            TrackedI18n.setLocale(DEFAULT_SETTINGS.language);
+        }
+        
         await loadSettings(); // Reload UI
+        applyTranslations(); // v3.7: Re-apply translations
         clearUnsaved();
-        showToast('Fabrika ayarları yüklendi.');
+        showToast(TrackedI18n.t('factoryReset'));
     }
 }
 
 async function clearFavorites() {
-    if (confirm('Oyun kütüphanenizdeki TÜM oyunlar silinecek. Emin misiniz?')) {
+    if (confirm(TrackedI18n.t('confirmClearFavs'))) {
         await chrome.storage.local.set({ 'rota_favorites': [] });
-        showToast('Kütüphane temizlendi.');
+        showToast(TrackedI18n.t('libraryCleared'));
     }
 }
 

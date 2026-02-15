@@ -3,7 +3,7 @@
 <html lang="tr">
 <head>
   <meta charset="UTF-8">
-  <title>Ayarlar - Tracked</title>
+  <title data-i18n="settings">Ayarlar - Tracked</title>
   <link rel="stylesheet" href="options.css">
 </head>
 <body>
@@ -16,8 +16,8 @@
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3"></circle></svg>
         </div>
         <div>
-          <h1>Tracked Ayarlar</h1>
-          <p class="subtitle">Performans, görünüm ve bağlantı yapılandırması</p>
+          <h1 data-i18n="settings">Tracked Ayarlar</h1>
+          <p class="subtitle" data-i18n="subtitle">Performans, görünüm ve bağlantı yapılandırması</p>
         </div>
       </div>
     </header>
@@ -25,12 +25,24 @@
     <main>
       <!-- Appearance & Experience -->
       <section class="card">
-        <h2>Görünüm ve Deneyim</h2>
+        <h2 data-i18n="appearance">Görünüm ve Deneyim</h2>
         
+        <!-- Language Selection -->
         <div class="setting-row">
           <div class="setting-label">
-            <span>Arka Plan Animasyonları</span>
-            <small>Performans için "blooms" efektlerini kapatabilirsiniz.</small>
+            <span data-i18n="language">Dil</span>
+            <small data-i18n="languageDesc">Arayüz dilini seçin.</small>
+          </div>
+          <select id="sel-language" class="language-select">
+            <option value="tr" data-i18n="turkish">🇹🇷 Türkçe</option>
+            <option value="en" data-i18n="english">🇬🇧 English</option>
+          </select>
+        </div>
+
+        <div class="setting-row">
+          <div class="setting-label">
+            <span data-i18n="animations">Arka Plan Animasyonları</span>
+            <small data-i18n="animationsDesc">Performans için "blooms" efektlerini kapatabilirsiniz.</small>
           </div>
           <label class="switch">
             <input type="checkbox" id="chk-animations">
@@ -40,8 +52,8 @@
 
         <div class="setting-row">
           <div class="setting-label">
-            <span>Sessiz Mod</span>
-            <small>Ekran altındaki bilgi mesajlarını (Toast) gizler.</small>
+            <span data-i18n="silentMode">Sessiz Mod</span>
+            <small data-i18n="silentModeDesc">Ekran altındaki bilgi mesajlarını (Toast) gizler.</small>
           </div>
           <label class="switch">
             <input type="checkbox" id="chk-silent">
@@ -52,14 +64,14 @@
 
       <!-- Connection Settings (Redesigned) -->
       <section class="card">
-        <h2>Bağlantı Ayarları</h2>
+        <h2 data-i18n="connectionSettings">Bağlantı Ayarları</h2>
 
         <!-- Numeric Metrics Grid with Custom Steppers -->
         <div class="settings-grid">
             <div class="metric-card">
                 <div class="metric-label">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-                    Ping Zaman Aşımı
+                    <span data-i18n="pingTimeout">Ping Zaman Aşımı</span>
                 </div>
                 <div class="metric-input-group">
                     <button class="step-btn" data-action="dec">
@@ -76,7 +88,7 @@
             <div class="metric-card">
                 <div class="metric-label">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-                    Önbellek Süresi
+                    <span data-i18n="cacheDuration">Önbellek Süresi</span>
                 </div>
                 <div class="metric-input-group">
                     <button class="step-btn" data-action="dec">
@@ -95,8 +107,8 @@
         <div class="settings-list">
             <div class="setting-row">
               <div class="setting-label">
-                <span>Yeni Sekmede Aç</span>
-                <small>Katıl butonuna basınca oyun yeni sekmede açılır.</small>
+                <span data-i18n="openNewTab">Yeni Sekmede Aç</span>
+                <small data-i18n="openNewTabDesc">Katıl butonuna basınca oyun yeni sekmede açılır.</small>
               </div>
               <label class="switch">
                 <input type="checkbox" id="chk-newtab">
@@ -106,8 +118,8 @@
 
             <div class="setting-row">
               <div class="setting-label">
-                <span>URL Bölge Parametresi</span>
-                <small>Linke <code>?rotaRegion=CODE</code> parametresi ekler (Deneysel).</small>
+                <span data-i18n="regionParam">URL Bölge Parametresi</span>
+                <small data-i18n="regionParamDesc">Linke <code>?rotaRegion=CODE</code> parametresi ekler (Deneysel).</small>
               </div>
               <label class="switch">
                 <input type="checkbox" id="chk-appendparam">
@@ -120,10 +132,10 @@
       <!-- Probe Settings -->
       <section class="card">
         <div class="card-header-row">
-            <h2>Ping Noktaları (Problar)</h2>
-            <span class="badge">Gelişmiş</span>
+            <h2 data-i18n="probes">Ping Noktaları (Problar)</h2>
+            <span class="badge" data-i18n="advanced">Gelişmiş</span>
         </div>
-        <p class="info-text">Bölgesel gecikmeyi ölçmek için kullanılan sunucu adresleri. İsimler sabittir, sadece test adreslerini değiştirebilirsiniz.</p>
+        <p class="info-text" data-i18n="probesDesc">Bölgesel gecikmeyi ölçmek için kullanılan sunucu adresleri. İsimler sabittir, sadece test adreslerini değiştirebilirsiniz.</p>
         
         <div id="probe-list" class="probe-list">
           <!-- JS injects rows here securely -->
@@ -132,37 +144,38 @@
 
       <!-- Data Management (Danger Zone) -->
       <section class="card danger-zone">
-        <h2>Veri Yönetimi</h2>
+        <h2 data-i18n="dataManagement">Veri Yönetimi</h2>
         <div class="danger-row">
           <div class="setting-label">
-            <span>Favorileri Temizle</span>
-            <small>Kaydedilen tüm oyunları kütüphaneden siler.</small>
+            <span data-i18n="clearFavorites">Favorileri Temizle</span>
+            <small data-i18n="clearFavoritesDesc">Kaydedilen tüm oyunları kütüphaneden siler.</small>
           </div>
-          <button id="btn-clear-favs" class="btn danger-outline">Temizle</button>
+          <button id="btn-clear-favs" class="btn danger-outline" data-i18n="clear">Temizle</button>
         </div>
         <div class="danger-row">
           <div class="setting-label">
              <span>Fabrika Ayarlarına Dön</span>
              <small>Tüm ayarları ve yapılandırmaları sıfırlar.</small>
           </div>
-          <button id="btn-reset" class="btn danger-outline">Sıfırla</button>
+          <button id="btn-reset" class="btn danger-outline" data-i18n="reset">Sıfırla</button>
         </div>
       </section>
 
       <!-- Actions -->
       <div class="actions-footer">
-        <span id="unsaved-indicator" style="opacity: 0;">Değişiklikler var...</span>
-        <button id="btn-save" class="btn primary large">Ayarları Kaydet</button>
+        <span id="unsaved-indicator" style="opacity: 0;" data-i18n="unsavedChanges">Değişiklikler var...</span>
+        <button id="btn-save" class="btn primary large" data-i18n="saveSettings">Ayarları Kaydet</button>
       </div>
 
       <div class="footer-signature">
-        Tracked v1.1 • Developed by Darkzzers
+        Tracked v3.7 • <span data-i18n="appTagline">Smart Activity Tracking</span>
       </div>
     </main>
   </div>
   
   <div id="toast-container"></div>
 
+  <script src="i18n.js"></script>
   <script src="options.js"></script>
 </body>
 </html>
