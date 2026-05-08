@@ -191,32 +191,19 @@ chrome.runtime.sendMessage({ action: 'testCrashNotification' }, console.log);
 
 ---
 
-## 📄 Lisans
-
-Bu proje **MIT Lisansı** altında dağıtılır.
-
-**Bu ne demek?**
-- ✅ Kodu **özgürce kullanabilirsin** (kişisel veya ticari)
-- ✅ **Değiştirebilir, kendi versiyonunu çıkarabilirsin**
-- ✅ **Yeniden dağıtabilirsin** (kendi projende kullanabilirsin)
-- ⚠️ Tek şart: orijinal lisans/copyright bildirimini saklaman gerekir
-- ⚠️ Garanti yok — kod "olduğu gibi" sunulur
-
-Yani: sınırsız özgürlük, sıfır sorumluluk. Yazılımcı dostu en yaygın lisanslardan biri.
 
 ---
 
 ## 💬 İletişim & Destek
 
 - 📧 **E-posta**: [slayer38tr@gmail.com](mailto:slayer38tr@gmail.com)
-- 🐛 **Bug bildirimi**: GitHub'a yüklendikten sonra repo sayfasının _Issues_ sekmesinden açabilirsin
 - ⭐ **Beğendiysen** repo'ya yıldız (star) vermeyi unutma — projeyi destekler!
 
 ---
 
 <div align="center">
 
-**Roblox kullanıcıları için, Roblox kullanıcıları tarafından** ❤️
+**Roblox kullanıcıları için** ❤️
 
 _This project is not affiliated with Roblox Corporation._
 
