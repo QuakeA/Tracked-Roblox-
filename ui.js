@@ -5,7 +5,7 @@ const TrackedUI = {
     buttonLockState: {
         isLocked: false,
         // v3.0: btn-autopilot eklendi (5. buton)
-        lockedButtons: ['btn-find-empty', 'btn-find-new', 'btn-deep-scan', 'btn-copy-id', 'btn-force-join', 'btn-autopilot']
+        lockedButtons: ['btn-find-new', 'btn-deep-scan', 'btn-copy-id', 'btn-force-join', 'btn-cd-targeted', 'btn-autopilot']
     },
 
     createGameBar: (placeId) => {
@@ -21,14 +21,6 @@ const TrackedUI = {
                     <circle cx="12" cy="12" r="3"></circle>
                 </svg>
             </div>
-            <button class="tracked-bar-btn" id="btn-find-empty" title="En boş sunucuyu bul">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                    <circle cx="11" cy="11" r="8"></circle>
-                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                </svg>
-                <span>Boş</span>
-            </button>
-            <div class="tracked-divider"></div>
             <button class="tracked-bar-btn btn-new-server" id="btn-find-new" title="Yeni açılmış sunucu bul">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                     <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
@@ -54,13 +46,24 @@ const TrackedUI = {
                 <span>ID</span>
             </button>
             <div class="tracked-divider"></div>
-            <!-- v2.4.2+: 4. Buton - Zorla Boş Sunucu Aç (Kırmızı/Deneysel) -->
-            <button class="tracked-bar-btn btn-force" id="btn-force-join" title="Yeni sunucu oluşturmaya zorla">
+            <!-- v4.1: A+B Kombo — Sniper + GameJoin API paralel yeni server -->
+            <button class="tracked-bar-btn btn-force btn-beta" id="btn-force-join" title="A+B: 3 fazlı yeni server zorla — Hızlı snipe → Community block-flood → Post-block snipe">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                </svg>
+                <span>A+B</span>
+                <span class="beta-tag">β</span>
+            </button>
+            <div class="tracked-divider"></div>
+            <!-- C+D Cerrahi: Public servers'tan token→userId resolve → her server'dan 1 strategic block -->
+            <button class="tracked-bar-btn btn-targeted btn-beta" id="btn-cd-targeted" title="C+D Cerrahi: Token→UserID resolution ile her server'dan 1 strategic block. Minimum block, %100 kapsama hedefi.">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                     <circle cx="12" cy="12" r="10"></circle>
-                    <path d="M12 6v6l4 2"></path>
+                    <circle cx="12" cy="12" r="6"></circle>
+                    <circle cx="12" cy="12" r="2"></circle>
                 </svg>
-                <span>Zorla</span>
+                <span>C+D</span>
+                <span class="beta-tag">β</span>
             </button>
             <div class="tracked-divider"></div>
             <!-- v3.0: 5. Buton - Oto-Pilot (Mor/Auto-Blocker) -->
@@ -75,17 +78,10 @@ const TrackedUI = {
 
         // v3.0: Event listener'ları güvenli şekilde ekle
         setTimeout(() => {
-            const btnEmpty = bar.querySelector('#btn-find-empty');
             const btnNew = bar.querySelector('#btn-find-new');
             const btnDeep = bar.querySelector('#btn-deep-scan');
             const btnCopy = bar.querySelector('#btn-copy-id');
 
-            if (btnEmpty) {
-                btnEmpty.onclick = () => {
-                    if (TrackedUI.isAnyButtonLocked()) return;
-                    if (!btnEmpty.disabled) TrackedApp.findEmptyServer(placeId);
-                };
-            }
             if (btnNew) {
                 btnNew.onclick = () => {
                     if (TrackedUI.isAnyButtonLocked()) return;
@@ -105,15 +101,24 @@ const TrackedUI = {
                 };
             }
             
-            // v2.4.2+: Force Join butonu
+            // v4.1: A+B Kombo butonu
             const btnForce = bar.querySelector('#btn-force-join');
             if (btnForce) {
                 btnForce.onclick = () => {
                     if (TrackedUI.isAnyButtonLocked()) return;
-                    if (!btnForce.disabled) TrackedApp.forceNewInstance(placeId);
+                    if (!btnForce.disabled) TrackedApp.comboNewInstance(placeId);
                 };
             }
-            
+
+            // C+D Cerrahi: token→userId surgical targeting
+            const btnTargeted = bar.querySelector('#btn-cd-targeted');
+            if (btnTargeted) {
+                btnTargeted.onclick = () => {
+                    if (TrackedUI.isAnyButtonLocked()) return;
+                    if (!btnTargeted.disabled) TrackedApp.targetedNewInstance(placeId);
+                };
+            }
+
             // v3.0: Oto-Pilot butonu - bağımsız 5. özellik
             const btnAutoPilot = bar.querySelector('#btn-autopilot');
             if (btnAutoPilot) {
@@ -142,6 +147,9 @@ const TrackedUI = {
                 btn.classList.add('scanning');
             }
         });
+        // Bar genelinde tarama animasyonu (Yeni / Derin / A+B / Oto-Pilot — hepsi)
+        const bar = document.getElementById('tracked-game-bar');
+        if (bar) bar.classList.add('scanning');
         console.log('[Tracked] All buttons locked');
     },
 
@@ -155,6 +163,8 @@ const TrackedUI = {
                 btn.classList.remove('scanning');
             }
         });
+        const bar = document.getElementById('tracked-game-bar');
+        if (bar) bar.classList.remove('scanning');
         console.log('[Tracked] All buttons unlocked');
     },
 
@@ -177,6 +187,23 @@ const TrackedUI = {
         if (!el) return;
         el.textContent = text || '';
         el.className = 'tracked-status' + (isError ? ' error' : '');
+    },
+
+    // Derin #10: Outer-edge aura pulse during scan — no DOM wrapper, just class toggle
+    scanProgressEl: null,
+
+    startScanProgress: function() {
+        const bar = document.getElementById('tracked-game-bar');
+        if (bar) bar.classList.add('scanning');
+    },
+
+    updateScanProgress: function(_ratio) {
+        // No-op — animation is pure CSS aura pulse, no fill bar
+    },
+
+    endScanProgress: function() {
+        const bar = document.getElementById('tracked-game-bar');
+        if (bar) bar.classList.remove('scanning');
     },
 
     // ============================================
@@ -269,10 +296,10 @@ const TrackedUI = {
 
         const pingText = server.ping ? `${server.ping}ms` : 'N/A';
         const pingClass = server.ping && server.ping < 120 ? 'good' : (server.ping > 200 ? 'bad' : 'warn');
-        const newBadge = server.isNew ? '<span class="new-badge">YENİ</span>' : '';
+        const newBadge = server.isNew ? `<span class="new-badge">${TrackedI18n.t('newBadge')}</span>` : '';
         // v2.5: Instance Trigger başarılı olduğunda özel badge
         const forceBadge = server.isForced ? '<span class="force-badge">🔥 TRIGGER</span>' : '';
-        
+
         const content = `
             <div class="tracked-modal">
                 <div class="tracked-modal-icon">
@@ -281,27 +308,27 @@ const TrackedUI = {
                         <circle cx="12" cy="12" r="3"></circle>
                     </svg>
                 </div>
-                <h3>Sunucu Bulundu! ${newBadge} ${forceBadge}</h3>
-                <p><strong>${server.playing} oyuncu</strong> olan bir sunucu bulundu. Katılmak istiyor musun?</p>
+                <h3>${TrackedI18n.t('serverFound')} ${newBadge} ${forceBadge}</h3>
+                <p><strong>${server.playing} ${TrackedI18n.t('playersCount')}</strong> ${TrackedI18n.t('joinQuestion')}</p>
                 <div class="tracked-modal-stats">
                     <div class="stat-item">
-                        <span class="stat-label">OYUNCU</span>
+                        <span class="stat-label">${TrackedI18n.t('player')}</span>
                         <span class="stat-value">${server.playing}/${server.maxPlayers}</span>
                     </div>
                     <div class="stat-divider"></div>
                     <div class="stat-item">
-                        <span class="stat-label">PING</span>
+                        <span class="stat-label">${TrackedI18n.t('ping')}</span>
                         <span class="stat-value ${pingClass}">${pingText}</span>
                     </div>
                     <div class="stat-divider"></div>
                     <div class="stat-item">
-                        <span class="stat-label">FPS</span>
+                        <span class="stat-label">${TrackedI18n.t('fps')}</span>
                         <span class="stat-value">${server.fps ? Math.round(server.fps) : 'N/A'}</span>
                     </div>
                 </div>
                 <div class="tracked-modal-actions">
-                    <button class="btn-secondary" id="modal-cancel">VAZGEÇ</button>
-                    <button class="btn-primary" id="modal-join">KATIL</button>
+                    <button class="btn-secondary" id="modal-cancel">${TrackedI18n.t('cancel')}</button>
+                    <button class="btn-primary" id="modal-join">${TrackedI18n.t('joinBtn')}</button>
                 </div>
             </div>
         `;
@@ -329,11 +356,11 @@ const TrackedUI = {
                         <line x1="12" y1="17" x2="12.01" y2="17"></line>
                     </svg>
                 </div>
-                <h3>Sunucu Bulunamadı</h3>
-                <p>Şu anda uygun bir sunucu bulunmuyor.</p>
+                <h3>${TrackedI18n.t('noServerFound')}</h3>
+                <p>${TrackedI18n.t('noServerDesc')}</p>
                 <div class="tracked-modal-actions">
-                    <button class="btn-secondary" id="modal-close">KAPAT</button>
-                    <button class="btn-primary" id="modal-retry">TEKRAR DENE</button>
+                    <button class="btn-secondary" id="modal-close">${TrackedI18n.t('closeBtn')}</button>
+                    <button class="btn-primary" id="modal-retry">${TrackedI18n.t('retry')}</button>
                 </div>
             </div>
         `;
@@ -347,7 +374,7 @@ const TrackedUI = {
         
         modal.querySelector('#modal-retry').onclick = () => {
             modal.remove();
-            TrackedApp.findEmptyServer(placeId);
+            TrackedApp.performDeepScan(placeId);
         };
     },
 
@@ -359,12 +386,11 @@ const TrackedUI = {
                         <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
                     </svg>
                 </div>
-                <h3>Yeni Sunucu Bulunamadı</h3>
-                <p>Şu anda yeni açılmış sunucu bulunmuyor.</p>
-                <p style="font-size: 12px; opacity: 0.7;">Normal tarama ile devam edilsin mi?</p>
+                <h3>${TrackedI18n.t('newServerFound')}</h3>
+                <p>${TrackedI18n.t('newServerDesc')}</p>
                 <div class="tracked-modal-actions">
-                    <button class="btn-secondary" id="modal-close">KAPAT</button>
-                    <button class="btn-primary" id="modal-retry-normal">NORMAL TARA</button>
+                    <button class="btn-secondary" id="modal-close">${TrackedI18n.t('closeBtn')}</button>
+                    <button class="btn-primary" id="modal-retry-normal">${TrackedI18n.t('normalScan')}</button>
                 </div>
             </div>
         `;
@@ -378,7 +404,7 @@ const TrackedUI = {
         
         modal.querySelector('#modal-retry-normal').onclick = () => {
             modal.remove();
-            TrackedApp.findEmptyServer(placeId);
+            TrackedApp.performDeepScan(placeId);
         };
     },
 
@@ -392,15 +418,16 @@ const TrackedUI = {
                         <line x1="9" y1="9" x2="15" y2="15"></line>
                     </svg>
                 </div>
-                <h3>Hata Oluştu</h3>
-                <p>${message || 'Bilinmeyen bir hata oluştu.'}</p>
+                <h3>${TrackedI18n.t('errorOccurred')}</h3>
+                <p id="modal-error-msg"></p>
                 <div class="tracked-modal-actions">
-                    <button class="btn-danger" id="modal-ok">TAMAM</button>
+                    <button class="btn-danger" id="modal-ok">${TrackedI18n.t('ok')}</button>
                 </div>
             </div>
         `;
 
         const modal = TrackedUI.createModal(content);
+        modal.querySelector('#modal-error-msg').textContent = message || 'Bilinmeyen bir hata oluştu.';
         modal.querySelector('#modal-ok').onclick = () => {
             modal.remove();
             TrackedUI.unlockAllButtons(); // v2.4.5
@@ -413,31 +440,191 @@ const TrackedUI = {
             return;
         }
 
-        const listHtml = servers.slice(0, 10).map((s, i) => {
-            const pingClass = s.ping && s.ping < 100 ? 'good' : (s.ping > 200 ? 'bad' : 'warn');
-            const newBadge = s.isNew ? '<span class="new-badge-small">YENİ</span>' : '';
-            
-            // v3.6: Player Insight badges (simulated)
-            let insightBadges = '';
-            if (typeof TrackedScanner !== 'undefined' && TrackedScanner.analyzeServerPlayers) {
-                const insight = TrackedScanner.analyzeServerPlayers(s);
-                insightBadges = insight.badges.map(b => 
-                    `<span class="insight-badge ${b.type}" title="${b.label}">${b.icon} ${b.label}</span>`
-                ).join('');
+        let sortField = 'score';
+        let sortDir = 'desc';
+        const defaultDirs = { score: 'desc', ping: 'asc', players: 'asc', fps: 'desc' };
+
+        function sortServers(arr) {
+            const sorted = [...arr];
+            sorted.sort((a, b) => {
+                let av = 0, bv = 0;
+                switch (sortField) {
+                    case 'score':   av = a.score ?? 0; bv = b.score ?? 0; break;
+                    case 'ping':    av = a.ping ?? 9999; bv = b.ping ?? 9999; break;
+                    case 'players': av = a.playing ?? 0; bv = b.playing ?? 0; break;
+                    case 'fps':     av = a.fps ? Math.round(a.fps) : 0; bv = b.fps ? Math.round(b.fps) : 0; break;
+                }
+                return sortDir === 'asc' ? av - bv : bv - av;
+            });
+            return sorted;
+        }
+
+        function buildListHtml(filtered) {
+            if (filtered.length === 0) {
+                return `<div class="server-filter-empty">${TrackedI18n.t('filterNoResults')}</div>`;
             }
-            
-            return `
-                <div class="server-item" data-job="${s.id}">
-                    <div class="server-info">
-                        <span class="server-rank">#${i + 1}</span>
-                        <span class="server-players">${s.playing}/${s.maxPlayers} ${newBadge}</span>
-                        <span class="server-ping ${pingClass}">${s.ping ? s.ping + 'ms' : 'N/A'}</span>
+            const top = filtered.slice(0, 25);
+            const scores = top.map(s => s.score ?? 0);
+            const maxScore = Math.max(...scores, 1);
+            const minScore = Math.min(...scores, 0);
+            const scoreRange = maxScore - minScore || 1;
+
+            return top.map((s, i) => {
+                const pingClass = s.ping && s.ping < 100 ? 'good' : (s.ping > 200 ? 'bad' : 'warn');
+                const newBadge = s.isNew ? `<span class="new-badge-small">${TrackedI18n.t('newBadge')}</span>` : '';
+
+                const fps = s.fps ? Math.round(s.fps) : null;
+                const fpsClass = fps >= 58 ? 'fps-good' : fps >= 45 ? 'fps-ok' : 'fps-bad';
+                const fpsHtml = fps
+                    ? `<span class="server-fps ${fpsClass}">${fps} FPS</span>`
+                    : `<span class="server-fps fps-bad">N/A</span>`;
+
+                // Derin #8: Doluluk barı (oyuncu/maxOyuncu)
+                const maxP = s.maxPlayers || 1;
+                const fillPct = Math.min(100, Math.round((s.playing / maxP) * 100));
+                const fillColor = fillPct >= 90 ? 'rgba(255,69,58,0.40)'
+                                : fillPct >= 70 ? 'rgba(255,159,10,0.35)'
+                                : fillPct >= 40 ? 'rgba(255,214,10,0.30)'
+                                : 'rgba(48,209,88,0.30)';
+
+                const normScore = Math.round(((s.score - minScore) / scoreRange) * 100);
+                const barColor = normScore >= 70 ? '#30D158' : normScore >= 40 ? '#FF9F0A' : '#FF453A';
+
+                let insightBadges = '';
+                if (typeof TrackedScanner !== 'undefined' && TrackedScanner.analyzeServerPlayers) {
+                    const insight = TrackedScanner.analyzeServerPlayers(s);
+                    insightBadges = insight.badges.map(b =>
+                        `<span class="insight-badge ${b.type}" title="${b.label}">${b.icon} ${b.label}</span>`
+                    ).join('');
+                }
+
+                // Ping görsel + custom tooltip — baseline ölçüldüyse her durumda tahmin
+                const isEstimated = s.baseline > 0;
+                const pingText = s.ping ? `${isEstimated ? '~' : ''}${s.ping}ms` : 'N/A';
+                const apiPingRow = s.apiPing > 0
+                    ? `<div class="ping-tt-row"><span class="ping-tt-label">API (DC içi)</span><span class="ping-tt-value">${s.apiPing}ms</span></div>`
+                    : `<div class="ping-tt-row"><span class="ping-tt-label">API (DC içi)</span><span class="ping-tt-value" style="color:rgba(255,255,255,0.4);">—</span></div>`;
+
+                // Region — muhtemel DC tahmini (ping bazlı). Baseline absurdsa region null
+                const regionRow = s.region && s.region.info
+                    ? `<div class="ping-tt-row"><span class="ping-tt-label">Tahmini bölge</span><span class="ping-tt-value">${s.region.info.icon} ${s.region.info.name} (${s.region.confidence === 'high' ? 'yüksek' : s.region.confidence === 'medium' ? 'orta' : 'düşük'} güven)</span></div>`
+                    : `<div class="ping-tt-row"><span class="ping-tt-label">Tahmini bölge</span><span class="ping-tt-value" style="color:rgba(255,255,255,0.4);">—</span></div>`;
+
+                // Baseline yüksekse uyarı notu (muhtemelen VPN/proxy/Roblox erişim engeli)
+                const baselineHigh = s.baseline > 150;
+                const noteText = baselineHigh
+                    ? 'Baseline RTT yüksek — VPN/proxy/erişim engeli nedeniyle ölçüm yanıltıcı olabilir. Bölge tahmini bu nedenle gizli.'
+                    : 'Pingler tahminidir, bölge ping uzaklığına göre kestirim — kesin değildir. UDP game-server pingi tarayıcıdan ölçülemez.';
+
+                const pingTooltipHtml = isEstimated
+                    ? `<div class="ping-tooltip">
+                           ${apiPingRow}
+                           <div class="ping-tt-row"><span class="ping-tt-label">Baseline RTT</span><span class="ping-tt-value">${s.baseline}ms</span></div>
+                           <div class="ping-tt-row ping-tt-total"><span class="ping-tt-label">Tahmin</span><span class="ping-tt-value">~${s.ping}ms</span></div>
+                           ${regionRow}
+                           <div class="ping-tt-note">${noteText}</div>
+                       </div>`
+                    : '';
+                const pingClasses = `server-ping ${pingClass}${isEstimated ? ' estimated' : ''}`;
+
+                // Region badge (görsel) — düşük güvende "?" eklenir
+                const regionBadgeHtml = s.region && s.region.info
+                    ? `<span class="server-region" data-confidence="${s.region.confidence}" title="Tahmini bölge — ping uzaklığına göre kestirim, kesin değildir">${s.region.info.icon} ${s.region.info.name}${s.region.confidence === 'low' ? ' ?' : ''}</span>`
+                    : '';
+
+                return `
+                    <div class="server-item" data-job="${s.id}">
+                        <div class="server-item-row">
+                            <div class="server-info">
+                                <span class="server-rank">#${i + 1}</span>
+                                <span class="server-players" style="--fill-pct:${fillPct}%;--fill-color:${fillColor};" title="${fillPct}% dolu">${s.playing}/${s.maxPlayers}${newBadge ? ' ' + newBadge : ''}</span>
+                                <span class="${pingClasses}">${pingText}${pingTooltipHtml}</span>
+                                ${fpsHtml}
+                                ${regionBadgeHtml}
+                            </div>
+                            <div class="server-actions">
+                                <button class="server-copy-btn" data-job="${s.id}" title="${TrackedI18n.t('copyJobId')}">
+                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                        <rect x="9" y="9" width="13" height="13" rx="2"></rect>
+                                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                    </svg>
+                                </button>
+                                <button class="server-join-btn" data-job="${s.id}">${TrackedI18n.t('join')}</button>
+                            </div>
+                        </div>
+                        <div class="server-score-row">
+                            <div class="server-score-bar">
+                                <div class="server-score-fill" style="width:${normScore}%;background:${barColor}"></div>
+                            </div>
+                            <span class="server-score-label" style="color:${barColor}">${normScore}</span>
+                        </div>
+                        ${insightBadges ? `<div class="insight-badges">${insightBadges}</div>` : ''}
                     </div>
-                    ${insightBadges ? `<div class="insight-badges">${insightBadges}</div>` : ''}
-                    <button class="server-join-btn" data-job="${s.id}">KATIL</button>
-                </div>
-            `;
-        }).join('');
+                `;
+            }).join('');
+        }
+
+        function applyFilters(modal) {
+            const maxPing    = parseInt(modal.querySelector('#filter-ping').value)    || Infinity;
+            const maxPlayers = parseInt(modal.querySelector('#filter-players').value) || Infinity;
+            const minFps     = parseInt(modal.querySelector('#filter-fps').value)     || 0;
+
+            const filtered = servers.filter(s => {
+                if (s.ping && s.ping > maxPing) return false;
+                if (s.playing > maxPlayers) return false;
+                if (minFps > 0 && (!s.fps || Math.round(s.fps) < minFps)) return false;
+                return true;
+            });
+
+            const sorted = sortServers(filtered);
+
+            const list = modal.querySelector('.server-list');
+            list.innerHTML = buildListHtml(sorted);
+
+            list.querySelectorAll('.server-join-btn').forEach(btn => {
+                btn.onclick = (e) => {
+                    const jobId = e.currentTarget.dataset.job;
+                    modal.remove();
+                    TrackedApp.joinServer(placeId, jobId);
+                };
+            });
+
+            // Ping tooltip — fixed positioning, hover'da konum güncelle
+            list.querySelectorAll('.server-ping.estimated').forEach(span => {
+                const tooltip = span.querySelector('.ping-tooltip');
+                if (!tooltip) return;
+                span.addEventListener('mouseenter', () => {
+                    const rect = span.getBoundingClientRect();
+                    tooltip.style.left = (rect.left + rect.width / 2) + 'px';
+                    tooltip.style.top = rect.top + 'px';
+                });
+            });
+
+            list.querySelectorAll('.server-copy-btn').forEach(btn => {
+                btn.onclick = (e) => {
+                    e.stopPropagation();
+                    const jobId = btn.dataset.job;
+                    navigator.clipboard.writeText(jobId).then(() => {
+                        btn.classList.add('copied');
+                        const origHtml = btn.innerHTML;
+                        btn.innerHTML = '<span style="font-size:13px;font-weight:800;">✓</span>';
+                        btn.title = TrackedI18n.t('jobIdCopied');
+                        setTimeout(() => {
+                            btn.classList.remove('copied');
+                            btn.innerHTML = origHtml;
+                            btn.title = TrackedI18n.t('copyJobId');
+                        }, 1200);
+                    }).catch(() => {});
+                };
+            });
+
+            modal.querySelectorAll('.sort-btn').forEach(btn => {
+                const isActive = btn.dataset.sort === sortField;
+                btn.classList.toggle('active', isActive);
+                const arrow = btn.querySelector('.sort-arrow');
+                if (arrow) arrow.textContent = isActive ? (sortDir === 'asc' ? '↑' : '↓') : '';
+            });
+        }
 
         const content = `
             <div class="tracked-modal" style="width: 420px;">
@@ -447,26 +634,96 @@ const TrackedUI = {
                         <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                     </svg>
                 </div>
-                <h3>En İyi Sunucular</h3>
-                <p>${servers.length} sunucu tarandı. En iyileri seç:</p>
-                <div class="server-list">${listHtml}</div>
-                <button class="btn-secondary" id="modal-close" style="width: 100%; margin-top: 12px;">Kapat</button>
+                <h3>${TrackedI18n.t('bestServers')}</h3>
+                <p>${servers.length} ${TrackedI18n.t('serversScanned')}</p>
+                <div class="server-filter-row">
+                    <label class="filter-label">
+                        <span>${TrackedI18n.t('filterMaxPing')}</span>
+                        <input type="number" id="filter-ping" placeholder="∞" min="0" max="9999" step="10">
+                    </label>
+                    <label class="filter-label">
+                        <span>${TrackedI18n.t('filterMaxPlayers')}</span>
+                        <input type="number" id="filter-players" placeholder="∞" min="0">
+                    </label>
+                    <label class="filter-label">
+                        <span>${TrackedI18n.t('filterMinFps')}</span>
+                        <input type="number" id="filter-fps" placeholder="—" min="0" max="60">
+                    </label>
+                </div>
+                <div class="server-sort-row">
+                    <button class="sort-btn active" data-sort="score">${TrackedI18n.t('sortByScore')}<span class="sort-arrow">↓</span></button>
+                    <button class="sort-btn" data-sort="ping">${TrackedI18n.t('ping')}<span class="sort-arrow"></span></button>
+                    <button class="sort-btn" data-sort="players">${TrackedI18n.t('player')}<span class="sort-arrow"></span></button>
+                    <button class="sort-btn" data-sort="fps">${TrackedI18n.t('fps')}<span class="sort-arrow"></span></button>
+                </div>
+                <div class="server-list"></div>
+                <div class="modal-action-row">
+                    <button class="btn-secondary modal-refresh-btn" id="modal-refresh">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <polyline points="23 4 23 10 17 10"></polyline>
+                            <polyline points="1 20 1 14 7 14"></polyline>
+                            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                        </svg>
+                        <span>${TrackedI18n.t('refresh')}</span>
+                    </button>
+                    <button class="btn-secondary" id="modal-close">${TrackedI18n.t('close')}</button>
+                </div>
             </div>
         `;
 
         const modal = TrackedUI.createModal(content);
-        
-        modal.querySelectorAll('.server-join-btn').forEach(btn => {
-            btn.onclick = (e) => {
-                const jobId = e.target.dataset.job;
-                modal.remove();
-                TrackedApp.joinServer(placeId, jobId);
+        applyFilters(modal);
+
+        ['filter-ping', 'filter-players', 'filter-fps'].forEach(id => {
+            const input = modal.querySelector(`#${id}`);
+            if (input) input.addEventListener('input', () => applyFilters(modal));
+        });
+
+        modal.querySelectorAll('.sort-btn').forEach(btn => {
+            btn.onclick = () => {
+                const field = btn.dataset.sort;
+                if (sortField === field) {
+                    sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+                } else {
+                    sortField = field;
+                    sortDir = defaultDirs[field];
+                }
+                applyFilters(modal);
             };
         });
-        
+
+        const refreshBtn = modal.querySelector('#modal-refresh');
+        if (refreshBtn) {
+            refreshBtn.onclick = async () => {
+                if (refreshBtn.disabled) return;
+                refreshBtn.disabled = true;
+                refreshBtn.classList.add('refreshing');
+                try {
+                    const newServers = await TrackedApp.refreshDeepScanForModal(placeId);
+                    if (Array.isArray(newServers) && newServers.length > 0) {
+                        servers.length = 0;
+                        servers.push(...newServers);
+                        const countP = modal.querySelector('.tracked-modal > p');
+                        if (countP) countP.textContent = `${servers.length} ${TrackedI18n.t('serversScanned')}`;
+                        applyFilters(modal);
+                    } else {
+                        const list = modal.querySelector('.server-list');
+                        if (list) list.innerHTML = `<div class="server-filter-empty">${TrackedI18n.t('filterNoResults')}</div>`;
+                    }
+                } catch (err) {
+                    console.log('[Tracked] Modal refresh hatası:', err.message);
+                    const list = modal.querySelector('.server-list');
+                    if (list) list.innerHTML = `<div class="server-filter-empty">${TrackedI18n.t('scanError')}</div>`;
+                } finally {
+                    refreshBtn.disabled = false;
+                    refreshBtn.classList.remove('refreshing');
+                }
+            };
+        }
+
         modal.querySelector('#modal-close').onclick = () => {
             modal.remove();
-            TrackedUI.unlockAllButtons(); // v2.4.5
+            TrackedUI.unlockAllButtons();
         };
     },
 
@@ -478,16 +735,20 @@ const TrackedUI = {
 
         const listHtml = servers.slice(0, 8).map((s, i) => {
             const pingClass = s.ping && s.ping < 100 ? 'good' : (s.ping > 200 ? 'bad' : 'warn');
-            const freshness = s.playing <= 2 ? 'Çok Taze' : (s.playing <= 5 ? 'Taze' : 'Yeni');
+            const freshness = s.playing <= 2 ? TrackedI18n.t('veryFresh') : (s.playing <= 5 ? TrackedI18n.t('fresh') : TrackedI18n.t('newBadge'));
             return `
                 <div class="server-item new-server-item" data-job="${s.id}">
-                    <div class="server-info">
-                        <span class="server-rank" style="color: #BF5AF2;">#${i + 1}</span>
-                        <span class="server-players">${s.playing}/${s.maxPlayers}</span>
-                        <span class="freshness-badge">${freshness}</span>
-                        <span class="server-ping ${pingClass}">${s.ping ? s.ping + 'ms' : 'N/A'}</span>
+                    <div class="server-item-row">
+                        <div class="server-info">
+                            <span class="server-rank" style="color: #BF5AF2;">#${i + 1}</span>
+                            <span class="server-players">${s.playing}/${s.maxPlayers}</span>
+                            <span class="freshness-badge">${freshness}</span>
+                            <span class="server-ping ${pingClass}">${s.ping ? s.ping + 'ms' : 'N/A'}</span>
+                        </div>
+                        <div class="server-actions">
+                            <button class="server-join-btn btn-new" data-job="${s.id}">${TrackedI18n.t('join')}</button>
+                        </div>
                     </div>
-                    <button class="server-join-btn btn-new" data-job="${s.id}">KATIL</button>
                 </div>
             `;
         }).join('');
@@ -499,10 +760,10 @@ const TrackedUI = {
                         <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
                     </svg>
                 </div>
-                <h3>🌟 Yeni Sunucular Bulundu!</h3>
-                <p>Roblox'un en son eklediği taze sunucular:</p>
+                <h3>${TrackedI18n.t('newServersFound')}</h3>
+                <p>${TrackedI18n.t('freshServers')}</p>
                 <div class="server-list">${listHtml}</div>
-                <button class="btn-secondary" id="modal-close" style="width: 100%; margin-top: 12px;">Kapat</button>
+                <button class="btn-secondary" id="modal-close" style="width: 100%; margin-top: 12px;">${TrackedI18n.t('close')}</button>
             </div>
         `;
 
@@ -533,12 +794,11 @@ const TrackedUI = {
                         <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path>
                     </svg>
                 </div>
-                <h3>Instance Trigger Başarısız</h3>
-                <p>Yük dengeleyici yeni instance oluşturmadı.</p>
-                <p style="font-size: 12px; opacity: 0.7;">10+ burst istek ve 2 lokasyon denemesine rağmen<br>boş slot açılamadı. Normal tarama denensin mi?</p>
+                <h3>${TrackedI18n.t('instanceTriggerFailed')}</h3>
+                <p>${TrackedI18n.t('instanceTriggerDesc')}</p>
                 <div class="tracked-modal-actions">
-                    <button class="btn-secondary" id="modal-close">KAPAT</button>
-                    <button class="btn-primary" id="modal-retry-normal">NORMAL TARA</button>
+                    <button class="btn-secondary" id="modal-close">${TrackedI18n.t('closeBtn')}</button>
+                    <button class="btn-primary" id="modal-retry-normal">${TrackedI18n.t('normalScanRetry')}</button>
                 </div>
             </div>
         `;
@@ -552,7 +812,7 @@ const TrackedUI = {
         
         modal.querySelector('#modal-retry-normal').onclick = () => {
             modal.remove();
-            TrackedApp.findEmptyServer(placeId);
+            TrackedApp.performDeepScan(placeId);
         };
     }
 };

@@ -8,112 +8,170 @@
 </head>
 <body>
   <div class="bg-noise"></div>
-  
-  <div class="container">
-    <header>
-      <div class="header-content">
-        <div class="logo-circle">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3"></circle></svg>
+
+  <div class="layout">
+    <!-- Sticky sayfa içi nav -->
+    <aside class="toc" id="toc">
+      <div class="toc-inner">
+        <div class="toc-brand">
+          <div class="logo-circle small">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3"></circle></svg>
+          </div>
+          <span class="toc-brand-name">Tracked</span>
         </div>
-        <div>
-          <h1 data-i18n="settings">Tracked Ayarlar</h1>
-          <p class="subtitle" data-i18n="subtitle">Performans, görünüm ve bağlantı yapılandırması</p>
+        <nav class="toc-nav">
+          <a href="#sec-appearance" class="toc-link active" data-target="sec-appearance">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+            <span data-i18n="appearance">Görünüm</span>
+          </a>
+          <a href="#sec-connection" class="toc-link" data-target="sec-connection">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>
+            <span data-i18n="connectionSettings">Bağlantı</span>
+          </a>
+          <a href="#sec-performance" class="toc-link" data-target="sec-performance">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="13 2 3 14 12 14 11 22 21 10 12 10"/></svg>
+            <span data-i18n="performance">Performans</span>
+          </a>
+          <a href="#sec-reconnect" class="toc-link" data-target="sec-reconnect">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>
+            <span data-i18n="autoReconnect">Reconnect</span>
+          </a>
+          <a href="#sec-probes" class="toc-link" data-target="sec-probes">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="10" r="3"/><path d="M12 21.7C17.3 17 20 13 20 10a8 8 0 1 0-16 0c0 3 2.7 7 8 11.7z"/></svg>
+            <span data-i18n="probes">Problar</span>
+          </a>
+          <a href="#sec-diagnostics" class="toc-link" data-target="sec-diagnostics">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            <span data-i18n="diagnostics">Tanılama</span>
+          </a>
+          <a href="#sec-data" class="toc-link" data-target="sec-data">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            <span data-i18n="dataManagement">Veri</span>
+          </a>
+        </nav>
+
+        <div class="toc-shortcuts">
+          <div class="kbd-hint">
+            <kbd>Ctrl</kbd><span>+</span><kbd>S</kbd>
+            <small data-i18n="shortcutSave">Kaydet</small>
+          </div>
         </div>
       </div>
-    </header>
+    </aside>
 
-    <main>
-      <!-- Appearance & Experience -->
-      <section class="card">
-        <h2 data-i18n="appearance">Görünüm ve Deneyim</h2>
-        
-        <!-- Language Selection -->
-        <div class="setting-row">
-          <div class="setting-label">
-            <span data-i18n="language">Dil</span>
-            <small data-i18n="languageDesc">Arayüz dilini seçin.</small>
+    <div class="container">
+      <header>
+        <div class="header-content">
+          <div class="logo-circle">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3"></circle></svg>
           </div>
-          <select id="sel-language" class="language-select">
-            <option value="tr" data-i18n="turkish">🇹🇷 Türkçe</option>
-            <option value="en" data-i18n="english">🇬🇧 English</option>
-          </select>
-        </div>
-
-        <div class="setting-row">
-          <div class="setting-label">
-            <span data-i18n="animations">Arka Plan Animasyonları</span>
-            <small data-i18n="animationsDesc">Performans için "blooms" efektlerini kapatabilirsiniz.</small>
+          <div class="header-text">
+            <h1 data-i18n="settings">Tracked Ayarlar</h1>
+            <p class="subtitle" data-i18n="subtitle">Performans, görünüm ve bağlantı yapılandırması</p>
           </div>
-          <label class="switch">
-            <input type="checkbox" id="chk-animations">
-            <span class="slider"></span>
-          </label>
-        </div>
-
-        <div class="setting-row">
-          <div class="setting-label">
-            <span data-i18n="silentMode">Sessiz Mod</span>
-            <small data-i18n="silentModeDesc">Ekran altındaki bilgi mesajlarını (Toast) gizler.</small>
+          <div class="header-version">
+            <span class="version-pill" id="version-pill">v—</span>
           </div>
-          <label class="switch">
-            <input type="checkbox" id="chk-silent">
-            <span class="slider"></span>
-          </label>
         </div>
-      </section>
+      </header>
 
-      <!-- Connection Settings (Redesigned) -->
-      <section class="card">
-        <h2 data-i18n="connectionSettings">Bağlantı Ayarları</h2>
+      <main>
+        <!-- ─── GÖRÜNÜM VE DENEYİM ─── -->
+        <section class="card" id="sec-appearance">
+          <h2 data-i18n="appearance">Görünüm ve Deneyim</h2>
 
-        <!-- Numeric Metrics Grid with Custom Steppers -->
-        <div class="settings-grid">
-            <div class="metric-card">
-                <div class="metric-label">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-                    <span data-i18n="pingTimeout">Ping Zaman Aşımı</span>
-                </div>
-                <div class="metric-input-group">
-                    <button class="step-btn" data-action="dec">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                    </button>
-                    <input type="number" id="inp-timeout" class="big-input" min="500" max="10000" step="100" value="3000">
-                    <button class="step-btn" data-action="inc">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                    </button>
-                    <span class="metric-unit">ms</span>
-                </div>
+          <div class="setting-row">
+            <div class="setting-label">
+              <span data-i18n="language">Dil</span>
+              <small data-i18n="languageDesc">Arayüz dilini seçin.</small>
             </div>
-            
-            <div class="metric-card">
-                <div class="metric-label">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-                    <span data-i18n="cacheDuration">Önbellek Süresi</span>
-                </div>
-                <div class="metric-input-group">
-                    <button class="step-btn" data-action="dec">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                    </button>
-                    <input type="number" id="inp-cache" class="big-input" min="1" max="60" value="10">
-                    <button class="step-btn" data-action="inc">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                    </button>
-                    <span class="metric-unit">dk</span>
-                </div>
+            <div class="smart-language-select" id="smart-lang-select">
+              <button class="lang-current" id="lang-current-btn">
+                <span class="lang-code" id="current-lang-code">TR</span>
+                <span class="lang-name" id="current-lang-name">Türkçe</span>
+                <svg class="lang-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+              </button>
+              <div class="lang-dropdown" id="lang-dropdown">
+                <button class="lang-option" data-lang="tr" id="lang-option-tr">
+                  <span class="lang-code">TR</span>
+                  <span class="lang-name">Türkçe</span>
+                </button>
+                <button class="lang-option" data-lang="en" id="lang-option-en">
+                  <span class="lang-code">GB</span>
+                  <span class="lang-name">English</span>
+                </button>
+              </div>
             </div>
-        </div>
+            <select id="sel-language" style="display: none;">
+              <option value="tr">Türkçe</option>
+              <option value="en">English</option>
+            </select>
+          </div>
 
-        <!-- Toggles List -->
-        <div class="settings-list">
+          <div class="setting-row">
+            <div class="setting-label">
+              <span data-i18n="silentMode">Sessiz Mod</span>
+              <small data-i18n="silentModeDesc">Ekran altındaki bilgi mesajlarını (Toast) gizler.</small>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="chk-silent">
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="setting-row">
+            <div class="setting-label">
+              <span data-i18n="reducedMotion">Hareket Azalt</span>
+              <small data-i18n="reducedMotionDesc">Tüm animasyonları kapatır (erişilebilirlik). Popup, side panel ve oyun bar dahil.</small>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="chk-reduced-motion">
+              <span class="slider"></span>
+            </label>
+          </div>
+        </section>
+
+        <!-- ─── BAĞLANTI AYARLARI ─── -->
+        <section class="card" id="sec-connection">
+          <h2 data-i18n="connectionSettings">Bağlantı Ayarları</h2>
+
+          <div class="settings-grid">
+            <div class="metric-card">
+              <div class="metric-label">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                <span data-i18n="pingTimeout">Ping Zaman Aşımı</span>
+              </div>
+              <div class="metric-input-group">
+                <button class="step-btn" data-action="dec" type="button"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+                <input type="number" id="inp-timeout" class="big-input" min="500" max="10000" step="100" value="3000">
+                <button class="step-btn" data-action="inc" type="button"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+                <span class="metric-unit">ms</span>
+              </div>
+              <small class="metric-hint" data-i18n="pingTimeoutHint">Önerilen: 2000–5000 ms</small>
+            </div>
+
+            <div class="metric-card">
+              <div class="metric-label">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                <span data-i18n="cacheDuration">Önbellek Süresi</span>
+              </div>
+              <div class="metric-input-group">
+                <button class="step-btn" data-action="dec" type="button"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+                <input type="number" id="inp-cache" class="big-input" min="1" max="60" value="10">
+                <button class="step-btn" data-action="inc" type="button"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+                <span class="metric-unit" data-i18n="minutes">dk</span>
+              </div>
+              <small class="metric-hint" data-i18n="cacheDurationHint">Daha uzun = daha az API çağrısı</small>
+            </div>
+          </div>
+
+          <div class="settings-list">
             <div class="setting-row">
               <div class="setting-label">
                 <span data-i18n="openNewTab">Yeni Sekmede Aç</span>
                 <small data-i18n="openNewTabDesc">Katıl butonuna basınca oyun yeni sekmede açılır.</small>
               </div>
-              <label class="switch">
-                <input type="checkbox" id="chk-newtab">
-                <span class="slider"></span>
-              </label>
+              <label class="switch"><input type="checkbox" id="chk-newtab"><span class="slider"></span></label>
             </div>
 
             <div class="setting-row">
@@ -121,58 +179,219 @@
                 <span data-i18n="regionParam">URL Bölge Parametresi</span>
                 <small data-i18n="regionParamDesc">Linke <code>?rotaRegion=CODE</code> parametresi ekler (Deneysel).</small>
               </div>
-              <label class="switch">
-                <input type="checkbox" id="chk-appendparam">
-                <span class="slider"></span>
-              </label>
+              <label class="switch"><input type="checkbox" id="chk-appendparam"><span class="slider"></span></label>
             </div>
-        </div>
-      </section>
+          </div>
+        </section>
 
-      <!-- Probe Settings -->
-      <section class="card">
-        <div class="card-header-row">
+        <!-- ─── PERFORMANS (A+B / C+D) ─── -->
+        <section class="card" id="sec-performance">
+          <div class="card-header-row">
+            <h2 data-i18n="performance">Performans (A+B / C+D)</h2>
+            <span class="badge beta">β</span>
+          </div>
+          <p class="info-text" data-i18n="performanceDesc">Force-new-server stratejilerinin davranışı. Default değerler dengeli — sadece bilinçli oynamak istediğinde değiştir.</p>
+
+          <div class="settings-grid">
+            <div class="metric-card">
+              <div class="metric-label">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="9"/></svg>
+                <span data-i18n="blockTarget">Block Hedef Sayısı</span>
+              </div>
+              <div class="metric-input-group">
+                <button class="step-btn" data-action="dec" type="button"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+                <input type="number" id="inp-block-target" class="big-input" min="10" max="300" step="10" value="100">
+                <button class="step-btn" data-action="inc" type="button"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+                <span class="metric-unit" data-i18n="pieces">adet</span>
+              </div>
+              <small class="metric-hint" data-i18n="blockTargetHint">A+B için maks. block sayısı (50–200 önerilir)</small>
+            </div>
+
+            <div class="metric-card">
+              <div class="metric-label">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                <span data-i18n="propagationWait">Block Yayılma Süresi</span>
+              </div>
+              <div class="metric-input-group">
+                <button class="step-btn" data-action="dec" type="button"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+                <input type="number" id="inp-propagation" class="big-input" min="3" max="60" step="1" value="15">
+                <button class="step-btn" data-action="inc" type="button"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+                <span class="metric-unit" data-i18n="seconds">sn</span>
+              </div>
+              <small class="metric-hint" data-i18n="propagationWaitHint">Phase 3 öncesi Roblox cache yayılma süresi (10–20sn ideal)</small>
+            </div>
+          </div>
+
+          <div class="settings-list">
+            <div class="setting-row">
+              <div class="setting-label">
+                <span data-i18n="useFingerprint">Avatar Fingerprint Eşleme (C+D)</span>
+                <small data-i18n="useFingerprintDesc">Token→hash eşleme ile server-bazlı surgical block. Düşük block sayısı, yüksek precision.</small>
+              </div>
+              <label class="switch"><input type="checkbox" id="chk-fingerprint" checked><span class="slider"></span></label>
+            </div>
+
+            <div class="setting-row">
+              <div class="setting-label">
+                <span data-i18n="friendsExpansion">Friends-of-In-Game Genişletme</span>
+                <small data-i18n="friendsExpansionDesc">Presence-confirmed kullanıcıların arkadaşlarını da hedef listeye ekler. Daha geniş kapsama.</small>
+              </div>
+              <label class="switch"><input type="checkbox" id="chk-friends-expansion" checked><span class="slider"></span></label>
+            </div>
+
+            <div class="setting-row">
+              <div class="setting-label">
+                <span data-i18n="aggressiveSnipe">Agresif Snipe Polling</span>
+                <small data-i18n="aggressiveSnipeDesc">Daha sık server list polling. Hızlı yakalar ama 429 risk artar.</small>
+              </div>
+              <label class="switch"><input type="checkbox" id="chk-aggressive-snipe"><span class="slider"></span></label>
+            </div>
+          </div>
+        </section>
+
+        <!-- ─── AUTO-RECONNECT ─── -->
+        <section class="card" id="sec-reconnect">
+          <h2 data-i18n="autoReconnect">Otomatik Yeniden Bağlanma</h2>
+          <p class="info-text" data-i18n="autoReconnectDesc">Oyun aniden kapanırsa (crash, kick, network drop) extension bunu tespit edip aynı server'a tek tıkla geri dönmeni sağlar. Service worker arka planda 30sn'de bir presence kontrolü yapar.</p>
+
+          <div class="settings-list">
+            <div class="setting-row">
+              <div class="setting-label">
+                <span data-i18n="autoReconnectEnabled">Auto-Reconnect Aktif</span>
+                <small data-i18n="autoReconnectEnabledDesc">Crash tespiti yapılır ve oyuna girdiğinde Roblox sayfasında modal gösterilir. Kapalıysa hiçbir tespit yapılmaz.</small>
+              </div>
+              <label class="switch"><input type="checkbox" id="chk-auto-reconnect" checked><span class="slider"></span></label>
+            </div>
+
+            <div class="setting-row">
+              <div class="setting-label">
+                <span data-i18n="autoReconnectNative">Sistem Bildirimini de Göster</span>
+                <small data-i18n="autoReconnectNativeDesc">Roblox sayfası kapalıyken sağ alt köşede Chrome'un native bildirimi de çıkar. <strong>Kapalıysa</strong> sadece in-page modal kullanılır (önerilen).</small>
+              </div>
+              <label class="switch"><input type="checkbox" id="chk-auto-reconnect-native"><span class="slider"></span></label>
+            </div>
+          </div>
+        </section>
+
+        <!-- ─── PROBLAR ─── -->
+        <section class="card" id="sec-probes">
+          <div class="card-header-row">
             <h2 data-i18n="probes">Ping Noktaları (Problar)</h2>
-            <span class="badge" data-i18n="advanced">Gelişmiş</span>
-        </div>
-        <p class="info-text" data-i18n="probesDesc">Bölgesel gecikmeyi ölçmek için kullanılan sunucu adresleri. İsimler sabittir, sadece test adreslerini değiştirebilirsiniz.</p>
-        
-        <div id="probe-list" class="probe-list">
-          <!-- JS injects rows here securely -->
-        </div>
-      </section>
-
-      <!-- Data Management (Danger Zone) -->
-      <section class="card danger-zone">
-        <h2 data-i18n="dataManagement">Veri Yönetimi</h2>
-        <div class="danger-row">
-          <div class="setting-label">
-            <span data-i18n="clearFavorites">Favorileri Temizle</span>
-            <small data-i18n="clearFavoritesDesc">Kaydedilen tüm oyunları kütüphaneden siler.</small>
+            <div class="header-actions">
+              <button id="btn-test-all-probes" class="btn-mini" type="button">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                <span data-i18n="testAll">Tümünü Test Et</span>
+              </button>
+              <span class="badge" data-i18n="advanced">Gelişmiş</span>
+            </div>
           </div>
-          <button id="btn-clear-favs" class="btn danger-outline" data-i18n="clear">Temizle</button>
-        </div>
-        <div class="danger-row">
-          <div class="setting-label">
-             <span>Fabrika Ayarlarına Dön</span>
-             <small>Tüm ayarları ve yapılandırmaları sıfırlar.</small>
+          <p class="info-text" data-i18n="probesDesc">Bölgesel gecikmeyi ölçmek için kullanılan sunucu adresleri. İsimler sabittir, sadece test adreslerini değiştirebilirsiniz. Her satırın sağındaki ▶ butonuyla canlı test atabilirsiniz.</p>
+
+          <div id="probe-list" class="probe-list">
+            <!-- JS injects rows -->
           </div>
-          <button id="btn-reset" class="btn danger-outline" data-i18n="reset">Sıfırla</button>
+
+          <div class="probes-footer">
+            <button id="btn-add-probe" class="btn ghost" type="button">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              <span data-i18n="addProbe">Yeni Prob Ekle</span>
+            </button>
+          </div>
+        </section>
+
+        <!-- ─── TANILAMA / DIAGNOSTICS ─── -->
+        <section class="card" id="sec-diagnostics">
+          <h2 data-i18n="diagnostics">Tanılama</h2>
+          <p class="info-text" data-i18n="diagnosticsDesc">Extension'ın anlık durumu ve depolama bilgisi.</p>
+
+          <div class="diag-grid">
+            <div class="diag-tile">
+              <div class="diag-label" data-i18n="diagFavorites">Kayıtlı Oyun</div>
+              <div class="diag-value" id="diag-favorites">—</div>
+            </div>
+            <div class="diag-tile">
+              <div class="diag-label" data-i18n="diagCache">Cache Boyutu</div>
+              <div class="diag-value" id="diag-cache-size">—</div>
+            </div>
+            <div class="diag-tile">
+              <div class="diag-label" data-i18n="diagVersion">Sürüm</div>
+              <div class="diag-value" id="diag-version">—</div>
+            </div>
+            <div class="diag-tile">
+              <div class="diag-label" data-i18n="diagBaseline">Baseline RTT</div>
+              <div class="diag-value" id="diag-baseline">—</div>
+            </div>
+          </div>
+
+          <div class="settings-list" style="margin-top: 16px;">
+            <div class="setting-row">
+              <div class="setting-label">
+                <span data-i18n="exportSettings">Ayarları Dışa Aktar</span>
+                <small data-i18n="exportSettingsDesc">Mevcut yapılandırmayı JSON dosyası olarak indir.</small>
+              </div>
+              <button id="btn-export" class="btn ghost" type="button">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                <span data-i18n="export">Dışa Aktar</span>
+              </button>
+            </div>
+            <div class="setting-row">
+              <div class="setting-label">
+                <span data-i18n="importSettings">Ayarları İçe Aktar</span>
+                <small data-i18n="importSettingsDesc">Önceden indirilen JSON dosyasından yapılandırmayı yükle.</small>
+              </div>
+              <label for="file-import" class="btn ghost" id="btn-import-label">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                <span data-i18n="import">İçe Aktar</span>
+              </label>
+              <input type="file" id="file-import" accept="application/json" style="display:none">
+            </div>
+          </div>
+        </section>
+
+        <!-- ─── VERİ YÖNETİMİ (Danger) ─── -->
+        <section class="card danger-zone" id="sec-data">
+          <h2 data-i18n="dataManagement">Veri Yönetimi</h2>
+          <div class="danger-row">
+            <div class="setting-label">
+              <span data-i18n="clearFavorites">Favorileri Temizle</span>
+              <small data-i18n="clearFavoritesDesc">Kaydedilen tüm oyunları kütüphaneden siler.</small>
+            </div>
+            <button id="btn-clear-favs" class="btn danger-outline" type="button" data-i18n="clear">Temizle</button>
+          </div>
+          <div class="danger-row">
+            <div class="setting-label">
+              <span data-i18n="clearCache">Cache'i Temizle</span>
+              <small data-i18n="clearCacheDesc">Ping ölçümleri ve geçici verileri temizler.</small>
+            </div>
+            <button id="btn-clear-cache" class="btn danger-outline" type="button" data-i18n="clear">Temizle</button>
+          </div>
+          <div class="danger-row">
+            <div class="setting-label">
+              <span data-i18n="resetDefaults">Fabrika Ayarlarına Dön</span>
+              <small data-i18n="resetDefaultsDesc">Tüm ayarları ve yapılandırmaları sıfırlar.</small>
+            </div>
+            <button id="btn-reset" class="btn danger-outline" type="button" data-i18n="reset">Sıfırla</button>
+          </div>
+        </section>
+
+        <div class="footer-signature">
+          <span id="footer-version">Tracked v—</span> • Developed by Darkzzers
         </div>
-      </section>
-
-      <!-- Actions -->
-      <div class="actions-footer">
-        <span id="unsaved-indicator" style="opacity: 0;" data-i18n="unsavedChanges">Değişiklikler var...</span>
-        <button id="btn-save" class="btn primary large" data-i18n="saveSettings">Ayarları Kaydet</button>
-      </div>
-
-      <div class="footer-signature">
-        Tracked v1.6 • Developed by Darkzzers
-      </div>
-    </main>
+      </main>
+    </div>
   </div>
-  
+
+  <!-- Sticky save bar -->
+  <div class="actions-footer no-changes" id="actions-footer">
+    <div class="footer-content">
+      <span class="unsaved-indicator" id="unsaved-indicator" data-i18n="unsavedChanges">Değişiklikler var...</span>
+      <div class="footer-actions">
+        <kbd class="kbd-shortcut" title="Ctrl+S">⌘S</kbd>
+        <button id="btn-save" class="btn primary large" type="button" data-i18n="saveSettings">Ayarları Kaydet</button>
+      </div>
+    </div>
+  </div>
+
   <div id="toast-container"></div>
 
   <script src="i18n.js"></script>

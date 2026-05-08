@@ -1,19 +1,37 @@
 {
   "manifest_version": 3,
   "name": "Tracked - Roblox Route Optimizer",
-  "version": "3.7.0",
-  "description": "Roblox için gelişmiş rota takibi, ping ölçümü, VPN tespiti ve YENİ SERVER bulma özelliği. v3.7 - Akıllı Veri Takibi & Canlı Kütüphane",
+  "version": "1.7.0",
+  "description": "Roblox için gelişmiş rota takibi, ping ölçümü, VPN tespiti ve CANLI ETKINLIK bulma. v1.7 - Sticky UI",
   "permissions": [
     "storage",
     "activeTab",
+    "scripting",
+    "declarativeNetRequestWithHostAccess",
     "alarms",
-    "notifications"
+    "notifications",
+    "sidePanel",
+    "windows"
   ],
+  "declarative_net_request": {
+    "rule_resources": [
+      {
+        "id": "cors_fix",
+        "enabled": true,
+        "path": "cors_rules.json"
+      }
+    ]
+  },
   "host_permissions": [
     "https://www.roblox.com/*",
     "https://users.roblox.com/*",
     "https://presence.roblox.com/*",
     "https://games.roblox.com/*",
+    "https://friends.roblox.com/*",
+    "https://accountinformation.roblox.com/*",
+    "https://auth.roblox.com/*",
+    "https://apis.roblox.com/*",
+    "https://thumbnails.roblox.com/*",
     "http://*/*",
     "https://*/*"
   ],
@@ -22,12 +40,15 @@
   },
   "action": {
     "default_popup": "popup.html",
-    "default_title": "Tracked v3.7",
+    "default_title": "Tracked v1.7",
     "default_icon": {
       "16": "icons/icon16.png",
       "48": "icons/icon48.png",
       "128": "icons/icon128.png"
     }
+  },
+  "side_panel": {
+    "default_path": "sidepanel.html"
   },
   "options_page": "options.html",
   "icons": {
@@ -49,7 +70,41 @@
         "scanner.js",
         "ui.js",
         "i18n.js",
+        "instance_trigger.js",
         "main.js"
+      ],
+      "run_at": "document_end"
+    },
+    {
+      "matches": [
+        "https://www.roblox.com/games/*"
+      ],
+      "js": [
+        "recent_games_content.js"
+      ],
+      "run_at": "document_end"
+    },
+    {
+      "matches": [
+        "https://www.roblox.com/*"
+      ],
+      "exclude_matches": [
+        "https://www.roblox.com/games/*"
+      ],
+      "css": [
+        "content_styles.css"
+      ],
+      "js": [
+        "reconnect_overlay.js"
+      ],
+      "run_at": "document_end"
+    },
+    {
+      "matches": [
+        "https://www.roblox.com/games/*"
+      ],
+      "js": [
+        "reconnect_overlay.js"
       ],
       "run_at": "document_end"
     }
