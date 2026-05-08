@@ -189,6 +189,20 @@ node -e "JSON.parse(require('fs').readFileSync('manifest.json','utf8'))"
 chrome.runtime.sendMessage({ action: 'testCrashNotification' }, console.log);
 ```
 
+---
+
+## 🛡️ Legal Notice & Copyright
+
+![Copyright](https://img.shields.io/badge/Copyright-2026_Darkzzers-red?style=for-the-badge&logo=github)
+![License](https://img.shields.io/badge/License-All_Rights_Reserved-black?style=for-the-badge)
+![Status](https://img.shields.io/badge/Project_Status-Protected-orange?style=for-the-badge)
+
+**This project is private and strictly closed-source.**
+
+> [!CAUTION]
+> **Copyright © 2026 Darkzzers.** All rights reserved. 
+> Any unauthorized copying, distribution, or use of this software will result in legal action. 
+> All rights to this project belong solely to the developer (**Darkzzers**).
 
 
 ---
