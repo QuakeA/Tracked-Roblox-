@@ -189,7 +189,6 @@ node -e "JSON.parse(require('fs').readFileSync('manifest.json','utf8'))"
 chrome.runtime.sendMessage({ action: 'testCrashNotification' }, console.log);
 ```
 
----
 
 
 ---
