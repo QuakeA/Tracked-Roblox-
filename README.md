@@ -209,7 +209,7 @@ chrome.runtime.sendMessage({ action: 'testCrashNotification' }, console.log);
 ## 💬 İletişim & Destek
 
 - 📧 **E-posta**: [slayer38tr@gmail.com](mailto:slayer38tr@gmail.com)
-- ⭐ **Beğendiysen** repo'ya yıldız (star) vermeyi unutma — projeyi destekler!
+- ⭐ **Beğendiysen** repo'ya yıldız vermeyi unutma — projeyi destekler!
 
 ---
 
