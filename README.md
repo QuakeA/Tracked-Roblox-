@@ -202,7 +202,7 @@ chrome.runtime.sendMessage({ action: 'testCrashNotification' }, console.log);
 
 <div align="center">
 
-**Roblox kullanıcıları için** <img src="https://cdn.simpleicons.org/roblox/E2231A" height="18" align="center" alt="Roblox">
+**Roblox kullanıcıları için** <img src="https://cdn.simpleicons.org/roblox/FFFFFF" height="18" align="center" alt="Roblox">
 
 _This project is not affiliated with Roblox Corporation._
 
