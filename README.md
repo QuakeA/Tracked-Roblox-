@@ -193,27 +193,24 @@ chrome.runtime.sendMessage({ action: 'testCrashNotification' }, console.log);
 
 ## 📄 Lisans
 
-MIT License — özgürce fork'la, modifiye et, paylaş.
+Bu proje **MIT Lisansı** altında dağıtılır.
 
----
+**Bu ne demek?**
+- ✅ Kodu **özgürce kullanabilirsin** (kişisel veya ticari)
+- ✅ **Değiştirebilir, kendi versiyonunu çıkarabilirsin**
+- ✅ **Yeniden dağıtabilirsin** (kendi projende kullanabilirsin)
+- ⚠️ Tek şart: orijinal lisans/copyright bildirimini saklaman gerekir
+- ⚠️ Garanti yok — kod "olduğu gibi" sunulur
 
-## 🤝 Katkı
-
-Pull request'ler hoş geldi. Büyük değişiklikler için önce bir issue aç ve neyi değiştirmek istediğini tartış.
-
-1. Fork'la
-2. Feature branch oluştur (`git checkout -b feature/amazing-feature`)
-3. Commit'le (`git commit -m 'feat: add amazing feature'`)
-4. Push'la (`git push origin feature/amazing-feature`)
-5. PR aç
+Yani: sınırsız özgürlük, sıfır sorumluluk. Yazılımcı dostu en yaygın lisanslardan biri.
 
 ---
 
 ## 💬 İletişim & Destek
 
-- 🐛 **Bug bildirimi**: [Issues](../../issues)
-- 💡 **Özellik önerisi**: [Discussions](../../discussions)
-- ⭐ **Beğendin mi?** Star vermeyi unutma!
+- 📧 **E-posta**: [slayer38tr@gmail.com](mailto:slayer38tr@gmail.com)
+- 🐛 **Bug bildirimi**: GitHub'a yüklendikten sonra repo sayfasının _Issues_ sekmesinden açabilirsin
+- ⭐ **Beğendiysen** repo'ya yıldız (star) vermeyi unutma — projeyi destekler!
 
 ---
 
