@@ -9,7 +9,7 @@
 
 [![Manifest](https://img.shields.io/badge/Manifest-V3-4285F4?style=flat-square&logo=googlechrome&logoColor=white)](manifest.json)
 [![Version](https://img.shields.io/badge/version-1.7.0-blue?style=flat-square)](manifest.json)
-[![License](https://img.shields.io/badge/license-All_Rights_Reserved-red?style=flat-square)
+![License](https://img.shields.io/badge/license-All_Rights_Reserved-red?style=flat-square)
 [![Roblox](https://img.shields.io/badge/Roblox-compatible-E2231A?style=flat-square&logo=roblox&logoColor=white)](https://roblox.com)
 [![i18n](https://img.shields.io/badge/i18n-TR%20%7C%20EN-orange?style=flat-square)](i18n.js)
 
