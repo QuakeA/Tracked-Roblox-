@@ -202,7 +202,7 @@ chrome.runtime.sendMessage({ action: 'testCrashNotification' }, console.log);
 
 <div align="center">
 
-**Roblox kullanıcıları için** ❤️
+**Roblox kullanıcıları için** <img src="https://upload.wikimedia.org/wikipedia/commons/3/3a/Roblox_player_icon_black.svg" height="20" style="vertical-align: middle; margin-left: 5px;" alt="Roblox Ikon">
 
 _This project is not affiliated with Roblox Corporation._
 
