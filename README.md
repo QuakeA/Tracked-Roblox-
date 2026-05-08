@@ -202,7 +202,7 @@ chrome.runtime.sendMessage({ action: 'testCrashNotification' }, console.log);
 > [!CAUTION]
 > **Copyright © 2026 Darkzzers.** All rights reserved. 
 > Any unauthorized copying, distribution, or use of this software will result in legal action. 
-> All rights to this project belong solely to the developer: **Darkzzers (QuakeA)**.
+> All rights to this project belong solely to the developer: **Darkzzers (QuakeA)**
 
 ---
 
