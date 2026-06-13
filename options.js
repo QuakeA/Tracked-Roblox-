@@ -858,9 +858,26 @@ function escapeAttr(s) {
 // ── Sürüm Notları ──────────────────────────────────────────────────────────
 const CHANGELOG = [
     {
+        version: 'v1.9.4',
+        date: '13 Haziran 2026',
+        isNew: true,
+        entries: [
+            { icon: '▸', text: 'Oyun Kütüphanesi\'ne görünüm anahtarı eklendi: tek tıkla "Geniş" (büyük kart) veya "Kompakt" (tek satır — çok oyunda kaydırma yarıya iner) arasında geç; seçim kalıcı' },
+            { icon: '▸', text: 'Etkinlik Analizi yenilendi: artık önce oyunun RESMİ Roblox etkinliklerini gösterir (adı, ne zaman başlıyor/bitiyor, canlı mı) — tahmin değil kesin bilgi. Resmi etkinlik yoksa sinyallere göre dürüstçe "tahmin" yapar' },
+            { icon: '▸', text: 'Bölgesel ping ve ayar problarında artık gerçek ülke bayrağı ikonları görünüyor; bazı ülke isimleri (İtalya/İsveç/İrlanda) düzgün yazılıyor' },
+            { icon: '▸', text: '"Yeni" sunucu bulma artık GERÇEKTEN yeni açılmış sunucuları buluyor: listeyi kısa süre izleyip o sırada açılanı yakalar. Yeni yoksa dürüstçe "yok" der — yarı dolu sunucuyu "yeni" diye göstermez' },
+            { icon: '▸', text: 'Rate limit\'e takılınca artık seni bekletip tekrar tıklatmıyor; arka planda otomatik bekleyip kaldığı yerden kendi devam ediyor' },
+            { icon: '▸', text: 'Oto-Pilot butonu tekrar alt çubuğa alındı; Roblox\'un Play butonu sade/native bırakıldı' },
+            { icon: '▸', text: 'Envanter / Katalog / Avatar değerlerinin yanındaki Robux ikonu artık her zaman görünüyor (gerçek Robux ikonu kullanıldı)' },
+            { icon: '▸', text: 'Themes: yazı tipi seçenekleri 5\'ten 13\'e çıktı (Verdana, Impact, El Yazısı, Slab Serif vb.); seçim menüsü güzelleştirildi ve her font kendi görünümünde önizleniyor' },
+            { icon: '▸', text: 'Arkadaşlar listesi artık tek seferde, akıcı yükleniyor (kart-kart "pat pat" belirme giderildi)' },
+            { icon: '▸', text: 'Çeşitli temizlik ve iyileştirmeler: emojiler yerine ikonlar, gereksiz konsol uyarıları susturuldu, kararlılık artırıldı' },
+        ]
+    },
+    {
         version: 'v1.9.3',
         date: '7 Haziran 2026',
-        isNew: true,
+        isNew: false,
         entries: [
             { icon: '▸', text: 'Sunucu listesinde (Diğer Sunucular) artık her sunucunun GERÇEK ülkesi/şehri ve sana GERÇEK ping\'in gösteriliyor — eskiden yazan ping aslında sunucudaki oyuncuların ortalamasıydı, seninle alakası yoktu; kaldırıldı ve doğru veriyle değiştirildi' },
             { icon: '▸', text: 'Ping\'ler arka planda otomatik ölçülür (dünya genelinde 20 bölge) — hiçbir şey yapmana gerek yok, sayfayı açınca kendiliğinden gelir; ölçülmemiş bir bölge çıkarsa dürüstçe mesafe (km) gösterilir' },

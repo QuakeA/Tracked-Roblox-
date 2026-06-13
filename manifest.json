@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Tracked - Roblox Route Optimizer",
-  "version": "1.9.3",
-  "description": "Roblox için gelişmiş rota takibi, sunucu bölge tespiti, gerçek ping ölçümü, VPN tespiti ve CANLI ETKINLIK bulma. v1.9.3 - Sunucu Bölge & Gerçek Ping",
+  "version": "1.9.4",
+  "description": "Roblox için gelişmiş rota takibi, sunucu bölge tespiti, gerçek ping ölçümü, VPN tespiti ve CANLI ETKINLIK bulma. v1.9.4 - Kütüphane Görünümü, Bayraklar & Resmi Etkinlikler",
   "permissions": [
     "storage",
     "unlimitedStorage",
@@ -42,7 +42,7 @@
   },
   "action": {
     "default_popup": "popup.html",
-    "default_title": "Tracked v1.9.3",
+    "default_title": "Tracked v1.9.4",
     "default_icon": {
       "16": "icons/icon16.png",
       "48": "icons/icon48.png",
