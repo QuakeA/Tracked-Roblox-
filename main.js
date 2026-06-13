@@ -1,48 +1,179 @@
 ﻿// main.js - Tracked Extension v3.7 Main Application Module (Smart Activity Tracking)
 
-// Roblox known DC bölge profili — ülkeye göre tipik RTT (ms)
-// Kullanıcının baseline ölçümüyle birleşip server'ın muhtemel DC'sini tahmin eder
-const COUNTRY_DC_RTT = {
-    TR: { EU: 60,  'US-E': 130, 'US-W': 200, AS: 230, OC: 290, SA: 220 },
-    DE: { EU: 20,  'US-E': 100, 'US-W': 170, AS: 250, OC: 300, SA: 220 },
-    GB: { EU: 25,  'US-E': 80,  'US-W': 150, AS: 250, OC: 280, SA: 200 },
-    FR: { EU: 25,  'US-E': 90,  'US-W': 160, AS: 250, OC: 290, SA: 200 },
-    NL: { EU: 15,  'US-E': 90,  'US-W': 160, AS: 250, OC: 290, SA: 210 },
-    PL: { EU: 35,  'US-E': 110, 'US-W': 180, AS: 240, OC: 290, SA: 230 },
-    IT: { EU: 30,  'US-E': 110, 'US-W': 180, AS: 250, OC: 290, SA: 220 },
-    ES: { EU: 30,  'US-E': 100, 'US-W': 170, AS: 260, OC: 300, SA: 200 },
-    RU: { EU: 70,  'US-E': 130, 'US-W': 200, AS: 200, OC: 280, SA: 240 },
-    UA: { EU: 50,  'US-E': 120, 'US-W': 190, AS: 220, OC: 290, SA: 240 },
-    US: { EU: 90,  'US-E': 30,  'US-W': 80,  AS: 180, OC: 220, SA: 130 },
-    CA: { EU: 100, 'US-E': 40,  'US-W': 70,  AS: 180, OC: 220, SA: 140 },
-    MX: { EU: 130, 'US-E': 60,  'US-W': 70,  AS: 200, OC: 230, SA: 130 },
-    BR: { EU: 200, 'US-E': 120, 'US-W': 200, AS: 350, OC: 350, SA: 30  },
-    AR: { EU: 220, 'US-E': 140, 'US-W': 200, AS: 350, OC: 350, SA: 50  },
-    JP: { EU: 250, 'US-E': 150, 'US-W': 100, AS: 30,  OC: 130, SA: 280 },
-    KR: { EU: 250, 'US-E': 180, 'US-W': 110, AS: 40,  OC: 150, SA: 290 },
-    CN: { EU: 220, 'US-E': 200, 'US-W': 150, AS: 60,  OC: 130, SA: 320 },
-    HK: { EU: 200, 'US-E': 200, 'US-W': 150, AS: 30,  OC: 140, SA: 320 },
-    SG: { EU: 180, 'US-E': 230, 'US-W': 180, AS: 30,  OC: 110, SA: 350 },
-    AU: { EU: 290, 'US-E': 220, 'US-W': 170, AS: 130, OC: 20,  SA: 320 },
-    NZ: { EU: 290, 'US-E': 230, 'US-W': 170, AS: 150, OC: 30,  SA: 320 },
-    IN: { EU: 130, 'US-E': 230, 'US-W': 250, AS: 100, OC: 230, SA: 330 },
-    ID: { EU: 200, 'US-E': 240, 'US-W': 200, AS: 70,  OC: 130, SA: 360 },
-    PH: { EU: 220, 'US-E': 220, 'US-W': 170, AS: 50,  OC: 150, SA: 340 },
-    ZA: { EU: 160, 'US-E': 220, 'US-W': 290, AS: 290, OC: 380, SA: 310 },
-    AE: { EU: 130, 'US-E': 200, 'US-W': 250, AS: 130, OC: 250, SA: 290 },
-    SA: { EU: 120, 'US-E': 190, 'US-W': 240, AS: 140, OC: 260, SA: 280 },
-    EG: { EU: 100, 'US-E': 180, 'US-W': 240, AS: 180, OC: 290, SA: 270 },
-    _:  { EU: 100, 'US-E': 130, 'US-W': 180, AS: 220, OC: 280, SA: 220 }
-};
+// ─── SUNUCU BÖLGE TESPİTİ (RoSeal tarzı) ──────────────────────────────────────
+// Sunucunun gerçek datacenter bölgesi + sana mesafe + sürüm. Kaynak: gamejoin
+// joinScript IP'si (BAT'lı) → SW resolveServerRegion → datacenters.js CIDR eşleme.
+// Performans% buradan DEĞİL, sunucu listesi fps'inden gelir (BAT'sız, her zaman çalışır).
+const TrackedRegion = {
+    _geo: null,                      // { lat, lon } kullanıcı konumu (oturum içi cache)
+    _pingByCountry: null,            // { DE:45, NL:52, ... } popup'ta ölçülen gerçek bölgesel ping (geri düşüş)
+    _regionPings: null,              // [{cc,lat,lon,ms}] SW'nin ölçtüğü KÜRESEL koordinatlı ping'ler (birincil)
+    AUTO_LIMIT: 8,                   // Derin'de otomatik çözülen üst sunucu sayısı
+    STEP_MS: 350,                    // Çağrılar arası yastık (rate-limit'e karşı)
 
-// Bölge ikonları — ülke bayrağı yerine global region simgesi (kafa karışıklığı önler)
-const DC_INFO = {
-    'EU':   { icon: '🌍', name: 'Europe',         short: 'EU' },
-    'US-E': { icon: '🌎', name: 'US East',        short: 'US-E' },
-    'US-W': { icon: '🌎', name: 'US West',        short: 'US-W' },
-    'AS':   { icon: '🌏', name: 'Asia',           short: 'AS' },
-    'OC':   { icon: '🌏', name: 'Oceania',        short: 'OC' },
-    'SA':   { icon: '🌎', name: 'South America',  short: 'SA' }
+    _swMsg(msg) {
+        return new Promise((resolve) => {
+            try {
+                chrome.runtime.sendMessage(msg, (resp) => {
+                    if (chrome.runtime.lastError) resolve(null); else resolve(resp);
+                });
+            } catch (_) { resolve(null); }
+        });
+    },
+
+    async getUserGeo(placeId) {
+        if (this._geo) return this._geo;
+        // 1) IP-geo (varsa daha ince konum)
+        let r = await this._swMsg({ action: 'resolveUserLocation' });
+        if (r && r.ok && typeof r.lat === 'number') { this._geo = { lat: r.lat, lon: r.lon, nearestDcKm: r.nearestDcKm ?? null, nearestDcCity: r.nearestDcCity ?? null }; return this._geo; }
+        // 2) AD-BLOCKER-PROOF fallback: Roblox matchmaker bölgesi (gameId'siz gamejoin → senin bölgen)
+        const pid = placeId || (location.pathname.match(/\/games\/(\d+)/) || [])[1];
+        if (pid) {
+            r = await this._swMsg({ action: 'resolveMyRegion', placeId: pid });
+            if (r && r.ok && typeof r.lat === 'number') { this._geo = { lat: r.lat, lon: r.lon, nearestDcKm: r.nearestDcKm ?? null, nearestDcCity: r.nearestDcCity ?? null }; return this._geo; }
+        }
+        return this._geo;  // null → mesafe hesaplanamaz (bölge yine gösterilir)
+    },
+
+    // Haversine — iki koordinat arası km (tam sayı). Eksik veri → null.
+    distanceKm(lat1, lon1, lat2, lon2) {
+        if ([lat1, lon1, lat2, lon2].some(v => typeof v !== 'number')) return null;
+        const R = 6371, toRad = d => d * Math.PI / 180;
+        const dLat = toRad(lat2 - lat1), dLon = toRad(lon2 - lon1);
+        const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+        return Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+    },
+
+    // Performans % = fps/60 (fizik adım hızı). Liste verisinden, BAT'sız.
+    perfPct(server) {
+        const fps = server && server.fps;
+        if (!fps || fps <= 0) return null;
+        return Math.max(0, Math.min(100, Math.round((fps / 60) * 100)));
+    },
+
+    // Popup'ta ölçülen gerçek bölgesel ping'leri ülke koduna göre yükle (bir kez, oturum cache).
+    // rota_ping_cache.results = [{region:"Almanya (DE)", ms:45}, ...] → { DE:45, NL:52, ... }
+    async _loadPingMap() {
+        if (this._pingByCountry !== null) return this._pingByCountry;
+        this._pingByCountry = {};
+        try {
+            const st = await new Promise(res => { try { chrome.storage.local.get(['rota_ping_cache', 'rota_ping_results'], res); } catch (_) { res({}); } });
+            let results = st?.rota_ping_cache?.results;
+            if (!Array.isArray(results) || !results.length) results = st?.rota_ping_results;
+            if (Array.isArray(results)) {
+                for (const r of results) {
+                    if (!r || typeof r.ms !== 'number' || r.ms <= 0 || r.ms >= 900) continue;
+                    const m = /\(([A-Z]{2})\)/.exec(r.region || '');
+                    if (m) {
+                        const cc = m[1];
+                        if (!(cc in this._pingByCountry) || r.ms < this._pingByCountry[cc]) this._pingByCountry[cc] = Math.round(r.ms);
+                    }
+                }
+            }
+        } catch (_) {}
+        return this._pingByCountry;
+    },
+
+    // Sunucunun bölgesi için kullanıcının ÖLÇÜLEN ping'i → ms | null
+    // 1) KOORDİNAT bazlı (kapsamlı/doğru): datacenter'a EN YAKIN ölçülen probe. US-Doğu/Batı bile ayrışır,
+    //    ülke etiketi tutmasa bile çalışır (mesafeyle eşler).
+    // 2) Geri düşüş: ülke kodu haritası (popup manuel testi).
+    measuredPing(server) {
+        if (!server) return null;
+        const lat = server.regionLat, lon = server.regionLon;
+        if (Array.isArray(this._regionPings) && this._regionPings.length && typeof lat === 'number' && typeof lon === 'number') {
+            let best = null, bestD = Infinity;
+            for (const p of this._regionPings) {
+                const d = this.distanceKm(lat, lon, p.lat, p.lon);
+                if (d != null && d < bestD) { bestD = d; best = p; }
+            }
+            if (best && typeof best.ms === 'number') return best.ms;
+        }
+        if (this._pingByCountry && typeof server.region === 'string') {
+            const m = /,\s*([A-Z]{2})\s*$/.exec(server.region);
+            if (m && this._pingByCountry[m[1]] != null) return this._pingByCountry[m[1]];
+        }
+        return null;
+    },
+
+    // SW'nin ölçtüğü küresel bölgesel ping'leri storage'dan yükle (her çağrıda taze).
+    async _loadRegionPings() {
+        try {
+            const st = await new Promise(res => { try { chrome.storage.local.get(['tracked_region_pings'], res); } catch (_) { res({}); } });
+            const rp = st && st.tracked_region_pings;
+            this._regionPings = (rp && Array.isArray(rp.probes))
+                ? rp.probes.filter(p => p && typeof p.ms === 'number' && p.ms > 0 && p.ms < 900 && typeof p.lat === 'number' && typeof p.lon === 'number')
+                : [];
+        } catch (_) { this._regionPings = []; }
+        return this._regionPings;
+    },
+    // Arka planda bölgesel ping'leri ölç (SW, 30dk cache) + yükle. ms için — MANUEL TEST GEREKMEZ.
+    async ensureRegionalPings() {
+        try { await this._swMsg({ action: 'ensureRegionalPings' }); } catch (_) {}
+        await this._loadRegionPings();
+        return this._regionPings;
+    },
+
+    // İki katmanlı sıralama anahtarı: [tier, value]. tier 0=ölçülen ping (gerçek), 1=mesafe, 2=çözülmemiş.
+    // Ölçülen ping olanlar önce (gerçek ping'e göre), sonra mesafeyle diğerleri, en son çözülmemiş.
+    regionSortKey(s) {
+        if (s && typeof s.measuredPing === 'number') return [0, s.measuredPing];
+        if (s && typeof s.distanceKm === 'number') return [1, s.distanceKm];
+        return [2, Infinity];
+    },
+
+    // Tek sunucu bölge çözümü → { region, lat, lon, version, distanceKm } | null
+    async resolveOne(placeId, jobId) {
+        const r = await this._swMsg({ action: 'resolveServerRegion', placeId, jobId });
+        if (!r || !r.ok || !r.region) return null;
+        const geo = await this.getUserGeo();
+        const dist = (geo && typeof r.lat === 'number') ? this.distanceKm(geo.lat, geo.lon, r.lat, r.lon) : null;
+        return { region: r.region, lat: r.lat ?? null, lon: r.lon ?? null, version: r.version ?? null, distanceKm: dist };
+    },
+
+    // Çözülen veriyi sunucu objesine işle.
+    apply(server, info) {
+        if (info) {
+            server.region = info.region;
+            server.regionLat = info.lat;
+            server.regionLon = info.lon;
+            server.placeVersion = info.version;
+            server.distanceKm = info.distanceKm;
+            server.measuredPing = this.measuredPing(server);   // bölgesinin probu varsa gerçek ping
+            server.regionFailed = false;
+        } else {
+            server.regionFailed = true;
+        }
+        server.regionResolved = true;
+        server.regionPending = false;
+        return server;
+    },
+
+    // Tek sunucuyu çöz + uygula (tıkla-çöz ve Yeni/Bekçi için).
+    async resolveAndApply(placeId, server) {
+        if (!server || !server.id) return server;
+        await Promise.all([this._loadPingMap(), this.ensureRegionalPings()]);
+        server.regionPending = true;
+        const info = await this.resolveOne(placeId, server.id);
+        return this.apply(server, info);
+    },
+
+    // Üst N sunucuyu sıralı/aşamalı çöz. onUpdate(server, index) UI'ı günceller.
+    async enrich(placeId, servers, n, onUpdate) {
+        if (!Array.isArray(servers) || !servers.length) return;
+        await this.getUserGeo();
+        await Promise.all([this._loadPingMap(), this.ensureRegionalPings()]);
+        const limit = Math.min(n ?? this.AUTO_LIMIT, servers.length);
+        for (let i = 0; i < limit; i++) servers[i].regionPending = true;
+        for (let i = 0; i < limit; i++) {
+            const s = servers[i];
+            if (!s || s.regionResolved) continue;
+            const info = await this.resolveOne(placeId, s.id);
+            this.apply(s, info);
+            if (typeof onUpdate === 'function') { try { onUpdate(s, i); } catch (_) {} }
+            if (i < limit - 1) await new Promise(r => setTimeout(r, this.STEP_MS));
+        }
+    }
 };
 
 const TrackedApp = {
@@ -53,156 +184,11 @@ const TrackedApp = {
         lastScanTime: 0,
         isProcessing: false,
         globalCooldown: 0,
-        // Tracked: kullanıcı → Roblox altyapı baseline RTT cache (5 dk TTL)
-        baselineCache: { value: 0, timestamp: 0 },
-        // Kullanıcı ülke kodu cache'i (24 saat TTL)
-        countryCache: { code: '', timestamp: 0 }
     },
 
-    // GeoIP — kullanıcının ülke kodu (region tahmini için)
-    getUserCountry: async function() {
-        const now = Date.now();
-        const cache = this.state.countryCache;
-        if (cache.code && now - cache.timestamp < 86400000) return cache.code;
-
-        // Birden fazla GeoIP servisi — biri başarısızsa diğerine düş
-        const sources = [
-            { url: 'https://ipwho.is/',         pick: d => d.success && d.country_code },
-            { url: 'https://ipapi.co/json/',    pick: d => d.country_code || d.country },
-            { url: 'https://ipinfo.io/json',    pick: d => d.country }
-        ];
-
-        for (const src of sources) {
-            try {
-                const res = await fetch(src.url, { cache: 'no-store', credentials: 'omit' });
-                if (!res.ok) continue;
-                const data = await res.json();
-                const code = src.pick(data);
-                if (code && typeof code === 'string' && code.length >= 2) {
-                    const upper = code.toUpperCase().slice(0, 2);
-                    this.state.countryCache = { code: upper, timestamp: now };
-                    console.log('[Tracked] Country tespit edildi:', upper, 'via', src.url);
-                    return upper;
-                }
-            } catch (e) { /* try next */ }
-        }
-        console.warn('[Tracked] Country tespit edilemedi — default profile kullanılacak');
-        return '';
-    },
-
-    // Estimated ping + ülke profilinden muhtemel DC tahmini
-    guessServerRegion: function(estimatedPing, userCountry, baseline) {
-        if (!estimatedPing || estimatedPing <= 0) return null;
-        const profile = COUNTRY_DC_RTT[userCountry] || COUNTRY_DC_RTT._;
-
-        // Baseline absurd kontrolü: ülkenin minimum DC RTT'sinden çok daha yüksekse
-        // (örn TR için min=60, eşik=150). Aşıyorsa ülke profili kullanılamaz
-        // → kullanıcı muhtemelen VPN/proxy/engelli rotada, region tahmini güvensiz
-        const minDcRtt = Math.min(...Object.values(profile));
-        const baselineSane = baseline > 0 && baseline <= minDcRtt * 2.5;
-
-        // Baseline güvensizse hiç tahmin yapma — yanlış sonuç gösterme
-        if (!baselineSane) return null;
-
-        let bestDC = null;
-        let smallestDelta = Infinity;
-        for (const [dc, expectedRtt] of Object.entries(profile)) {
-            const delta = Math.abs(estimatedPing - expectedRtt);
-            if (delta < smallestDelta) {
-                smallestDelta = delta;
-                bestDC = dc;
-            }
-        }
-
-        let confidence = 'low';
-        if (smallestDelta < 25) confidence = 'high';
-        else if (smallestDelta < 55) confidence = 'medium';
-
-        return { dc: bestDC, confidence, delta: smallestDelta, info: DC_INFO[bestDC] };
-    },
-
-    // Browser → Roblox altyapısı baseline RTT (in-game ping tahmini için).
-    // UDP game-server ping'i bir extension'dan ölçülemez; bu yüzden en azından
-    // kullanıcının Roblox'a olan TCP/HTTP RTT'sini ölçüp, API'nin döndürdüğü
-    // DC-içi ping'e ekliyoruz: estimated = baseline + apiPing
-    measureUserBaseline: async function() {
-        const now = Date.now();
-        const cache = this.state.baselineCache;
-        if (cache && cache.value > 0 && now - cache.timestamp < 300000) {
-            return cache.value;
-        }
-
-        // Same-origin: TLS/DNS sorunu olmaz, persistent connection cache kullanılır
-        const endpoint = 'https://www.roblox.com/favicon.ico';
-
-        const probe = async (salt) => {
-            try {
-                const t0 = performance.now();
-                const res = await fetch(endpoint + '?_=' + salt, {
-                    method: 'GET',
-                    cache: 'no-store',
-                    credentials: 'omit',
-                    mode: 'no-cors' // opaque response, preflight yok
-                });
-                if (res && res.body) {
-                    try { await res.body.cancel(); } catch (_) {}
-                }
-                const dt = performance.now() - t0;
-                return (dt > 0 && dt < 5000) ? dt : null;
-            } catch (e) {
-                return null;
-            }
-        };
-
-        // Warmup — ilk 2 request'i ölçüme katma (TLS handshake, DNS, connection setup)
-        await probe(now - 1000);
-        await probe(now - 500);
-
-        // Asıl ölçüm: 6 sample, en düşük 2'sini al (best-of-N approach)
-        // Min sample = en az network jitter, gerçek RTT'ye en yakın
-        const samples = [];
-        for (let i = 0; i < 6; i++) {
-            const dt = await probe(now + i);
-            if (dt != null) samples.push(dt);
-            if (i < 5 && typeof TrackedUtils !== 'undefined') await TrackedUtils.delay(50);
-        }
-
-        if (samples.length === 0) {
-            console.warn('[Tracked] Baseline ölçülemedi — tüm probe başarısız');
-            return 0;
-        }
-
-        samples.sort((a, b) => a - b);
-        const best = samples.slice(0, Math.min(2, samples.length));
-        const baseline = Math.round(best.reduce((a, b) => a + b, 0) / best.length);
-
-        console.log('[Tracked] Baseline ölçüldü:', baseline + 'ms', '(min-of-6 samples:', samples.map(s => Math.round(s)).join(','), ')');
-        this.state.baselineCache = { value: baseline, timestamp: now };
-        return baseline;
-    },
-
-    // Server objelerine baseline + region tahmini uygula
-    // Akıllı hibrit formül:
-    //   - API ping yüksekse (>80ms) zaten kullanıcı route'unu yansıtıyor → ham göster
-    //   - API ping düşükse (DC içi metric) → baseline + apiPing/2 ekle (yarı ağırlık)
-    applyPingEstimate: function(servers, baseline, userCountry) {
+    applyPingEstimate: function(servers) {
         if (!Array.isArray(servers)) return servers;
-        if (!baseline || baseline <= 0) {
-            return servers.map(s => ({ ...s, apiPing: s.ping || 0, baseline: 0, region: null }));
-        }
-        return servers.map(s => {
-            const apiPing = s.ping || 0;
-            let estimated;
-            if (apiPing > 80) {
-                estimated = apiPing; // API zaten gerçek route — baseline ekleme
-            } else if (apiPing > 0) {
-                estimated = Math.round(baseline + apiPing / 2); // DC içi metric → yarı ağırlık
-            } else {
-                estimated = baseline;
-            }
-            const region = this.guessServerRegion(estimated, userCountry, baseline);
-            return { ...s, apiPing, baseline, ping: estimated, region };
-        });
+        return servers.map(s => ({ ...s, apiPing: s.ping || 0 }));
     },
 
     init: function() {
@@ -221,6 +207,7 @@ const TrackedApp = {
 
         this.setupSPAWatcher();
         this.tryInject();
+        this.initServerListEnhancer();
     },
 
     // Auto-Reconnect overlay artık reconnect_overlay.js'de — tüm roblox.com sayfalarında çalışır
@@ -287,19 +274,265 @@ const TrackedApp = {
         this.state.injected = true;
     },
 
+    // ============================================
+    // Server List Enhancer — Roblox "Other Servers" sekmesine ping + bölge enjekte et
+    // ============================================
+    initServerListEnhancer: async function() {
+        if (this._serverEnhancerActive) return;
+        this._serverEnhancerActive = true;
+
+        const placeId = TrackedUtils.extractPlaceId();
+        if (!placeId) { this._serverEnhancerActive = false; return; }
+
+        const self = this;
+        let serverDataCache = null;
+        let fetchPromise = null;
+
+        const fetchServerData = async () => {
+            if (serverDataCache) return serverDataCache;
+            if (fetchPromise) return fetchPromise;
+
+            fetchPromise = (async () => {
+                try {
+                    const resp = await new Promise((resolve, reject) => {
+                        chrome.runtime.sendMessage(
+                            { action: 'getServerListData', placeId },
+                            r => chrome.runtime.lastError
+                                ? reject(new Error(chrome.runtime.lastError.message))
+                                : resolve(r)
+                        );
+                    });
+
+                    if (!resp?.ok) {
+                        console.warn('[Tracked] ServerEnhancer API error:', resp?.error, '| universeId:', resp?.universeId);
+                        return null;
+                    }
+                    if (!resp.servers?.length) {
+                        // Roblox 0 public sunucu döndürdü (oyunun o an listelenecek sunucusu yok: sessiz/private/dolu).
+                        // Bu NORMAL bir durum, hata değil → sessizce atla (warn değil, sakin log).
+                        console.log('[Tracked] ServerEnhancer: public sunucu yok — atlanıyor');
+                        return null;
+                    }
+
+                    console.log('[Tracked] ServerEnhancer: got', resp.servers.length, 'servers');
+                    const enhanced = self.applyPingEstimate(resp.servers);
+                    serverDataCache = enhanced;
+                    setTimeout(() => { serverDataCache = null; fetchPromise = null; }, 20000);
+                    return enhanced;
+                } catch (e) {
+                    console.warn('[Tracked] ServerEnhancer fetchServerData failed:', e.message);
+                    fetchPromise = null;
+                    return null;
+                }
+            })();
+
+            return fetchPromise;
+        };
+
+        const matchServer = (servers, displayId) => {
+            // "9345-40d3" → UUID'nin ortasındaki segment'ler, includes ile ara
+            const clean = displayId.replace(/[^0-9a-f]/gi, '').toLowerCase();
+            if (clean.length < 6) return null;
+            return servers.find(s => s.id.replace(/-/g, '').toLowerCase().includes(clean));
+        };
+
+        const ID_RE = /ID[:\s]+([0-9a-f]{4}[\s-][0-9a-f]{4})/i;
+
+        // Konum pini (SVG — emoji yok). Derin Tarama ile aynı ikon.
+        const PIN = '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>';
+
+        // Bölgesel ping'leri bir kez ölç (memoize) — tüm kartlar aynı promise'i bekler, SW 30dk cache'ler.
+        let pingsReady = null;
+        const ensurePings = () => pingsReady || (pingsReady = TrackedRegion.ensureRegionalPings().catch(() => {}));
+
+        // Bölge çözümünü SIRAYLA + aralıklı yap (gamejoin anti-abuse). jobId SW'de cache'li → tekrar bedava.
+        let regionChain = Promise.resolve();
+        const queueRegion = (jobId) => {
+            const p = regionChain.then(async () => {
+                if (typeof TrackedRegion === 'undefined') return null;
+                const info = await TrackedRegion.resolveOne(placeId, jobId).catch(() => null);
+                await new Promise(r => setTimeout(r, 320));   // çağrılar arası nefes
+                return info;
+            });
+            regionChain = p.catch(() => {});
+            return p;
+        };
+
+        // Badge'i doğrudan ID elementinin içine (sonuna) ekle.
+        // Roblox kartları overflow:hidden kullandığından, afterend clipping'e uğrar.
+        const processIdEl = async (idEl, displayId) => {
+            if (idEl.dataset.trEnh === '1') return;     // zaten badge var
+            if (idEl.dataset.trEnh === 'pending') return; // başka döngü işliyor
+            if (idEl.querySelector('.tracked-sv-enhancer')) return;
+            idEl.dataset.trEnh = 'pending'; // eşzamanlı duplicate işlemeyi önle
+
+            const servers = await fetchServerData();
+            if (!servers) {
+                delete idEl.dataset.trEnh; // API başarısız → retry'a izin ver
+                return;
+            }
+
+            const server = matchServer(servers, displayId);
+            if (!server) {
+                idEl.dataset.trEnh = '1'; // ID eşleşmedi — server kapanmış olabilir, retry yok
+                return;
+            }
+
+            // Yükleniyor rozeti (anında görünür) — bölge çözülünce içerik dolar.
+            const badge = document.createElement('span');
+            badge.className = 'tracked-sv-enhancer';
+            const regionSpan = document.createElement('span');
+            regionSpan.className = 'tracked-sv-region region-loading';
+            regionSpan.innerHTML = PIN + ' <span class="tracked-sv-txt">Bölge çözülüyor…</span>';
+            badge.appendChild(regionSpan);
+            // Badge'i kartın "game-server-details" kabına MUTLAK ekle (CSS'te alt boşluk ayrıldı, kab position:relative).
+            // Mutlak + ayrılmış alan = kart yüksekliği DEĞİŞMEZ → float-grid bozulmaz/zıplamaz, badge KART İÇİNDE.
+            const host = idEl.closest('.game-server-details, .rbx-public-game-server-details') || idEl.parentElement || idEl;
+            if (getComputedStyle(host).position === 'static') host.style.position = 'relative';
+            host.appendChild(badge);
+            idEl.dataset.trEnh = '1';
+
+            // Dolu sunucu: Roblox dolu sunucuya katılım uç noktası vermez → bölge çözülemez. Boşuna gamejoin atma.
+            if (server.playing != null && server.maxPlayers != null && server.playing >= server.maxPlayers) {
+                regionSpan.classList.remove('region-loading');
+                regionSpan.dataset.confidence = 'medium';
+                regionSpan.title = 'Sunucu dolu — dolu sunucuya katılım uç noktası verilmediği için bölge çözülemiyor';
+                const t = regionSpan.querySelector('.tracked-sv-txt'); if (t) t.textContent = 'Dolu — bölge yok';
+                return;
+            }
+
+            // GERÇEK datacenter bölgesi (sunucunun IP'si → datacenters.js). Sıraya gir.
+            const info = await queueRegion(server.id);
+            await Promise.all([ ensurePings(), TrackedRegion._loadPingMap().catch(() => {}) ]);
+            const txt = regionSpan.querySelector('.tracked-sv-txt');
+            regionSpan.classList.remove('region-loading');
+
+            if (info && info.region && txt) {
+                regionSpan.title = 'Sunucunun gerçek datacenter bölgesi (IP tabanlı)';
+                txt.textContent = info.region;
+                // GERÇEK yakınlık: ölçülen bölgesel ping (en yakın probe) → yoksa kuş uçuşu mesafe (km).
+                const mp = TrackedRegion.measuredPing({ region: info.region, regionLat: info.lat, regionLon: info.lon });
+                if (typeof mp === 'number') {
+                    const cls = mp <= 80 ? 'good' : mp <= 150 ? 'warn' : 'bad';
+                    const ps = document.createElement('span');
+                    ps.className = `tracked-sv-ping ${cls}`;
+                    ps.title = 'Senin ölçtüğün bölgesel ping (popup ping testi)';
+                    ps.textContent = `${mp} ms`;
+                    badge.appendChild(ps);
+                } else if (typeof info.distanceKm === 'number') {
+                    const ds = document.createElement('span');
+                    ds.className = 'tracked-sv-dist';
+                    ds.title = 'Sana kuş uçuşu mesafe (datacenter konumundan)';
+                    ds.textContent = `~${info.distanceKm} km`;
+                    badge.appendChild(ds);
+                }
+            } else if (txt) {
+                // Dürüst: çözülemedi (uydurma sayı göstermeyiz).
+                regionSpan.dataset.confidence = 'medium';
+                regionSpan.title = 'Bölge çözülemedi (gamejoin yanıtı yok / sınırlandı)';
+                txt.textContent = 'Bölge bilinmiyor';
+            }
+        };
+
+        // "ID: XXXX-XXXX" içeren küçük elementleri bul.
+        // innerText: CSS'e göre görünür metni alır (gizli elementleri atlar).
+        // childElementCount <= 6: büyük card container'ları atar.
+        const processCards = () => {
+            // 1) İşlenmemiş aday ID elementlerini topla.
+            const candidates = [];
+            const tags = document.querySelectorAll('p, span, div, li, small, label');
+            for (const el of tags) {
+                if (el.childElementCount > 6) continue;
+                if (el.dataset.trEnh === '1' || el.dataset.trEnh === 'pending') continue;
+                if (el.querySelector('.tracked-sv-enhancer')) continue;
+                if (!el.textContent.includes('ID')) continue;
+                const visible = el.innerText || el.textContent;
+                if (!visible) continue;
+                const m = visible.match(ID_RE);
+                if (!m) continue;
+                // Sadece en içteki elementi işle: direkt child'ı da eşleşiyorsa container — atla.
+                const hasMatchingChild = [...el.children].some(c => ID_RE.test(c.innerText || c.textContent || ''));
+                if (hasMatchingChild) continue;
+                candidates.push({ el, id: m[1] });
+            }
+            if (!candidates.length) return;
+            // İşle. (Refresh tazeliği: kısa cache ömrü + Refresh butonu kancası halleder — burada DÖNGÜ/temizleme YOK.)
+            for (const c of candidates) processIdEl(c.el, c.id);
+        };
+
+        // Leading debounce: ilk mutasyondan 500ms sonra çalış,
+        // ardından 1.5sn kilitle (avatar yüklemeleri debounce'ı sıfırlamasın)
+        let scanTimeout = null;
+        let scanLocked = false;
+        const scheduleScan = () => {
+            if (scanLocked || scanTimeout) return;
+            scanTimeout = setTimeout(() => {
+                processCards();
+                scanTimeout = null;
+                scanLocked = true;
+                setTimeout(() => { scanLocked = false; }, 1500);
+            }, 500);
+        };
+
+        const observer = new MutationObserver(scheduleScan);
+        observer.observe(document.body, { childList: true, subtree: true });
+        this._serverEnhancerObserver = observer;
+
+        // Refresh butonu → cache + badge'leri BİR KEZ temizle (tek-atış, döngü yok) → yeni kartlar taze veriyle gelsin.
+        const onRefreshClick = (e) => {
+            const b = e.target && e.target.closest && e.target.closest('button, a, [role="button"]');
+            if (!b) return;
+            const t = (b.textContent || '').trim().toLowerCase();
+            if (!(t.includes('refresh') || t.includes('yenile'))) return;
+            serverDataCache = null; fetchPromise = null;
+            document.querySelectorAll('.tracked-sv-enhancer').forEach(x => x.remove());
+            document.querySelectorAll('[data-tr-enh]').forEach(x => { delete x.dataset.trEnh; });
+            setTimeout(processCards, 800);   // Roblox yeni kartları render edince taze veriyle işle
+        };
+        document.addEventListener('click', onRefreshClick, true);
+        this._serverEnhancerRefreshHandler = onRefreshClick;
+
+        // İlk tarama (React render bitmesini bekle)
+        setTimeout(processCards, 300);
+        // Tekrarlayan kontrol: sayfada yeni kartlar geldikçe yakala
+        const pollInterval = setInterval(() => {
+            if (!this._serverEnhancerActive) { clearInterval(pollInterval); return; }
+            processCards();
+        }, 3000);
+        this._serverEnhancerPoll = pollInterval;
+    },
+
+    cleanupServerListEnhancer: function() {
+        this._serverEnhancerActive = false;
+        if (this._serverEnhancerObserver) {
+            this._serverEnhancerObserver.disconnect();
+            this._serverEnhancerObserver = null;
+        }
+        if (this._serverEnhancerPoll) {
+            clearInterval(this._serverEnhancerPoll);
+            this._serverEnhancerPoll = null;
+        }
+        if (this._serverEnhancerRefreshHandler) {
+            document.removeEventListener('click', this._serverEnhancerRefreshHandler, true);
+            this._serverEnhancerRefreshHandler = null;
+        }
+    },
+
     removeBar: function() {
         const bar = document.getElementById('tracked-game-bar');
         const container = document.getElementById('tracked-fallback-container');
-        
+
         if (bar) bar.remove();
         if (container) container.remove();
-        
+
         // Aktif taramaları iptal et (SPA navigasyonunda orphan fetch'leri önle)
         if (TrackedScanner.state.isScanning || TrackedScanner.state.isForceProcessing) {
             TrackedScanner.abort();
             console.log('[Tracked] Active scan aborted due to navigation');
         }
-        
+
+        this.cleanupServerListEnhancer();
+
         this.state.injected = false;
         this.state.isProcessing = false;
     },
@@ -313,6 +546,7 @@ const TrackedApp = {
                 this.removeBar();
                 this.state.retryCount = 0;
                 this.tryInject();
+                this.initServerListEnhancer();
             }
         }, TrackedConfig.TIMING.SPA_DEBOUNCE_MS);
 
@@ -387,39 +621,51 @@ const TrackedApp = {
         TrackedUI.lockAllButtons();
         this.setGlobalCooldown(8000);
         this.state.isProcessing = true;
-        TrackedUI.setStatus('Yeni sunucular aranıyor...');
+        TrackedUI.setStatus('Sunucu listesi alınıyor...');
+
+        const onProg = (p) => {
+            if (p.phase === 'snapshot1') TrackedUI.setStatus('Sunucu listesi alınıyor...');
+            else if (p.phase === 'watch') TrackedUI.setStatus(`Taze sunucular izleniyor… ${p.remain}sn`);
+            else if (p.phase === 'snapshot2') TrackedUI.setStatus('Yeni belirenler kontrol ediliyor...');
+        };
 
         try {
-            const servers = await TrackedScanner.findNewServers(placeId, ({ scanned, page }) => {
-                TrackedUI.setStatus(`${scanned} yeni sunucu (Sayfa: ${page})`);
-            });
+            // RATE LIMIT'i ATLAYAMAYIZ (Roblox dayatır) ama elle tıklatmadan arka planda bekleyip
+            // otomatik yineleriz → kullanıcı için sorunsuz "geçmiş" gibi olur. En çok 2 oto-deneme.
+            let attempt = 0;
+            while (true) {
+                try {
+                    // SNAPSHOT-FARK: listeyi al → izle → tekrar al → arada YENİ belirenler = gerçekten taze.
+                    const fresh = await TrackedScanner.findFreshServers(placeId, onProg);
+                    TrackedUI.setStatus('');
 
-            TrackedUI.setStatus('');
-
-            if (!Array.isArray(servers) || servers.length === 0) {
-                TrackedUI.showNoNewServerModal(placeId);
-                return;
+                    if (!Array.isArray(fresh) || fresh.length === 0) {
+                        TrackedUI.showNoNewServerModal(placeId);   // "Şu anda yeni açılmış sunucu bulunmuyor."
+                        return;
+                    }
+                    if (fresh.length === 1) {
+                        TrackedUI.showJoinModal(placeId, fresh[0]);
+                    } else {
+                        TrackedUI.showNewServerListModal(placeId, fresh);
+                    }
+                    return;
+                } catch (err) {
+                    const rl = err && err.message && (err.message.includes('RATE_LIMIT') || err.message.includes('Çok fazla istek') || err.message.includes('Rate limit'));
+                    if (rl && attempt < 2) {
+                        attempt++;
+                        // Roblox'un verdiği gerçek süreyi bekle (Retry-After tabanlı), geri sayım göster, sonra otomatik yinele.
+                        const waitMs = TrackedScanner.rateLimitRemainingMs() || 12000;
+                        await this._rateLimitCountdown(waitMs);
+                        continue;
+                    }
+                    throw err; // başka hata ya da oto-deneme bitti
+                }
             }
-
-            const scoredServers = TrackedScanner.scoreNewServers(servers);
-            
-            if (!Array.isArray(scoredServers) || scoredServers.length === 0) {
-                TrackedUI.showNoNewServerModal(placeId);
-                return;
-            }
-
-            if (scoredServers.length === 1) {
-                TrackedUI.showJoinModal(placeId, scoredServers[0]);
-            } else {
-                TrackedUI.showNewServerListModal(placeId, scoredServers);
-            }
-
         } catch (err) {
-            console.log('[Tracked] Yeni sunucu arama hatası:', err.message);
+            console.log('[Tracked] Taze sunucu arama hatası:', err.message);
             TrackedUI.setStatus('');
-            
-            // v2.4.5: Rate limit hatası
-            if (err.message && err.message.includes('RATE_LIMIT')) {
+
+            if (err.message && (err.message.includes('RATE_LIMIT') || err.message.includes('Çok fazla istek') || err.message.includes('Rate limit'))) {
                 TrackedUI.showErrorModal(TrackedI18n.t('rateLimitError'));
                 this.setGlobalCooldown(15000);
             } else {
@@ -429,6 +675,16 @@ const TrackedApp = {
             // v2.4.5: HER DURUMDA tüm butonları aç
             TrackedUI.unlockAllButtons();
             this.state.isProcessing = false;
+        }
+    },
+
+    // Rate limit beklemesini arka planda geri sayımla geçir (elle tıklama yok → sonra otomatik yinelenir).
+    _rateLimitCountdown: async function(ms) {
+        const end = Date.now() + Math.max(1000, ms);
+        while (Date.now() < end) {
+            const s = Math.max(1, Math.ceil((end - Date.now()) / 1000));
+            TrackedUI.setStatus(`Sunucu meşgul — otomatik yeniden deneniyor… ${s}sn`);
+            await new Promise(r => setTimeout(r, 1000));
         }
     },
 
@@ -473,12 +729,20 @@ const TrackedApp = {
                 return;
             }
 
-            // Kullanıcı baseline'ini + ülkeyi paralel ölç → region tahmini
-            const [baseline, country] = await Promise.all([
-                this.measureUserBaseline(),
-                this.getUserCountry()
-            ]);
-            const topServers = this.applyPingEstimate(scored, baseline, country);
+            // ÇİFT-DOĞRULAMA: en iyi adayları TAZE veriyle teyit et (kapanmış/dolmuş olanları ele) →
+            // yalnızca gerçekten katılabilir, doğrulanmış sunucular gösterilir.
+            TrackedUI.setStatus(TrackedI18n.t('verifyingStatus'));
+            const topCandidates = scored.slice(0, 10);
+            const verified = await TrackedScanner.verifyServers(placeId, topCandidates, ({ found, target }) => {
+                TrackedUI.setStatus(`${TrackedI18n.t('verifyingStatus')} ${found}/${target}`);
+            });
+            // Doğrulama hiç sonuç vermezse (ağ/kapsama) → boş bırakma, skorlanmış listeyle devam et.
+            const finalList = (verified && verified.length)
+                ? TrackedScanner.score(verified)   // güncel veriyle yeniden skorla
+                : scored;
+            TrackedUI.setStatus('');
+
+            const topServers = this.applyPingEstimate(finalList);
 
             TrackedUI.showServerListModal(placeId, topServers);
 
@@ -516,11 +780,7 @@ const TrackedApp = {
             });
             if (!Array.isArray(servers) || servers.length === 0) return [];
             const scored = TrackedScanner.score(servers).slice(0, TrackedConfig.API.MAX_SCORED_SERVERS);
-            const [baseline, country] = await Promise.all([
-                this.measureUserBaseline(),
-                this.getUserCountry()
-            ]);
-            return this.applyPingEstimate(scored, baseline, country);
+            return this.applyPingEstimate(scored);
         } finally {
             TrackedUI.endScanProgress();
             this.state.isProcessing = false;
@@ -537,25 +797,34 @@ const TrackedApp = {
         // Native launcher (MAIN world) — fallback sayfa açmaz, manuel tıklatma yok
         // gameTitle: SW saveActiveSession için (Auto-Reconnect notification mesajı)
         const gameTitle = (typeof document !== 'undefined' && document.title) ? document.title : '';
-        chrome.runtime.sendMessage({
-            action: 'launchRobloxGame',
-            placeId: String(placeId),
-            jobId: String(jobId),
-            gameTitle
-        }, (resp) => {
-            if (chrome.runtime.lastError || !resp || !resp.success) {
-                // SW fail → fallback deeplink + Auto-Reconnect session'ı manuel tetikle
-                try {
-                    chrome.runtime.sendMessage({
-                        action: 'saveActiveSession',
-                        placeId: String(placeId),
-                        jobId: String(jobId),
-                        gameTitle
-                    }, () => { /* fire-and-forget */ });
-                } catch (_) {}
-                window.location.href = `roblox://experiences/start?placeId=${encodeURIComponent(placeId)}&gameInstanceId=${encodeURIComponent(jobId)}`;
-            }
-        });
+        const fallbackJoin = () => {
+            window.location.href = `roblox://experiences/start?placeId=${encodeURIComponent(placeId)}&gameInstanceId=${encodeURIComponent(jobId)}`;
+        };
+
+        try {
+            chrome.runtime.sendMessage({
+                action: 'launchRobloxGame',
+                placeId: String(placeId),
+                jobId: String(jobId),
+                gameTitle
+            }, (resp) => {
+                if (chrome.runtime.lastError || !resp || !resp.success) {
+                    try {
+                        chrome.runtime.sendMessage({
+                            action: 'saveActiveSession',
+                            placeId: String(placeId),
+                            jobId: String(jobId),
+                            gameTitle
+                        }, () => { /* fire-and-forget */ });
+                    } catch (_) {}
+                    fallbackJoin();
+                }
+            });
+        } catch (err) {
+            // Extension context invalidated (reload sonrası) → doğrudan deep-link
+            console.warn('[Tracked] Extension context geçersiz, deep-link fallback kullanılıyor.');
+            fallbackJoin();
+        }
 
         setTimeout(() => {
             TrackedUI.unlockAllButtons();
@@ -582,343 +851,176 @@ const TrackedApp = {
     },
 
     // ============================================
-    // v4.0: INSTANCE TRIGGER - Blok Bazlı Boş Server Zorlaması
+    // SUNUCU BEKÇİSİ — kriterli sunucu izleme (SW arka planda çalışır)
     // ============================================
-    // Manuel yöntem: oyuna gir → herkesi engelle → çık → tekrar gir → 10-15 turda boş server
-    // Bu sistem aynı mantığı otomatize eder:
-    //   1. Server listesinden playerToken topla
-    //   2. Token → userId çözümle (thumbnail batch API)
-    //   3. Hepsini engelle (Roblox matchmaking artık seni mevcut serverlara koyamaz)
-    //   4. jobId olmadan join → Roblox yeni boş server açmak zorunda kalır
-    //   5. 30sn sonra engelleri otomatik kaldır
-    forceNewInstance: async function(placeId) {
-        if (!this.checkGlobalCooldown()) return;
-
-        if (TrackedScanner.state.isScanning || this.state.isProcessing || TrackedUI.isAnyButtonLocked()) {
-            TrackedUI.setStatus(TrackedI18n.t('processing') || 'İşlem devam ediyor...');
-            return;
-        }
-
-        if (typeof TrackedInstanceTrigger === 'undefined') {
-            TrackedUI.showErrorModal('instance_trigger.js yüklü değil.');
-            return;
-        }
-
-        TrackedUI.lockAllButtons();
-        TrackedUI.setForceMode(true, null); // Durdur butonu yok — işlem ortada kesilmemeli
-        this.setGlobalCooldown(5000);
-        this.state.isProcessing = true;
-
-        const strategy = 'auto'; // group → social sırasıyla dener
-
-        const PHASE_LABELS = {
-            csrf:             '🔑 Oturum doğrulanıyor...',
-            cleanup_previous: (p) => `🧹 Önceki engeller temizleniyor (${p.count})...`,
-            harvest:          (p) => p.strategy === 'group'
-                                      ? `👥 Grup üyeleri toplanıyor...`
-                                      : `🔗 Sosyal ağ taranıyor...`,
-            harvest_done:     (p) => p.strategy === 'group'
-                                      ? `👥 ${p.count} grup üyesi bulundu`
-                                      : `🔗 ${p.count} sosyal bağlantı bulundu`,
-            presence_filter:  (p) => `🎮 Şu an oyunda olanlar tespit ediliyor (${p.candidates} kişi)...`,
-            presence_done:    (p) => `🎯 ${p.inGame} kişi şu an bu oyunda`,
-            block:            (p) => `🚫 Engelleniyor... (${p.done || 0}/${p.total})`,
-            block_done:       (p) => `✅ ${p.blocked} kişi engellendi`,
-            join:             '🚀 Oyuna giriliyor — Roblox boş server açıyor...',
-            waiting_join:     '⏳ Oyuna girişin bekleniyor (engeller oyuna girince kalkacak)...',
-            unblock:          (p) => `🔓 Engeller kaldırılıyor... (${p.total} kişi)`,
-            unblock_done:     (p) => `✅ ${p.total} engel kaldırıldı`,
-        };
-
+    openServerWatch: function(placeId) {
         try {
-            const result = await TrackedInstanceTrigger.run(placeId, {
-                strategy,
-                onProgress: (p) => {
-                    const label = PHASE_LABELS[p.phase];
-                    const msg   = typeof label === 'function' ? label(p) : (label || p.phase);
-                    if (msg) TrackedUI.setStatus(msg);
-                    console.log('[Tracked] v4.0:', p);
+            chrome.runtime.sendMessage({ action: 'getServerWatch', placeId }, (resp) => {
+                const watch = (resp && resp.ok) ? resp.watch : null;    // bu oyunun bekçisi
+                const active = (resp && resp.ok) ? resp.active : null;   // herhangi bir aktif bekçi (başka oyun olabilir)
+                TrackedUI.showServerWatchModal(placeId, watch, active);
+            });
+        } catch (_) {
+            TrackedUI.showServerWatchModal(placeId, null, null);
+        }
+    },
+    startServerWatch: function(placeId, opts) {
+        try {
+            chrome.runtime.sendMessage({
+                action: 'startServerWatch', placeId,
+                maxPlayers: opts.maxPlayers, minPlayers: opts.minPlayers,
+                watchAction: opts.action, gameTitle: opts.gameTitle
+            }, (resp) => {
+                if (resp && resp.ok) {
+                    TrackedUI.setStatus(TrackedI18n.t('watchActiveStatus'));
+                    this.updateWatchButton(true);
+                    setTimeout(() => TrackedUI.setStatus(''), 3000);
                 }
             });
-
-            if (result?.success) {
-                TrackedUI.setStatus(`🚀 ${result.blocked} engel kuruldu — Roblox boş server açıyor. Giriş yapınca engeller otomatik kalkacak.`);
-            }
-
-        } catch (err) {
-            console.error('[Tracked] v4.0 Hata:', err.message);
-            TrackedUI.setStatus('');
-            TrackedUI.showErrorModal(err.message || 'Instance Trigger başarısız.');
-        } finally {
-            TrackedUI.unlockAllButtons();
-            TrackedUI.setForceMode(false);
-            this.state.isProcessing = false;
-        }
+        } catch (_) {}
+    },
+    stopServerWatch: function() {
+        try {
+            chrome.runtime.sendMessage({ action: 'stopServerWatch' }, () => {
+                TrackedUI.setStatus(TrackedI18n.t('watchStoppedStatus'));
+                this.updateWatchButton(false);
+                setTimeout(() => TrackedUI.setStatus(''), 2000);
+            });
+        } catch (_) {}
+    },
+    updateWatchButton: function(active) {
+        const btn = document.getElementById('btn-watch');
+        if (btn) btn.classList.toggle('watching', !!active);
     },
 
     // ============================================
-    // v4.1: A+B KOMBO — Sniper + GameJoin API Paralel
+    // v5.0: Oto-Pilot BÖLGE-GARANTİLİ SEÇİM
+    // Adayların gerçek datacenter mesafesini çözüp sana EN YAKIN açık sunucuyu seçer.
+    // Konum/aday/çözüm yoksa null döner → autoBlockerScan eski matchmaker+ping akışına düşer.
+    // ranked listesi storage'a yazılır → "Sıradaki sunucu" en yakından devam eder.
     // ============================================
-    comboNewInstance: async function(placeId) {
-        if (!this.checkGlobalCooldown()) return;
+    autoPilotPickClosest: async function(placeId, abortCtrl, statusCb) {
+        if (typeof TrackedRegion === 'undefined') return null;
+        const signal = abortCtrl?.signal;
 
-        if (TrackedScanner.state.isScanning || this.state.isProcessing || TrackedUI.isAnyButtonLocked()) {
-            TrackedUI.setStatus(TrackedI18n.t('processing') || 'İşlem devam ediyor...');
-            return;
-        }
-
-        if (typeof TrackedInstanceTrigger === 'undefined') {
-            TrackedUI.showErrorModal('instance_trigger.js yüklü değil.');
-            return;
-        }
-
-        TrackedUI.lockAllButtons();
-        TrackedUI.setForceMode(true, null);
-        this.setGlobalCooldown(5000);
-        this.state.isProcessing = true;
-
-        const LABELS = {
-            // Faz 1: Quick snipe
-            phase1_start:        '⚡ Faz 1/3: Hazır boş server kontrolü (5sn)...',
-            phase1_join:         (p) => `🎯 Boş server bulundu! (${p.playing || 0} oyuncu) — bağlanılıyor...`,
-            // Faz 2: Block-flood
-            phase2_start:        '🛡️ Faz 2/3: Block-Flood başlatılıyor (community taraması)...',
-            phase2_target:       (p) => `🎯 ${p.gamePlaying} oyunculu oyun → ${p.blockTarget} block hedeflendi`,
-            phase2_baseline:     (p) => `📋 ${p.count} mevcut sunucu kaydedildi (yeniler ayırt edilecek)`,
-            building_safelist:   '🛡️ Sosyal bağlantılar koruma listesine alınıyor...',
-            exclusion_built:     (p) => `✅ ${p.protected} kişi koruma altında (arkadaş/takipçi/takip)`,
-            harvest:             (p) => `🔍 Community üyeleri toplanıyor...`,
-            harvest_done:        (p) => `✅ ${p.count} community üyesi toplandı`,
-            presence_filter:        (p) => `🔎 ${p.candidates} aday içinden şu an oyunda olanlar süzülüyor (4 pass)...`,
-            presence_pass:          (p) => `🔎 Presence pass ${p.pass}/${p.totalPasses} — ${p.inGame} kişi tespit edildi`,
-            presence_done:          (p) => `✅ ${p.inGame} kişi şu an oyunda — öncelikli block listesi`,
-            // Friends-of-in-game expansion
-            friends_expansion_start:(p) => `🔗 Friends expansion: ${p.seedCount} seed kullanıcının arkadaşları taranıyor...`,
-            friends_seed_done:      (p) => `🔗 Seed ${p.seed}/${p.total} → ${p.pool} arkadaş havuzu`,
-            friends_presence_check: (p) => `🔎 ${p.count} arkadaş presence-check ediliyor...`,
-            friends_expansion_done: (p) => `✅ Friends expansion: ${p.friendsInGame}/${p.friendsChecked} arkadaş in-game!`,
-            friends_expansion_empty: '⚠️ Friends expansion sonuç vermedi',
-            expansion_merged:       (p) => `🎯 In-game pool genişledi: ${p.before} → ${p.total} (+${p.added})`,
-            block:               (p) => `🚫 Block: ${p.blocked || 0} başarılı (${p.done || 0}/${p.total})`,
-            block_cooldown:      (p) => `⏸️ Rate-limit cooldown ${p.cooldown}/${p.max} — 20sn dinleniyor (${p.blocked} block aktif)...`,
-            block_done:          (p) => `✅ ${p.blocked} kullanıcı blocklandı`,
-            block_only_done:     (p) => `✅ Block tamamlandı (${p.blocked.length || p.blocked} kişi)`,
-            phase2_fail:         (p) => `⚠️ Block-flood hatası: ${p.error}`,
-            phase2_zero_blocks:  '⚠️ Hiç block yapılamadı — fallback',
-            phase2_low_blocks:   (p) => `⚠️ Düşük block sayısı (${p.blocked}) — yine de matchmaker denenecek`,
-            // Faz 3: Multi-strategy join — REST query → snipe → joinMultiplayerGame native
-            phase3_propagation:    '⏳ Faz 3/3: Block yayılması (15sn)...',
-            phase3_mainworld:      '🎯 MAIN world REST matchmaker query...',
-            phase3_mainworld_ok:   (p) => `✅ REST server: ${p.jobId?.substring(0, 8)}... ${p.isNew ? '(YENİ 🆕)' : '(blocksuz)'}`,
-            phase3_mainworld_miss: (p) => `⚠️ REST miss (${p.status || p.error || 'no_jobid'}), snipe deneniyor...`,
-            phase3_snipe:          '🔍 Snipe fallback (5sn)...',
-            phase3_snipe_ok:       (p) => `✅ Snipe server: ${p.jobId?.substring(0, 8)}... ${p.isNew ? '(YENİ 🆕)' : '(blocksuz)'}`,
-            phase3_no_snipe:       '↪️ Snipe da yetişemedi, native join deneniyor...',
-            phase3_native_join:    '🚀 Roblox.GameLauncher.joinMultiplayerGame native çağrı...',
-            phase3_native_ok:      (p) => `✅ Native join tetiklendi (${p.method}) — Roblox client matchmaker\'a bırakıldı`,
-            phase3_native_miss:    (p) => `⚠️ Native join başarısız (${p.error}), deep-link fallback`,
-            native_join_initiated: '🚀 Roblox client join flow başlatıldı',
-            snipe_poll:            (p) => `👁 Poll #${p.polls} (${p.found || 0} server görüldü)`,
-            snipe_found:           (p) => `🎯 YENİ SUNUCU bulundu! (${p.playing || 0} oyuncu)`,
-            snipe_best:            (p) => `🎯 En düşük oyunculu server seçildi (${p.playing || 0} oyuncu)`,
-            // Common
-            csrf:                '🔑 Oturum doğrulanıyor...',
-            game_info:           '🎮 Oyun bilgisi alınıyor...',
-            fallback:            '↪️ Standart deep-link ile giriş yapılıyor...',
-            cleanup_previous:    (p) => `🧹 Önceki bekleyen ${p.count} block temizleniyor...`,
-            waiting_join:        '⏳ Oyuna girişin bekleniyor (block kaldırma için)...',
-            unblock:             (p) => `🔓 Block'lar kaldırılıyor (0/${p.total})...`,
-            unblock_done:        (p) => `✅ ${p.total} block temizlendi`,
-        };
-
+        // 0) HEDEF BÖLGE (popup "Hedef Bölge"): ÜLKE seçiliyse mesafe = o ülkenin Roblox DC şehirlerinden
+        // sunucuya EN YAKINI ("ABD'de sunucu bul" → ülke içindeki en uygun şehir kendiliğinden).
+        let target = null;
         try {
-            const result = await TrackedInstanceTrigger.runCombo(placeId, {
-                onProgress: (p) => {
-                    const label = LABELS[p.phase];
-                    const msg = typeof label === 'function' ? label(p) : (label || p.phase);
-                    if (msg) TrackedUI.setStatus(msg);
-                    console.log('[Tracked] A+B Kombo:', p);
+            const t = (await chrome.storage.local.get('rota_target_region'))?.rota_target_region;
+            if (t && t.code && Array.isArray(t.cities) && t.cities.length) target = t;
+        } catch (_) {}
+        if (target) console.log(`[Tracked] v5.0: HEDEF BÖLGE → ${target.label || target.code} (${target.cities.length} şehir)`);
+
+        // 1) Konum (otomatik modda mesafe için şart; hedef modda gerekmez) — IP-geo → matchmaker fallback
+        const geo = await TrackedRegion.getUserGeo(placeId);
+        if (!geo && !target) { console.log('[Tracked] v5.0: konum yok (IP-geo + matchmaker başarısız) → eski akış'); return null; }
+
+        // 2) Blocklist (kötü olarak işaretlenenleri atla)
+        let blocked = new Set();
+        try {
+            const blStore = await chrome.storage.local.get('rota_otopilot_blocklist');
+            const bl = blStore?.rota_otopilot_blocklist || [];
+            const now = Date.now(), TTL = 24 * 60 * 60 * 1000;
+            blocked = new Set(bl.filter(e => e?.ts && (now - e.ts) < TTL).map(e => e.id));
+        } catch (_) {}
+
+        // 3) Aday havuzu — açık (dolu değil) sunucular, en boş/taze önce (Asc), ~2 sayfa
+        const fetchPage = async (cursor) => {
+            const url = `https://games.roblox.com/v1/games/${placeId}/servers/Public?sortOrder=Asc&limit=100${cursor ? '&cursor=' + encodeURIComponent(cursor) : ''}`;
+            try {
+                const r = await fetch(url, { headers: { Accept: 'application/json' }, credentials: 'omit', signal });
+                if (!r.ok) return { error: r.status };
+                return await r.json();
+            } catch (e) { return { error: e.message }; }
+        };
+        const pool = [];
+        let cursor = '';
+        for (let p = 0; p < 3; p++) {
+            if (signal?.aborted) return null;
+            const d = await fetchPage(cursor);
+            if (!d || d.error || !Array.isArray(d.data)) break;
+            for (const s of d.data) {
+                if (s && s.id && typeof s.playing === 'number' && typeof s.maxPlayers === 'number'
+                    && s.playing < s.maxPlayers && !blocked.has(s.id)) pool.push(s);
+            }
+            cursor = d.nextPageCursor;
+            if (!cursor) break;
+        }
+        if (!pool.length) { console.log('[Tracked] v5.0: uygun aday yok → eski akış'); return null; }
+
+        // En boş→dolu sırala, sonra listeye YAYILMIŞ ~16 aday seç (stride). Böylece adaylar tek
+        // bölgeye (ör. en boş sunucuların kümelendiği ABD'ye) sıkışmaz → bölge çeşitliliği artar.
+        pool.sort((a, b) => {
+            const pa = a.playing || 0, pb = b.playing || 0;
+            if (pa !== pb) return pa - pb;
+            const fa = a.fps ? Math.round(a.fps) : 0, fb = b.fps ? Math.round(b.fps) : 0;
+            return fb - fa;
+        });
+        const WANT = 24;
+        let candidates;
+        if (pool.length <= WANT) {
+            candidates = pool;
+        } else {
+            candidates = [];
+            const stride = pool.length / WANT;
+            for (let k = 0; k < WANT; k++) candidates.push(pool[Math.floor(k * stride)]);
+        }
+
+        // 4) Bölgeleri çöz — PARALEL gruplar (4'erli, hız için), abort'a duyarlı.
+        // ERKEN ÇIKIŞ: otomatik modda en yakın DC mesafenin ~1.3 katı + 200km (= senin bölgen);
+        // HEDEF modda ≤150km (= hedef şehrin datacenter'ı bulundu, daha iyisi olamaz).
+        const nearTarget = target ? 150 : ((typeof geo?.nearestDcKm === 'number') ? Math.round(geo.nearestDcKm * 1.3 + 200) : null);
+        const CONCURRENCY = 6;     // hız için 6'lı paralel grup (önbellekli olanlar zaten anında)
+        const resolved = [];
+        let done = 0, earlyExit = false;
+        for (let i = 0; i < candidates.length && !earlyExit; i += CONCURRENCY) {
+            if (signal?.aborted) return null;
+            const batch = candidates.slice(i, i + CONCURRENCY);
+            const infos = await Promise.all(batch.map(s => TrackedRegion.resolveOne(placeId, s.id).catch(() => null)));
+            for (let j = 0; j < batch.length; j++) {
+                done++;
+                const info = infos[j];
+                // Mesafe referansı: HEDEF ülke seçiliyse o ülkenin EN YAKIN DC şehrine, değilse sana (info.distanceKm).
+                let dKm = info ? info.distanceKm : null;
+                if (info && target && typeof info.lat === 'number') {
+                    const ds = target.cities
+                        .map(c => TrackedRegion.distanceKm(c.lat, c.lon, info.lat, info.lon))
+                        .filter(v => typeof v === 'number');
+                    dKm = ds.length ? Math.min(...ds) : null;
+                }
+                if (info && typeof dKm === 'number') {
+                    resolved.push({ server: batch[j], region: info.region, distanceKm: dKm, version: info.version });
+                    if (nearTarget !== null && dKm <= nearTarget) earlyExit = true;
+                }
+            }
+            const closestSoFar = resolved.length ? Math.min(...resolved.map(r => r.distanceKm)) : null;
+            if (typeof statusCb === 'function') statusCb(done, candidates.length, closestSoFar !== null ? `${target ? 'hedef ' + (target.label || target.code) : 'en yakın'} ~${closestSoFar}km` : null);
+            if (earlyExit) { console.log(`[Tracked] v5.0: erken çıkış — bölgendeki sunucu bulundu (hedef ≤ ${nearTarget}km)`); break; }
+            if (!signal?.aborted && i + CONCURRENCY < candidates.length) await new Promise(r => setTimeout(r, 150));
+        }
+        if (!resolved.length) { console.log('[Tracked] v5.0: hiçbir aday çözülemedi → eski akış'); return null; }
+
+        // 5) En yakın (mesafe asc; eşitlikte fps desc)
+        resolved.sort((a, b) => {
+            if (a.distanceKm !== b.distanceKm) return a.distanceKm - b.distanceKm;
+            const fa = a.server.fps ? Math.round(a.server.fps) : 0, fb = b.server.fps ? Math.round(b.server.fps) : 0;
+            return fb - fa;
+        });
+
+        // 6) ranked'ı sakla → "Sıradaki sunucu" en yakından devam etsin
+        try {
+            await chrome.storage.local.set({
+                rota_otopilot_region_candidates: {
+                    placeId, ts: Date.now(),
+                    ranked: resolved.map(r => ({ jobId: r.server.id, region: r.region, distanceKm: r.distanceKm, players: r.server.playing, maxPlayers: r.server.maxPlayers }))
                 }
             });
+        } catch (_) {}
 
-            if (result?.success) {
-                if (result.method === 'quick_snipe') {
-                    TrackedUI.setStatus(`🎯 Hızlı bulundu! Server ${result.jobId?.substring(0, 8)}... (Faz 1)`);
-                } else if (result.method === 'block_then_mainworld_new') {
-                    TrackedUI.setStatus(`🆕 YENİ server zorlandı! ${result.blocked} block + MAIN world REST (Faz 3a)`);
-                } else if (result.method === 'block_then_mainworld_existing') {
-                    TrackedUI.setStatus(`🎯 Blocksuz server bulundu! ${result.blocked} block + MAIN world REST`);
-                } else if (result.method === 'block_then_snipe') {
-                    TrackedUI.setStatus(`🎯 Snipe fallback başarılı! ${result.blocked} block + jobId (Faz 3b)`);
-                } else if (result.method && result.method.startsWith('block_then_native_')) {
-                    TrackedUI.setStatus(`🚀 Native join başlatıldı! ${result.blocked} block aktif — Roblox client karar verecek (Faz 3c)`);
-                } else if (result.method === 'block_then_default') {
-                    TrackedUI.setStatus(`🛡️ ${result.blocked} block aktif — Roblox client block listesini respect edecek`);
-                } else {
-                    TrackedUI.setStatus(`✅ Bağlandı (${result.method || 'unknown'})`);
-                }
-            } else {
-                TrackedUI.setStatus(`⚠️ Yeni server zorlanamadı, standart bağlantı denendi (${result?.method || 'fallback'})`);
-            }
-        } catch (err) {
-            console.error('[Tracked] A+B Kombo Hata:', err.message);
-            TrackedUI.setStatus('');
-            TrackedUI.showErrorModal(err.message || 'A+B Kombo başarısız.');
-        } finally {
-            TrackedUI.unlockAllButtons();
-            TrackedUI.setForceMode(false);
-            this.state.isProcessing = false;
-        }
-    },
-
-    // ============================================
-    // C+D CERRAHİ: Public servers'tan token→userId resolve → her server'dan 1 strategic block
-    // ============================================
-    targetedNewInstance: async function(placeId) {
-        if (!this.checkGlobalCooldown()) return;
-
-        if (TrackedScanner.state.isScanning || this.state.isProcessing || TrackedUI.isAnyButtonLocked()) {
-            TrackedUI.setStatus(TrackedI18n.t('processing') || 'İşlem devam ediyor...');
-            return;
-        }
-
-        if (typeof TrackedInstanceTrigger === 'undefined' || !TrackedInstanceTrigger.runTargeted) {
-            TrackedUI.showErrorModal('instance_trigger.js güncel değil (runTargeted yok).');
-            return;
-        }
-
-        TrackedUI.lockAllButtons();
-        TrackedUI.setForceMode(true, null);
-        this.setGlobalCooldown(5000);
-        this.state.isProcessing = true;
-
-        const LABELS = {
-            csrf:                       '🔑 Oturum doğrulanıyor...',
-            cleanup_previous:           (p) => `🧹 Önceki bekleyen ${p.count} block temizleniyor...`,
-            // Faz -1: Reserved Server Probe (en kısa yol — eğer destekleniyorsa garanti çıkış!)
-            reserve_probe:              '🔓 Faz -1: Reserved Server probe — ücretsiz boş server var mı?',
-            reserve_found:              (p) => `🆕 RESERVED SERVER bulundu! (${p.source || 'reserved'}) → garanti boş server'a giriliyor...`,
-            reserve_not_available:      (p) => `↪️ Reserved server desteklenmiyor (${p.error || 'no support'}), Faz 0'a devam`,
-            reserve_skip:               (p) => `↪️ Reserve probe atlandı: ${p.reason}`,
-            reserve_error:              (p) => `⚠️ Reserve probe hatası: ${p.error}`,
-            // Faz 0: Passive Observer Snipe (kısa yol)
-            observer_start:             '👁️ Faz 0/9: Yeni server izleyici (45sn) — sabırlı yakalama denemesi...',
-            observer_baseline:          (p) => `👁️ Baseline: ${p.count} mevcut server kaydedildi`,
-            observer_poll:              (p) => `👁️ Poll #${p.polls} — ${p.seen} server (${p.candidates} aday, ${p.newThisCycle} yeni bu turda)`,
-            observer_found_fresh:       (p) => `🎯 SUPER-FRESH server: ${p.jobId?.substring(0, 8)}... (${p.playing} oyuncu)`,
-            observer_best:              (p) => `🎯 En boş yeni server: ${p.jobId?.substring(0, 8)}... (${p.playing} oyuncu)`,
-            observer_empty:             (p) => `↪️ Observer ${p.polls} pollda yeni server yakalayamadı`,
-            observer_skip:              '↪️ Observer boş döndü, fingerprint matching\'e geçiliyor...',
-            observer_join:              (p) => `🚀 Observer ile bağlanılıyor (${p.fresh ? 'fresh' : 'low'}, ${p.playing} oyuncu)`,
-            // Faz 1: Public servers fetch
-            targeted_phase1:            '📡 Faz 1/8: Public server\'lar toplanıyor (Asc + Desc)...',
-            targeted_fetch_page:        (p) => `📄 ${p.sort} sayfa ${p.page} → ${p.totalServers} server`,
-            targeted_servers_done:      (p) => `✅ ${p.serverCount} server (${p.totalTokens} token)`,
-            // Faz 2: Server fingerprints (token → avatar hash)
-            targeted_phase2_server_fp:  '🔬 Faz 2/7: Server token\'larından avatar fingerprint\'i çıkarılıyor...',
-            fingerprint_servers_start:  (p) => `🔬 ${p.tokens} token fingerprint için işleniyor...`,
-            fingerprint_servers_chunk:  (p) => `🔬 Server FP batch ${p.chunk}/${p.total} → ${p.extracted} hash`,
-            fingerprint_servers_done:   (p) => `✅ ${p.servers} server'dan ${p.hashes} fingerprint çıkarıldı`,
-            // Faz 3: Candidate pool
-            building_safelist:          '🛡️ Faz 3/8: Sosyal bağlantılar koruma listesine alınıyor...',
-            exclusion_built:            (p) => `✅ ${p.protected} kişi koruma altında`,
-            targeted_phase3_candidates: '👥 Faz 3/8: Aday havuzu (community + activity-aware filter)...',
-            // Activity-aware filtering (C+D 2.0)
-            activity_filter_start:      (p) => `🔍 Activity-aware filter başlıyor (${p.candidates} aday)...`,
-            activity_filter_progress:   (p) => `🔍 ${p.processed}/${p.total} işlendi → ${p.inGame} in-game, ${p.active} son aktif`,
-            activity_filter_done:       (p) => `✅ Activity filter: ${p.inGame} in-game + ${p.recentlyActive} son aktif (%${p.activeRatio} aktif oran)`,
-            targeted_pool_built:        (p) => `✅ Pool: ${p.poolSize} kişi (${p.inGame} in-game, ${p.recentlyActive} son aktif — recency-sorted)`,
-            // Faz 4: User fingerprints (userId → avatar hash)
-            targeted_phase4_user_fp:    '🔬 Faz 4/7: Aday userId\'lerin avatar fingerprint\'leri...',
-            fingerprint_users_start:    (p) => `🔬 ${p.users} userId fingerprint için işleniyor...`,
-            fingerprint_users_chunk:    (p) => `🔬 User FP batch ${p.chunk}/${p.total} → ${p.extracted} hash`,
-            fingerprint_users_done:     (p) => `✅ ${p.users} userId fingerprint hazır`,
-            // Faz 5: Fingerprint matching
-            targeted_phase5_match:      '🎯 Faz 5/7: Hash matching — kim hangi server\'da?',
-            targeted_targets_built:     (p) => `🎯 ${p.finalTargets} hedef (${p.verifiedMatches} verified + ${p.inGameTargets} in-game) — fingerprint: ${p.matchedServers}/${p.totalServers} server`,
-            targets_expanded:           (p) => `📈 Adaptive expansion: ${p.from} → ${p.finalTotal} hedef (server count: ${p.reason || ''})`,
-            targeted_coverage:          (p) => `📊 Kapsama: fingerprint %${p.fingerprintPercent} (${p.fingerprintCovered}) + estimated %${p.estimatedPercent} (${p.blockedInGame} in-game block)`,
-            // Faz 5: Block
-            block:                      (p) => `🚫 Block batch: ${p.total} hedef (${p.serverCount} server için ${p.adaptiveMin})`,
-            iterative_batch:            (p) => `🚫 Batch ${p.batch}/${p.total} — ${p.batchSize} block (toplam: ${p.totalBlocked})`,
-            iterative_snipe:            (p) => `🔍 Batch ${p.batch} sonrası snipe (${p.blocked} block aktif)`,
-            iterative_jobid_found:      (p) => `🎯 Batch ${p.batch}'te YENİ server bulundu! ${p.fresh ? '(super-fresh!)' : ''} jobId: ${p.jobId?.substring(0, 8)}...`,
-            iterative_early_block_exit: (p) => `✅ Erken çıkış: ${p.blocked} block (eşik: ${p.threshold}) — devam değer kaybediyor`,
-            iterative_join_skip:        (p) => `⚡ Iterative jobId ile direkt giriş — Phase 7-9 atlandı`,
-            block_cooldown:             (p) => `⏸️ Rate-limit cooldown ${p.cooldown}/${p.max} — 20sn dinleniyor (${p.blocked} block aktif)...`,
-            block_done:                 (p) => `✅ ${p.blocked} block tamamlandı${p.iterativeJobIdFound ? ' + iterative jobId hazır!' : ''}`,
-            targeted_coverage:          (p) => `🎯 Server kapsama: ${p.covered}/${p.total} (%${p.percent})`,
-            // Faz 7: Multi-strategy join + post-block observer
-            phase3_propagation:         '⏳ Faz 7/9: Block yayılması bekleniyor (15sn)...',
-            phase3_post_observer:       '👁️ Post-block observer (12sn) — matchmaker bize yeni server açtı mı?',
-            phase3_post_observer_ok:    (p) => `🆕 Post-block YENİ server: ${p.jobId?.substring(0, 8)}... ${p.fresh ? '(super-fresh!)' : ''}`,
-            phase3_mainworld:           '🎯 MAIN world REST matchmaker query...',
-            phase3_mainworld_ok:        (p) => `✅ REST server: ${p.jobId?.substring(0, 8)}... ${p.isNew ? '(YENİ 🆕)' : '(blocksuz)'}`,
-            phase3_mainworld_miss:      (p) => `⚠️ REST miss (${p.status || p.error}), snipe deneniyor...`,
-            phase3_snipe:               '🔍 Snipe fallback (5sn)...',
-            phase3_snipe_ok:            (p) => `✅ Snipe: ${p.jobId?.substring(0, 8)}... ${p.isNew ? '(YENİ 🆕)' : ''}`,
-            phase3_no_snipe:            '↪️ Snipe da yetişemedi, native join deneniyor...',
-            phase3_native_join:         '🚀 Roblox.GameLauncher.joinMultiplayerGame...',
-            phase3_native_ok:           (p) => `✅ Native join tetiklendi (${p.method})`,
-            phase3_native_miss:         (p) => `⚠️ Native join başarısız (${p.error})`,
-            native_join_initiated:      '🚀 Roblox client join flow başlatıldı',
-            // Common
-            waiting_join:               '⏳ Oyuna girişin bekleniyor (block kaldırma için)...',
-            unblock:                    (p) => `🔓 Block'lar kaldırılıyor (${p.total})...`,
-            unblock_done:               (p) => `✅ ${p.total} block temizlendi`,
-        };
-
-        try {
-            const result = await TrackedInstanceTrigger.runTargeted(placeId, {
-                onProgress: (p) => {
-                    const label = LABELS[p.phase];
-                    const msg = typeof label === 'function' ? label(p) : (label || p.phase);
-                    if (msg) TrackedUI.setStatus(msg);
-                    console.log('[Tracked] C+D Cerrahi:', p);
-                }
-            });
-
-            if (result?.success) {
-                if (result.method === 'reserved_server') {
-                    TrackedUI.setStatus(`🔓 RESERVED SERVER ile garanti boş server'a girildi! (Faz -1, hiç block gerekmedi)`);
-                } else if (result.method === 'observer_fresh') {
-                    TrackedUI.setStatus(`🎯 SUPER-FRESH server (Faz 0): ${result.jobId?.substring(0, 8)}... — block hiç gerekmedi!`);
-                } else if (result.method === 'observer_low') {
-                    TrackedUI.setStatus(`🎯 Az dolu yeni server (Faz 0): ${result.jobId?.substring(0, 8)}... — block hiç gerekmedi!`);
-                } else {
-                    const fpCov = result.coveragePercent || 0;
-                    const estCov = result.estimatedCoveragePercent || 0;
-                    const cov = ` — fingerprint %${fpCov} + estimated %${estCov} (${result.blockedInGameCount} in-game block / ${result.totalServers} server)`;
-                    if (result.method === 'targeted_iterative_fresh') {
-                        TrackedUI.setStatus(`🆕 İteratif loop'ta SUPER-FRESH server yakalandı! ${result.blocked} block${cov}`);
-                    } else if (result.method === 'targeted_iterative_low') {
-                        TrackedUI.setStatus(`🎯 İteratif loop'ta yeni az dolu server! ${result.blocked} block${cov}`);
-                    } else if (result.method === 'targeted_post_observer') {
-                        TrackedUI.setStatus(`🆕 Post-block matchmaker yeni server açtı! ${result.blocked} block${cov}`);
-                    } else if (result.method === 'targeted_mainworld_new') {
-                        TrackedUI.setStatus(`🆕 YENİ server zorlandı! ${result.blocked} block${cov}`);
-                    } else if (result.method === 'targeted_mainworld_existing') {
-                        TrackedUI.setStatus(`🎯 Blocksuz server alındı${cov}`);
-                    } else if (result.method === 'targeted_snipe') {
-                        TrackedUI.setStatus(`🎯 Snipe başarılı${cov}`);
-                    } else if (result.method && result.method.startsWith('targeted_native_')) {
-                        TrackedUI.setStatus(`🚀 Native join başlatıldı${cov}`);
-                    } else {
-                        TrackedUI.setStatus(`🛡️ ${result.blocked} block aktif${cov} — Roblox karar verecek`);
-                    }
-                }
-            } else {
-                TrackedUI.setStatus(`⚠️ C+D başarısız (${result?.method || 'fallback'})`);
-            }
-        } catch (err) {
-            console.error('[Tracked] C+D Cerrahi Hata:', err.message);
-            TrackedUI.setStatus('');
-            TrackedUI.showErrorModal(err.message || 'C+D Cerrahi başarısız.');
-        } finally {
-            TrackedUI.unlockAllButtons();
-            TrackedUI.setForceMode(false);
-            this.state.isProcessing = false;
-        }
+        const best = resolved[0];
+        console.log(`[Tracked] v5.0: ${target ? 'HEDEF ' + (target.label || target.code) + ' → EN YAKIN' : 'EN YAKIN'} → ${best.region} ~${best.distanceKm}km (${resolved.length}/${candidates.length} çözüldü)`);
+        return { server: best.server, region: best.region, distanceKm: best.distanceKm, target: target ? (target.label || target.code) : null };
     },
 
     // ============================================
@@ -939,49 +1041,168 @@ const TrackedApp = {
         TrackedUI.setForceMode(true, stopScan);
         this.setGlobalCooldown(8000);
         this.state.isProcessing = true;
-        TrackedUI.setStatus('Oto-Pilot: Başlatılıyor... 🛡️');
+        TrackedUI.setStatus('Oto-Pilot: Başlatılıyor...');
 
-        // Kullanıcının ölçülmüş bölgesel ping'ini al (rota_ping_results) → dinamik MAX_PING
-        // Roblox API'sinin ping field'i unreliable (server-internal metric, user-to-server değil),
-        // ama kullanıcının kendi en iyi region pingini biliyorsak ona göre cap koyabiliriz:
-        // best_region_ping + 60ms buffer (region matching için makul tolerance)
-        let dynamicMaxPing = 120; // default: orta-sıkı
+        // Kullanıcının ölçülmüş bölgesel ping'ini al → akıllı GÖRECELI filtering + scoring
+        // KRİTİK: Roblox'un server.ping field'i = mevcut oyuncuların avg ping'i.
+        // Eğer server US'taysa ve içindekiler US'lı ise ping=30ms görünür AMA sen TR'den
+        // girince 200ms+ olur. Çözüm: server.ping'i SENİN best regional ping'inle karşılaştır:
+        //   - server.ping ≈ userBestPing → server senin bölgende, gerçek ping benzer olur ✅
+        //   - server.ping çok düşük (<userBest/2) → server uzak kıtada (oradaki oyunculara göre düşük) ❌
+        //   - server.ping >> userBest → server zaten yüksek pingli ❌
+        let userBestPing = null; // null = bilinmiyor (fallback'le default'a düşülür)
+        let dynamicMaxPing = 120;
         try {
-            const pingData = await chrome.storage.local.get('rota_ping_results');
-            const results = pingData?.rota_ping_results;
+            // İki storage source: popup cache (user-measured) + SW results (background).
+            // İkisini de oku, hangisi daha taze ise onu kullan.
+            const stored = await chrome.storage.local.get(['rota_ping_cache', 'rota_ping_results']);
+            let results = null;
+            const cacheResults = stored?.rota_ping_cache?.results;
+            const swResults    = stored?.rota_ping_results;
+            const cacheTs      = stored?.rota_ping_cache?.timestamp || 0;
+            // Popup cache daha taze ise onu tercih et (timestamp var), yoksa SW results'ı kullan
+            if (Array.isArray(cacheResults) && cacheResults.length > 0) {
+                results = cacheResults;
+            } else if (Array.isArray(swResults) && swResults.length > 0) {
+                results = swResults;
+            }
             if (Array.isArray(results) && results.length > 0) {
                 const validPings = results.map(r => r.ms).filter(ms => ms > 0 && ms < 900);
                 if (validPings.length > 0) {
-                    const bestRegionalPing = Math.min(...validPings);
-                    // En iyi region + 60ms tolerans, ama 80-180ms arası clamp (çok sıkı/gevşek olmasın)
-                    dynamicMaxPing = Math.max(80, Math.min(180, bestRegionalPing + 60));
-                    console.log(`[Tracked] Auto-pilot: kullanıcı best region ${bestRegionalPing}ms, MAX_PING=${dynamicMaxPing}ms`);
+                    userBestPing = Math.min(...validPings);
+                    // Max ping cap: best * 2.5, clamp 60-200ms
+                    // TR kullanıcı best=40ms → max=100ms (eskiden 200ms idi, 200ms server geçiyordu!)
+                    dynamicMaxPing = Math.max(60, Math.min(200, Math.round(userBestPing * 2.5)));
+                    console.log(`[Tracked] Auto-pilot v3.5: userBestPing=${userBestPing}ms (source: ${cacheResults ? 'popup' : 'SW'}), MAX_PING=${dynamicMaxPing}ms`);
                 }
+            } else {
+                console.log('[Tracked] Auto-pilot: userBestPing bilinmiyor — popup\'ta ping ölçümü yapılmamış. Default mantığa düşülüyor.');
             }
-        } catch (_) {}
+        } catch (e) {
+            console.warn('[Tracked] Auto-pilot ping read failed:', e?.message);
+        }
+
+        // ─────────────────────────────────────────
+        // v5.0: BÖLGE-GARANTİLİ SEÇİM (BİRİNCİL) — adayların gerçek mesafesini çözüp EN YAKINI seç.
+        // Konum/aday/çözüm yoksa null → aşağıdaki eski matchmaker+ping akışına düşülür (bozulmaz).
+        // ─────────────────────────────────────────
+        try {
+            TrackedUI.setStatus('Oto-Pilot: En yakın bölge aranıyor...');
+            const best = await this.autoPilotPickClosest(placeId, abortCtrl, (i, n, label) => {
+                TrackedUI.setStatus(`Oto-Pilot: Bölge çözülüyor ${i}/${n}${label ? ' · ' + label : ''}`);
+            });
+            if (best && best.server) {
+                TrackedUI.setStatus(`${best.target ? 'Hedef ' + best.target : 'En yakın'}: ${best.region} · ~${best.distanceKm} km — bağlanılıyor...`);
+                this.joinServer(placeId, best.server.id);
+                setTimeout(() => {
+                    this.showOtopilotRetryFloater(placeId, best.server.id, {
+                        region: best.region, distanceKm: best.distanceKm,
+                        players: best.server.playing, maxPlayers: best.server.maxPlayers
+                    });
+                }, 300);
+                TrackedUI.unlockAllButtons(); TrackedUI.setForceMode(false); this.state.isProcessing = false;
+                return;
+            }
+            if (abortCtrl.signal.aborted) {
+                TrackedUI.setStatus('Oto-Pilot durduruldu.');
+                TrackedUI.unlockAllButtons(); TrackedUI.setForceMode(false); this.state.isProcessing = false;
+                return;
+            }
+            console.log('[Tracked] v5.0: Bölge-garantili seçim sonuç vermedi — eski akışa düşülüyor.');
+        } catch (e) {
+            if (abortCtrl.signal.aborted) {
+                TrackedUI.setStatus('Oto-Pilot durduruldu.');
+                TrackedUI.unlockAllButtons(); TrackedUI.setForceMode(false); this.state.isProcessing = false;
+                return;
+            }
+            console.warn('[Tracked] v5.0 bölge seçim hatası:', e?.message);
+        }
+
+        // ─────────────────────────────────────────
+        // v4.1: PHASE 0 — Roblox REGION-AWARE MATCHMAKER
+        // gamejoin API'sini MAIN world'de çağırıp Roblox'un kendi matchmaker'ından server al.
+        // Roblox senin IP'ni biliyor → bölgene yakın server atar. Bu en güvenilir region detection'tır.
+        // ─────────────────────────────────────────
+        try {
+            TrackedUI.setStatus('Oto-Pilot: Roblox matchmaker sorgulanıyor...');
+            const blStore = await chrome.storage.local.get('rota_otopilot_blocklist');
+            const bl = blStore?.rota_otopilot_blocklist || [];
+            const now = Date.now();
+            const TTL = 24 * 60 * 60 * 1000;
+            const blockedSet = new Set(bl.filter(e => e?.ts && (now - e.ts) < TTL).map(e => e.id));
+
+            const mmResult = await new Promise(resolve => {
+                try {
+                    chrome.runtime.sendMessage({ action: 'swMainWorldMatchmaker', placeId }, r => {
+                        if (chrome.runtime.lastError) resolve(null); else resolve(r);
+                    });
+                } catch { resolve(null); }
+            });
+
+            if (mmResult?.ok && mmResult?.jobId && !blockedSet.has(mmResult.jobId)) {
+                console.log(`[Tracked] v4.1: Phase 0 — Roblox matchmaker jobId=${mmResult.jobId.substring(0,8)}... (status=${mmResult.status}) — region-aware pick`);
+                TrackedUI.setStatus('Roblox matchmaker önerisi alındı, bağlanılıyor...');
+                this.joinServer(placeId, mmResult.jobId);
+                // Floater her zaman göster — matchmaker'ın da yanılma şansı var, user verify etsin
+                setTimeout(() => {
+                    this.showOtopilotRetryFloater(placeId, mmResult.jobId, {
+                        confidence: 'high',
+                        apiPing: 0,
+                        userBestPing,
+                        delta: null
+                    });
+                }, 300);
+                TrackedUI.unlockAllButtons();
+                TrackedUI.setForceMode(false);
+                this.state.isProcessing = false;
+                return;
+            } else if (mmResult?.ok && mmResult?.jobId && blockedSet.has(mmResult.jobId)) {
+                console.log(`[Tracked] v4.1: Phase 0 matchmaker jobId blocklist'te — scan fallback'e geçiliyor`);
+            } else {
+                console.log(`[Tracked] v4.1: Phase 0 fail (${mmResult?.error || mmResult?.status || 'no_result'}) — scan fallback`);
+            }
+        } catch (e) {
+            console.warn('[Tracked] v4.1: Phase 0 matchmaker error:', e?.message);
+        }
 
         try {
+            // PHASE 1 (fallback): Public server scan — matchmaker fail olduğunda
+            TrackedUI.setStatus('Oto-Pilot: En iyi sunucu aranıyor (fallback)...');
+            let filterReasons = { too_many_players: 0, high_ping: 0, full: 0, invalid: 0 };
+
             const server = await TrackedScanner.autoBlockerScan(
                 placeId,
-                // Progress callback
-                ({ scanned, blocked, page, status }) => {
-                    TrackedUI.setStatus(`Engellenen: ${blocked} | Taranan: ${scanned} 🛡️`);
+                ({ scanned, blocked, page, status, waitMs }) => {
+                    if (status === 'rate_limit_wait') {
+                        const sec = Math.ceil((waitMs || 25000) / 1000);
+                        TrackedUI.setStatus(`Çok hızlı tarandı — ${sec}sn bekleniyor, devam ediyor...`);
+                    } else {
+                        TrackedUI.setStatus(`Oto-Pilot: Taranan: ${scanned} | Filtrelenen: ${blocked}`);
+                    }
                 },
-                // Blocked callback
-                ({ reason, detail, totalBlocked }) => {
-                    console.log(`[Auto-Blocker] Engellendi: ${reason}${detail ? ' (' + detail + ')' : ''}`);
+                ({ reason }) => {
+                    if (reason in filterReasons) filterReasons[reason]++;
                 },
-                // Server found callback - ANINDA BAĞLAN
                 (foundServer) => {
-                    console.log(`[Tracked] v3.1: Uygun sunucu bulundu (ping=${foundServer.ping}ms, max=${dynamicMaxPing}ms), bağlanıyor!`);
-                    TrackedScanner.abort();
-                    TrackedUI.setStatus('Sunucu bulundu! Bağlanıyor... 🛡️');
-
+                    console.log(`[Tracked] Uygun sunucu bulundu: ${foundServer.playing} oyuncu, ping=${foundServer.ping}ms, skor=${foundServer.score}`);
+                    TrackedUI.setStatus('Sunucu bulundu! Bağlanıyor...');
                     setTimeout(() => {
                         this.joinServer(placeId, foundServer.id);
+                        // v4.0: Floater HER ZAMAN gösterilir — heuristik unreliable, user karar versin.
+                        // Confidence label ile şeffaf bilgi: pozitif delta = iyi, sıfır/negatif = riskli.
+                        const apiPing = foundServer.ping || 0;
+                        const delta = userBestPing > 0 && apiPing > 0 ? apiPing - userBestPing : null;
+                        let confidence = 'unknown';
+                        if (delta !== null) {
+                            if (delta >= 5 && delta <= 25)   confidence = 'high';   // yeşil — büyük olasılıkla iyi
+                            else if (delta >= -3 && delta <= 60) confidence = 'medium'; // sarı — kontrol et
+                            else                              confidence = 'low';    // kırmızı — risk var
+                        }
+                        console.log(`[Tracked] v4.0: Floater (confidence=${confidence}, delta=${delta}ms, apiPing=${apiPing}, userBest=${userBestPing})`);
+                        this.showOtopilotRetryFloater(placeId, foundServer.id, { confidence, apiPing, userBestPing, delta });
                     }, 300);
                 },
-                { maxPlayers: 5, maxPing: dynamicMaxPing, signal: abortCtrl.signal }
+                { maxPlayers: 9999, maxPing: dynamicMaxPing, userBestPing, signal: abortCtrl.signal }
             );
 
             if (!server) {
@@ -995,7 +1216,11 @@ const TrackedApp = {
                         TrackedUI.showErrorModal(`Çok fazla istek gönderildi. Güvenlik için ${waitSeconds} saniye beklemeniz gerekiyor.`);
                         this.setGlobalCooldown(waitSeconds * 1000);
                     } else {
-                        TrackedUI.showForceFailedModal(placeId);
+                        const reasons = [];
+                        if (filterReasons.high_ping > 0) reasons.push(`${filterReasons.high_ping} sunucu yüksek ping (>${dynamicMaxPing}ms)`);
+                        if (filterReasons.full > 0)       reasons.push(`${filterReasons.full} sunucu tamamen dolu`);
+                        const detail = reasons.length > 0 ? `\n\nSebep: ${reasons.join(', ')}.` : '';
+                        TrackedUI.showErrorModal(`Oto-Pilot: Tüm sunucular yüksek ping'li veya tamamen dolu.${detail}\n\nNormal tarama ile deneyin.`);
                     }
                 }
             }
@@ -1019,6 +1244,197 @@ const TrackedApp = {
             TrackedUI.setForceMode(false);
             TrackedUI.unlockAllButtons();
             this.state.isProcessing = false;
+        }
+    },
+
+    // ============================================
+    // v4.0: Oto-Pilot Retry Floater — confidence-aware, her zaman gösterilir
+    // ============================================
+    showOtopilotRetryFloater: function(placeId, currentJobId, info = {}) {
+        document.getElementById('tracked-otopilot-retry')?.remove();
+
+        // v5.0: İki mod — (1) BÖLGE: gerçek datacenter mesafesi (dürüst), (2) eski PING tahmini (fallback).
+        let c, infoText;
+        if (info && typeof info.region === 'string' && info.region) {
+            const d = (typeof info.distanceKm === 'number') ? info.distanceKm : null;
+            // AKILLI güven: mutlak km DEĞİL, SENİN en yakın mümkün bölgene GÖRE.
+            // Seçilen sunucu, senin en yakın datacenter'ına ne kadar yakınsa o kadar "iyi" — çünkü
+            // daha iyisi yok. (Örn. Türkiye için EU = en yakın bölge → "EN İYİ", 2000km olsa bile.)
+            const nearest = (typeof TrackedRegion !== 'undefined' && TrackedRegion._geo && typeof TrackedRegion._geo.nearestDcKm === 'number')
+                ? TrackedRegion._geo.nearestDcKm : null;
+            let conf;
+            if (d === null) {
+                conf = 'unknown';
+            } else if (nearest !== null) {
+                const excess = d - nearest;                 // en yakın bölgenin ne kadar ötesi
+                conf = excess <= 1800 ? 'high' : (excess <= 4000 ? 'medium' : 'low');
+            } else {
+                conf = d <= 2800 ? 'high' : (d <= 6000 ? 'medium' : 'low');  // konum yoksa: kıta-içi makul
+            }
+            const rMap = {
+                high:    { color: '#30D158', bg: 'rgba(48,209,88,0.14)', border: 'rgba(48,209,88,0.4)', label: 'EN İYİ BÖLGE', desc: 'Sana en yakın bölgedeki açık sunucu bu — daha iyisi yok. Oyun içi ping yine kötüyse sıradakini dene.' },
+                medium:  { color: '#FFD60A', bg: 'rgba(255,214,10,0.12)', border: 'rgba(255,214,10,0.35)', label: 'KABUL EDİLİR', desc: 'En yakın açık sunucu bu ama bölgen biraz uzak kaldı. Gerekirse sıradakine geç.' },
+                low:     { color: '#FF453A', bg: 'rgba(255,69,58,0.14)', border: 'rgba(255,69,58,0.4)', label: 'UZAK BÖLGE', desc: 'Bu oyunun sunucuları sana uzakta; en yakını bile uzak çıktı. Sıradakini deneyebilirsin.' },
+                unknown: { color: '#8E8E93', bg: 'rgba(142,142,147,0.12)', border: 'rgba(142,142,147,0.35)', label: 'BÖLGE', desc: 'Bölge bulundu, mesafe hesaplanamadı.' },
+            };
+            c = rMap[conf];
+            const distTxt = (d !== null) ? ` · ~${d} km` : '';
+            const playersTxt = (typeof info.players === 'number' && typeof info.maxPlayers === 'number') ? ` · ${info.players}/${info.maxPlayers} oyuncu` : '';
+            infoText = `Bölge: ${info.region}${distTxt}${playersTxt}`;
+        } else {
+            const { confidence = 'unknown', apiPing = 0, userBestPing = 0, delta = null } = info;
+            const confMap = {
+                high:    { color: '#30D158', bg: 'rgba(48,209,88,0.14)', border: 'rgba(48,209,88,0.4)', label: 'PING İYİ TAHMİN EDİLİYOR', desc: 'Server senin bölgende görünüyor. Yine de in-game ping kötüyse sıradakini dene.' },
+                medium:  { color: '#FFD60A', bg: 'rgba(255,214,10,0.12)', border: 'rgba(255,214,10,0.35)', label: 'PİNG BELİRSİZ', desc: 'Tahmin güvenilir değil. Oyuna girince ping kötüyse sıradakini dene.' },
+                low:     { color: '#FF453A', bg: 'rgba(255,69,58,0.14)', border: 'rgba(255,69,58,0.4)', label: 'PİNG RİSKLİ', desc: 'Sinyaller yüksek ping olabileceğini gösteriyor. Kontrol et, gerekirse sıradakine geç.' },
+                unknown: { color: '#8E8E93', bg: 'rgba(142,142,147,0.12)', border: 'rgba(142,142,147,0.35)', label: 'PİNG VERİSİ YOK', desc: 'API ping bilgisi yoktu. In-game ping\'i kontrol et.' },
+            };
+            c = confMap[confidence] || confMap.unknown;
+            infoText = userBestPing > 0
+                ? `API: ${apiPing || '?'}ms  ·  Senin best: ${userBestPing}ms  ·  Δ: ${delta !== null ? (delta >= 0 ? '+' : '') + delta + 'ms' : '?'}`
+                : `API ping: ${apiPing || '?'}ms`;
+        }
+
+        const floater = document.createElement('div');
+        floater.id = 'tracked-otopilot-retry';
+        floater.style.cssText = `
+            position: fixed; bottom: 20px; right: 20px; z-index: 9999998;
+            background: linear-gradient(135deg, rgba(20,21,26,0.95), rgba(15,15,20,0.95));
+            backdrop-filter: blur(20px) saturate(1.4);
+            -webkit-backdrop-filter: blur(20px) saturate(1.4);
+            border: 1px solid ${c.border};
+            border-radius: 12px;
+            padding: 12px 14px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-size: 12px;
+            color: rgba(255,255,255,0.9);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+            display: flex; flex-direction: column; gap: 8px;
+            min-width: 270px; max-width: 320px;
+            animation: tk-floater-in .35s cubic-bezier(0.4,0,0.2,1);
+        `;
+
+        if (!document.getElementById('tracked-otopilot-floater-css')) {
+            const style = document.createElement('style');
+            style.id = 'tracked-otopilot-floater-css';
+            style.textContent = `
+                @keyframes tk-floater-in { from { opacity:0; transform: translateY(8px); } to { opacity:1; transform: translateY(0); } }
+                @keyframes tk-floater-out { from { opacity:1; transform: translateY(0); } to { opacity:0; transform: translateY(8px); } }
+                #tracked-otopilot-retry .tk-fl-title { font-weight:700; font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; display:flex; align-items:center; gap:6px; }
+                #tracked-otopilot-retry .tk-fl-confbadge { padding:2px 7px; border-radius:4px; font-size:9.5px; font-weight:700; letter-spacing:.06em; }
+                #tracked-otopilot-retry .tk-fl-msg { line-height:1.4; color:rgba(255,255,255,.78); }
+                #tracked-otopilot-retry .tk-fl-info { font-size:10.5px; color:rgba(255,255,255,.45); font-family:'SF Mono',monospace; padding:5px 8px; background:rgba(255,255,255,.03); border-radius:5px; border:1px solid rgba(255,255,255,.04); }
+                #tracked-otopilot-retry .tk-fl-actions { display:flex; gap:6px; align-items:center; }
+                #tracked-otopilot-retry button { background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.10); color: rgba(255,255,255,.92); padding: 6px 12px; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; transition: background .2s; display:inline-flex; align-items:center; }
+                #tracked-otopilot-retry button.tk-fl-retry { background: rgba(255,159,10,.18); border-color: rgba(255,159,10,.4); color: #FFB84D; }
+                #tracked-otopilot-retry button:hover { background: rgba(255,255,255,.14); }
+                #tracked-otopilot-retry button.tk-fl-retry:hover { background: rgba(255,159,10,.3); }
+                #tracked-otopilot-retry .tk-fl-countdown { font-size:10px; color:rgba(255,255,255,.4); margin-left:auto; }
+            `;
+            document.head.appendChild(style);
+        }
+
+        const ICON_SHIELD = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>`;
+        const ICON_TARGET = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>`;
+
+        floater.innerHTML = `
+            <div class="tk-fl-title" style="color:${c.color}">${ICON_SHIELD} OTO-PİLOT
+                <span class="tk-fl-confbadge" style="background:${c.bg}; color:${c.color}; border:1px solid ${c.border}; margin-left:auto;">${c.label}</span>
+            </div>
+            <div class="tk-fl-msg">${c.desc}</div>
+            <div class="tk-fl-info">${infoText}</div>
+            <div class="tk-fl-actions">
+                <button class="tk-fl-retry" id="tk-fl-retry-btn">${ICON_TARGET}Sıradaki sunucu</button>
+                <button id="tk-fl-dismiss-btn">İyiyim</button>
+                <span class="tk-fl-countdown" id="tk-fl-countdown">45sn</span>
+            </div>
+        `;
+
+        document.body.appendChild(floater);
+
+        // Auto-dismiss countdown
+        let remaining = 45;
+        const countdownEl = floater.querySelector('#tk-fl-countdown');
+        const interval = setInterval(() => {
+            remaining--;
+            if (countdownEl) countdownEl.textContent = `${remaining}sn`;
+            if (remaining <= 0) {
+                clearInterval(interval);
+                dismiss();
+            }
+        }, 1000);
+
+        const dismiss = () => {
+            clearInterval(interval);
+            floater.style.animation = 'tk-floater-out .25s cubic-bezier(0.4,0,1,1) forwards';
+            setTimeout(() => floater.remove(), 260);
+        };
+
+        floater.querySelector('#tk-fl-retry-btn').addEventListener('click', async () => {
+            clearInterval(interval);
+            await this.tryNextOtopilotCandidate(placeId, currentJobId);
+            dismiss();
+        });
+
+        floater.querySelector('#tk-fl-dismiss-btn').addEventListener('click', dismiss);
+    },
+
+    // v3.6: Mevcut server'ı blocklist'e ekle + storage'daki sıradaki adaya geç
+    tryNextOtopilotCandidate: async function(placeId, badJobId) {
+        try {
+            // 1) Blocklist'e ekle (TTL: 24h, max 50 FIFO)
+            const stored = await chrome.storage.local.get('rota_otopilot_blocklist');
+            const existing = stored?.rota_otopilot_blocklist || [];
+            const now = Date.now();
+            const TTL = 24 * 60 * 60 * 1000;
+            const filtered = existing.filter(e => e?.ts && (now - e.ts) < TTL && e.id !== badJobId);
+            filtered.unshift({ id: badJobId, ts: now });
+            const trimmed = filtered.slice(0, 50);
+            await chrome.storage.local.set({ rota_otopilot_blocklist: trimmed });
+            console.log(`[Tracked] v3.6: ${badJobId} blocklist'e eklendi (${trimmed.length}/50)`);
+
+            // v5.0: Bölge adayları varsa → sıradaki EN YAKIN sunucuya geç (gerçek mesafe)
+            const regStore = await chrome.storage.local.get('rota_otopilot_region_candidates');
+            const reg = regStore?.rota_otopilot_region_candidates;
+            if (reg && reg.placeId === placeId && Array.isArray(reg.ranked)) {
+                const nextR = reg.ranked.find(c => c.jobId !== badJobId && !trimmed.some(b => b.id === c.jobId));
+                if (nextR) {
+                    console.log(`[Tracked] v5.0: Sıradaki en yakın → ${nextR.region} ~${nextR.distanceKm}km`);
+                    TrackedUI.setStatus?.(`Sıradaki en yakın: ${nextR.region} · ~${nextR.distanceKm} km`);
+                    this.joinServer(placeId, nextR.jobId);
+                    this.showOtopilotRetryFloater(placeId, nextR.jobId, {
+                        region: nextR.region, distanceKm: nextR.distanceKm,
+                        players: nextR.players, maxPlayers: nextR.maxPlayers
+                    });
+                    return;
+                }
+            }
+
+            // 2) Son scan'den sıradaki adayı bul (fallback — bölge adayı yoksa eski ping akışı)
+            const scanStore = await chrome.storage.local.get('rota_otopilot_last_scan');
+            const lastScan = scanStore?.rota_otopilot_last_scan;
+            if (!lastScan || lastScan.placeId !== placeId || !Array.isArray(lastScan.candidates)) {
+                TrackedUI.showErrorModal('Sıradaki aday bulunamadı — Oto-Pilot\'u yeniden çalıştır.');
+                return;
+            }
+            // badJobId'yi atla, ilk başka adayı al
+            const next = lastScan.candidates.find(c => c.jobId !== badJobId && !trimmed.some(b => b.id === c.jobId));
+            if (!next) {
+                TrackedUI.showErrorModal('Sıradaki uygun aday kalmadı. Oto-Pilot\'u yeniden çalıştır.');
+                return;
+            }
+
+            console.log(`[Tracked] v3.6: Sıradaki aday → ${next.jobId.substring(0,8)}... (${next.players} oyuncu, ${next.ping || '?'}ms)`);
+            TrackedUI.setStatus?.(`Sıradaki: ${next.players} oyuncu, ${next.ping || '?'}ms`);
+
+            // 3) Aktif join
+            this.joinServer(placeId, next.jobId);
+
+            // 4) Tekrar floater (eğer bu da kötüyse 3. aday için)
+            this.showOtopilotRetryFloater(placeId, next.jobId);
+        } catch (e) {
+            console.error('[Tracked] tryNextOtopilotCandidate failed:', e);
+            TrackedUI.showErrorModal('Sıradaki aday hata verdi: ' + e.message);
         }
     }
 };

@@ -3,26 +3,19 @@
 const DEFAULT_SETTINGS = {
     timeoutMs: 3000,
     cacheMinutes: 10,
-    openInNewTab: false,
-    appendRegionParam: false,
     silentMode: false,
     reducedMotion: false,
     language: 'tr',
-    // Performance / A+B / C+D defaults
-    blockTarget: 100,
-    propagationSeconds: 15,
-    useFingerprint: true,
-    friendsExpansion: true,
-    aggressiveSnipe: false,
     // Auto-Reconnect
     autoReconnectEnabled: true,
     autoReconnectNative: false,
+    // Etiketler AWS bölgesinin GERÇEK konumu (popup.js DEFAULT_SETTINGS ile senkron tutulmalı).
     probes: {
         "Almanya (DE)": "https://s3.eu-central-1.amazonaws.com",
-        "Hollanda (NL)": "https://s3.eu-west-1.amazonaws.com",
+        "İrlanda (IE)": "https://s3.eu-west-1.amazonaws.com",
         "Fransa (FR)": "https://s3.eu-west-3.amazonaws.com",
-        "Polonya (PL)": "https://s3.eu-north-1.amazonaws.com",
-        "Romanya (RO)": "https://s3.eu-south-1.amazonaws.com"
+        "İsveç (SE)": "https://s3.eu-north-1.amazonaws.com",
+        "İtalya (IT)": "https://s3.eu-south-1.amazonaws.com"
     }
 };
 
@@ -30,17 +23,10 @@ const ui = {
     // Connection
     inpTimeout: document.getElementById('inp-timeout'),
     inpCache: document.getElementById('inp-cache'),
-    chkNewTab: document.getElementById('chk-newtab'),
-    chkAppendParam: document.getElementById('chk-appendparam'),
     // Appearance
     chkSilent: document.getElementById('chk-silent'),
     chkReducedMotion: document.getElementById('chk-reduced-motion'),
     // Performance
-    inpBlockTarget: document.getElementById('inp-block-target'),
-    inpPropagation: document.getElementById('inp-propagation'),
-    chkFingerprint: document.getElementById('chk-fingerprint'),
-    chkFriendsExpansion: document.getElementById('chk-friends-expansion'),
-    chkAggressiveSnipe: document.getElementById('chk-aggressive-snipe'),
     // Auto-Reconnect
     chkAutoReconnect: document.getElementById('chk-auto-reconnect'),
     chkAutoReconnectNative: document.getElementById('chk-auto-reconnect-native'),
@@ -90,6 +76,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     applyTranslations();
     loadDiagnostics();
     clearUnsaved();
+    setupChangelog();
 });
 
 ui.btnSave?.addEventListener('click', saveSettings);
@@ -97,12 +84,39 @@ ui.btnReset?.addEventListener('click', restoreDefaults);
 ui.btnClearFavs?.addEventListener('click', clearFavorites);
 ui.btnClearCache?.addEventListener('click', clearCache);
 
+// v1.9.0: Oto-Pilot bad-server blocklist
+const btnClearOtopilotBl = document.getElementById('btn-clear-otopilot-bl');
+const otopilotBlInfo = document.getElementById('otopilot-bl-info');
+async function updateOtopilotBlInfo() {
+    if (!otopilotBlInfo) return;
+    try {
+        const stored = await chrome.storage.local.get('rota_otopilot_blocklist');
+        const bl = stored?.rota_otopilot_blocklist || [];
+        const now = Date.now();
+        const TTL = 24 * 60 * 60 * 1000;
+        const valid = bl.filter(e => e?.ts && (now - e.ts) < TTL);
+        const count = valid.length;
+        otopilotBlInfo.textContent = count > 0
+            ? `${count} server blocklist'te (24h TTL otomatik silinir).`
+            : 'Yüksek ping nedeniyle işaretlenmiş server\'ları siler (24h TTL otomatik).';
+    } catch (_) {}
+}
+btnClearOtopilotBl?.addEventListener('click', async () => {
+    if (!confirm('Oto-Pilot blocklist\'ini temizlemek istediğine emin misin?')) return;
+    try {
+        await chrome.storage.local.remove('rota_otopilot_blocklist');
+        await updateOtopilotBlInfo();
+        showToast('Oto-Pilot blocklist temizlendi', 'success');
+    } catch (e) {
+        showToast('Temizleme başarısız', 'error');
+    }
+});
+updateOtopilotBlInfo(); // ilk yüklemede count göster
+
 // Change listeners (everything that affects settings)
 [
-    ui.inpTimeout, ui.inpCache, ui.chkNewTab, ui.chkAppendParam,
+    ui.inpTimeout, ui.inpCache,
     ui.chkSilent, ui.chkReducedMotion, ui.selLanguage,
-    ui.inpBlockTarget, ui.inpPropagation,
-    ui.chkFingerprint, ui.chkFriendsExpansion, ui.chkAggressiveSnipe,
     ui.chkAutoReconnect, ui.chkAutoReconnectNative
 ].forEach(el => {
     if (el) {
@@ -250,9 +264,8 @@ function setupKeyboardShortcuts() {
 
 // ── Scroll spy: section vurgulayıcı ──
 function setupScrollSpy() {
-    const sections = ['sec-appearance', 'sec-connection', 'sec-performance', 'sec-probes', 'sec-diagnostics', 'sec-data']
-        .map(id => document.getElementById(id))
-        .filter(Boolean);
+    const sectionIds = ['sec-appearance', 'sec-connection', 'sec-reconnect', 'sec-probes', 'sec-diagnostics', 'sec-changelog'];
+    const sections = sectionIds.map(id => document.getElementById(id)).filter(Boolean);
 
     if (sections.length === 0 || !ui.tocLinks.length) return;
 
@@ -265,22 +278,36 @@ function setupScrollSpy() {
         });
     });
 
-    // Observer for active link
-    const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                const id = entry.target.id;
-                ui.tocLinks.forEach(link => {
-                    link.classList.toggle('active', link.dataset.target === id);
-                });
-            }
-        });
-    }, {
-        rootMargin: '-20% 0px -60% 0px',
-        threshold: 0
-    });
+    const setActive = (id) => {
+        ui.tocLinks.forEach(link => link.classList.toggle('active', link.dataset.target === id));
+    };
 
-    sections.forEach(s => observer.observe(s));
+    // Scroll-tabanlı spy: viewport'un üst kenarına en yakın (ama geçmemiş) section'ı seç.
+    // IntersectionObserver yerine bu yöntem, aynı anda birden fazla section görünürken
+    // doğru vurgulama yapar — "en yukarıdaki görünür section" her zaman kazanır.
+    const updateActive = () => {
+        const scrollY = window.scrollY;
+        const OFFSET = 80; // sticky header veya padding için üst tolerans (px)
+        const atBottom = (scrollY + window.innerHeight) >= (document.documentElement.scrollHeight - 10);
+
+        if (atBottom) {
+            // Sayfanın sonuna gelindi → son sekme aktif
+            setActive(sections[sections.length - 1].id);
+            return;
+        }
+
+        // En alta geçmiş son section'ı bul
+        let activeId = sections[0].id;
+        for (const section of sections) {
+            if (section.getBoundingClientRect().top <= OFFSET) {
+                activeId = section.id;
+            }
+        }
+        setActive(activeId);
+    };
+
+    window.addEventListener('scroll', updateActive, { passive: true });
+    updateActive(); // ilk yüklemede çalıştır
 }
 
 // ── Settings load/save ──
@@ -320,18 +347,11 @@ async function loadSettings() {
     // Apply to UI
     if (ui.inpTimeout) ui.inpTimeout.value = settings.timeoutMs;
     if (ui.inpCache) ui.inpCache.value = settings.cacheMinutes;
-    if (ui.chkNewTab) ui.chkNewTab.checked = settings.openInNewTab;
-    if (ui.chkAppendParam) ui.chkAppendParam.checked = settings.appendRegionParam;
     if (ui.chkSilent) ui.chkSilent.checked = settings.silentMode === true;
     if (ui.chkReducedMotion) {
         ui.chkReducedMotion.checked = settings.reducedMotion === true;
         document.body.classList.toggle('reduced-motion', settings.reducedMotion === true);
     }
-    if (ui.inpBlockTarget) ui.inpBlockTarget.value = settings.blockTarget ?? 100;
-    if (ui.inpPropagation) ui.inpPropagation.value = settings.propagationSeconds ?? 15;
-    if (ui.chkFingerprint) ui.chkFingerprint.checked = settings.useFingerprint !== false;
-    if (ui.chkFriendsExpansion) ui.chkFriendsExpansion.checked = settings.friendsExpansion !== false;
-    if (ui.chkAggressiveSnipe) ui.chkAggressiveSnipe.checked = settings.aggressiveSnipe === true;
     if (ui.chkAutoReconnect) ui.chkAutoReconnect.checked = settings.autoReconnectEnabled !== false;
     if (ui.chkAutoReconnectNative) ui.chkAutoReconnectNative.checked = settings.autoReconnectNative === true;
     if (ui.selLanguage) ui.selLanguage.value = settings.language || 'tr';
@@ -352,11 +372,10 @@ function renderProbes(userProbes) {
         'Romanya (RO)': 'RO'
     };
 
-    // Probe sırası: defaultlar önce, kullanıcının eklediği customlar sonra
-    const orderedKeys = [
-        ...Object.keys(DEFAULT_SETTINGS.probes),
-        ...Object.keys(userProbes).filter(k => !(k in DEFAULT_SETTINGS.probes))
-    ];
+    // Verilen probları AYNEN render et: şablon uygulanınca o bölge seti GELİR (EU defaultları zorla
+    // eklenmez → şablon "yer değiştirir", üstüne eklenmez). Hiç prob yoksa defaultlara düşülür.
+    const providedKeys = Object.keys(userProbes || {});
+    const orderedKeys = providedKeys.length ? providedKeys : Object.keys(DEFAULT_SETTINGS.probes);
 
     orderedKeys.forEach(regionName => {
         const userUrl = userProbes[regionName] ?? DEFAULT_SETTINGS.probes[regionName] ?? '';
@@ -373,8 +392,11 @@ function renderProbes(userProbes) {
         row.className = 'probe-row';
         row.dataset.region = regionName;
 
-        // SVG icons inline (htm escaped)
-        const flagSpan = code ? `<span class="probe-flag">${escapeHtml(code)}</span>` : '';
+        // Gerçek bayrak ikonu; yoksa harf koduna düş (akıllı fallback)
+        const flagHtml = (typeof tkFlag === 'function') ? tkFlag(code || regionName) : '';
+        const flagSpan = flagHtml
+            ? `<span class="probe-flag has-flag">${flagHtml}</span>`
+            : (code ? `<span class="probe-flag">${escapeHtml(code)}</span>` : '');
         const removeBtn = !isDefault ? `<button class="btn-icon danger" title="${TrackedI18n.t('remove') || 'Sil'}" data-action="remove-row" type="button"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>` : '';
 
         row.innerHTML = `
@@ -436,21 +458,15 @@ async function testProbeRow(row) {
     testBtn.classList.add('testing');
 
     try {
-        const startTime = performance.now();
-        // HEAD ile dene; CORS engellerse no-cors'a düş (süre yine ölçülür)
-        const ctrl = new AbortController();
-        const timeoutId = setTimeout(() => ctrl.abort(), 5000);
+        // Popup ile AYNI motor (PingUtils): warmup + median → TCP/TLS el sıkışması ölçüme karışmaz.
+        // (Eski tek soğuk fetch DNS+TCP+TLS'yi de sayıyordu → gerçek ping'in ~5-6 katı çıkıyordu.)
+        const r = await PingUtils.measureMedianLatency(url, 5000, 5);
+        const elapsed = r && r.ms > 0 ? Math.round(r.ms) : -1;
+        if (elapsed <= 0) throw new Error('fail');
 
-        try {
-            await fetch(url, { method: 'HEAD', mode: 'no-cors', cache: 'no-store', signal: ctrl.signal });
-        } finally {
-            clearTimeout(timeoutId);
-        }
-
-        const elapsed = Math.round(performance.now() - startTime);
         let cls = 'good';
-        if (elapsed > 200) cls = 'warn';
-        if (elapsed > 400) cls = 'bad';
+        if (elapsed > 120) cls = 'warn';
+        if (elapsed > 250) cls = 'bad';
 
         resultEl.className = `probe-result ${cls}`;
         resultEl.textContent = `${elapsed} ms`;
@@ -484,6 +500,180 @@ function setupProbeActions() {
             await new Promise(r => setTimeout(r, 200));
         }
     });
+
+    // v4.2: Bölge Şablonu — kullanıcının coğrafyasına göre preset uygula
+    const PROBE_PRESETS = {
+        // Etiketler AWS bölgesinin GERÇEK konumu (dürüst veri) — NL/PL/RO'da AWS bölgesi yok, eski etiketler yanlıştı.
+        eu: {
+            "Almanya (DE)": "https://s3.eu-central-1.amazonaws.com",
+            "İrlanda (IE)": "https://s3.eu-west-1.amazonaws.com",
+            "Fransa (FR)": "https://s3.eu-west-3.amazonaws.com",
+            "İsveç (SE)": "https://s3.eu-north-1.amazonaws.com",
+            "İtalya (IT)": "https://s3.eu-south-1.amazonaws.com"
+        },
+        na: {
+            "Virginia (US-E)": "https://s3.us-east-1.amazonaws.com",
+            "Ohio (US-E2)":    "https://s3.us-east-2.amazonaws.com",
+            "California (US-W)": "https://s3.us-west-1.amazonaws.com",
+            "Oregon (US-W2)":  "https://s3.us-west-2.amazonaws.com",
+            "Canada (CA-C)":   "https://s3.ca-central-1.amazonaws.com"
+        },
+        asia: {
+            "Tokyo (JP)":      "https://s3.ap-northeast-1.amazonaws.com",
+            "Seoul (KR)":      "https://s3.ap-northeast-2.amazonaws.com",
+            "Singapore (SG)":  "https://s3.ap-southeast-1.amazonaws.com",
+            "Mumbai (IN)":     "https://s3.ap-south-1.amazonaws.com",
+            "Hong Kong (HK)":  "https://s3.ap-east-1.amazonaws.com"
+        },
+        sa: {
+            "São Paulo (BR)":  "https://s3.sa-east-1.amazonaws.com",
+            "Virginia (US-E)": "https://s3.us-east-1.amazonaws.com",
+            "Frankfurt (DE)":  "https://s3.eu-central-1.amazonaws.com",
+            "California (US-W)": "https://s3.us-west-1.amazonaws.com"
+        },
+        au: {
+            "Sydney (AU)":     "https://s3.ap-southeast-2.amazonaws.com",
+            "Singapore (SG)":  "https://s3.ap-southeast-1.amazonaws.com",
+            "Tokyo (JP)":      "https://s3.ap-northeast-1.amazonaws.com",
+            "California (US-W)": "https://s3.us-west-1.amazonaws.com"
+        }
+    };
+
+    // ── Custom dropdown (dil seçici tarzı, smooth animation) ──
+    const presetCurrentBtn   = document.getElementById('preset-current-btn');
+    const presetDropdown     = document.getElementById('preset-dropdown');
+    const presetSmartSelect  = document.getElementById('smart-preset-select');
+    const presetApplyBtn     = document.getElementById('btn-apply-preset');
+    const currentPresetCode  = document.getElementById('current-preset-code');
+    const currentPresetName  = document.getElementById('current-preset-name');
+    let selectedPresetKey    = null;
+
+    if (presetCurrentBtn && presetDropdown) {
+        presetCurrentBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            presetCurrentBtn.classList.toggle('active');
+            presetDropdown.classList.toggle('show');
+        });
+
+        // Dışarı tıklayınca kapat
+        document.addEventListener('click', (e) => {
+            if (!presetSmartSelect?.contains(e.target)) {
+                presetCurrentBtn.classList.remove('active');
+                presetDropdown.classList.remove('show');
+            }
+        });
+
+        // ESC tuşu ile kapat
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                presetCurrentBtn.classList.remove('active');
+                presetDropdown.classList.remove('show');
+            }
+        });
+
+        // Seçenek tıklama → display güncelle, Apply butonunu aktif et
+        presetDropdown.querySelectorAll('.preset-option').forEach(opt => {
+            opt.addEventListener('click', () => {
+                selectedPresetKey = opt.dataset.key;
+                const code = opt.querySelector('.preset-code')?.textContent || '?';
+                const nameRaw = opt.querySelector('.preset-name')?.firstChild?.textContent?.trim() || 'Seçildi';
+                if (currentPresetCode) currentPresetCode.textContent = code;
+                if (currentPresetName) currentPresetName.textContent = nameRaw;
+                // Selected state
+                presetDropdown.querySelectorAll('.preset-option').forEach(o => o.classList.toggle('selected', o === opt));
+                if (presetApplyBtn) presetApplyBtn.disabled = false;
+                // Kapat
+                presetCurrentBtn.classList.remove('active');
+                presetDropdown.classList.remove('show');
+            });
+        });
+    }
+
+    presetApplyBtn?.addEventListener('click', () => {
+        if (!selectedPresetKey || !PROBE_PRESETS[selectedPresetKey]) {
+            showToast('Önce bir şablon seçin', 'warning');
+            return;
+        }
+        const newProbes = PROBE_PRESETS[selectedPresetKey];
+        renderProbes(newProbes);
+        markUnsaved();
+        const count = Object.keys(newProbes).length;
+        const label = currentPresetName?.textContent || 'Şablon';
+        showToast(`${label} uygulandı (${count} region) — Kaydet'e basın`, 'success');
+    });
+
+    // Sayfa yüklenince mevcut problar bir şablonla TAM eşleşiyorsa dropdown'da onu göster (kalıcı seçim hissi).
+    const detectActivePreset = () => {
+        if (!presetDropdown) return;
+        const cur = (currentSettings && currentSettings.probes) || {};
+        const curKeys = Object.keys(cur).sort();
+        for (const [key, preset] of Object.entries(PROBE_PRESETS)) {
+            const pKeys = Object.keys(preset).sort();
+            const match = pKeys.length === curKeys.length && pKeys.every((k, i) => k === curKeys[i] && preset[k] === cur[k]);
+            if (!match) continue;
+            selectedPresetKey = key;
+            const opt = presetDropdown.querySelector(`.preset-option[data-key="${key}"]`);
+            if (opt) {
+                const code = opt.querySelector('.preset-code')?.textContent || '?';
+                const nameRaw = opt.querySelector('.preset-name')?.firstChild?.textContent?.trim() || '';
+                if (currentPresetCode) currentPresetCode.textContent = code;
+                if (currentPresetName) currentPresetName.textContent = nameRaw;
+                presetDropdown.querySelectorAll('.preset-option').forEach(o => o.classList.toggle('selected', o === opt));
+            }
+            return;
+        }
+    };
+    detectActivePreset();
+
+    // ── Otomatik bölge önerisi: konumdan (geo) bölgeyi tespit et → uygun şablonu öner ──
+    const templateFromLatLon = (lat, lon) => {
+        if (typeof lat !== 'number' || typeof lon !== 'number') return null;
+        if (lat >= 34 && lat <= 72 && lon >= -25 && lon <= 45) return 'eu';          // Avrupa
+        if (lat >= 12 && lat <= 75 && lon >= -170 && lon <= -50) return 'na';        // Kuzey Amerika
+        if (lat >= -56 && lat < 13 && lon >= -82 && lon <= -34) return 'sa';         // Güney Amerika
+        if (lat >= -50 && lat <= 0 && lon >= 110 && lon <= 180) return 'au';         // Avustralya/Okyanusya
+        if (lat >= -10 && lat <= 60 && lon > 45 && lon <= 150) return 'asia';        // Asya
+        return 'eu';  // eşleşmeyen bölge → en yakın varsayılan (Karışık/global kaldırıldı)
+    };
+    const suggestRegionTemplate = async () => {
+        if (!presetSmartSelect || !presetSmartSelect.parentNode) return;
+        let geo = null;
+        try {
+            geo = await new Promise(res => { try { chrome.runtime.sendMessage({ action: 'resolveUserLocation' }, r => res(chrome.runtime.lastError ? null : r)); } catch (_) { res(null); } });
+        } catch (_) {}
+        if (!geo || !geo.ok || typeof geo.lat !== 'number') return;
+        const key = templateFromLatLon(geo.lat, geo.lon);
+        if (!key || !PROBE_PRESETS[key]) return;
+        // Mevcut problar zaten bu şablonsa öneri gösterme (zaten doğru).
+        const cur = (currentSettings && currentSettings.probes) || {};
+        const preset = PROBE_PRESETS[key];
+        const ck = Object.keys(cur).sort(), pk = Object.keys(preset).sort();
+        if (pk.length === ck.length && pk.every((k, i) => k === ck[i] && preset[k] === cur[k])) return;
+        const opt = presetDropdown?.querySelector(`.preset-option[data-key="${key}"]`);
+        const label = opt?.querySelector('.preset-name')?.firstChild?.textContent?.trim() || key.toUpperCase();
+        if (document.querySelector('.probe-suggest-banner')) return;
+        const banner = document.createElement('div');
+        banner.className = 'probe-suggest-banner';
+        banner.innerHTML = `<span>Konumuna göre <b>${escapeHtml(label)}</b> bölgesi öneriliyor.</span><span class="psb-actions"><button type="button" class="psb-apply">Uygula</button><button type="button" class="psb-dismiss">Kapat</button></span>`;
+        // Banner'ı preset SATIRININ ÜSTÜNE ekle (içine değil — flex satırını bozuyordu/üst üste biniyordu).
+        const presetRow = presetSmartSelect.closest('.probe-preset-row') || presetSmartSelect.parentNode;
+        presetRow.parentNode.insertBefore(banner, presetRow);
+        banner.querySelector('.psb-apply').addEventListener('click', () => {
+            selectedPresetKey = key;
+            renderProbes(preset);
+            markUnsaved();
+            if (opt) {
+                const code = opt.querySelector('.preset-code')?.textContent || '?';
+                if (currentPresetCode) currentPresetCode.textContent = code;
+                if (currentPresetName) currentPresetName.textContent = label;
+                presetDropdown.querySelectorAll('.preset-option').forEach(o => o.classList.toggle('selected', o === opt));
+            }
+            banner.remove();
+            showToast(`${label} uygulandı — Kaydet'e basın`, 'success');
+        });
+        banner.querySelector('.psb-dismiss').addEventListener('click', () => banner.remove());
+    };
+    suggestRegionTemplate();
 }
 
 function collectProbes() {
@@ -509,16 +699,9 @@ async function saveSettings() {
     const newSettings = {
         timeoutMs: parseInt(ui.inpTimeout?.value) || 3000,
         cacheMinutes: parseInt(ui.inpCache?.value) || 10,
-        openInNewTab: !!ui.chkNewTab?.checked,
-        appendRegionParam: !!ui.chkAppendParam?.checked,
         silentMode: !!ui.chkSilent?.checked,
         reducedMotion: !!ui.chkReducedMotion?.checked,
         language: selectedLanguage,
-        blockTarget: parseInt(ui.inpBlockTarget?.value) || 100,
-        propagationSeconds: parseInt(ui.inpPropagation?.value) || 15,
-        useFingerprint: !!ui.chkFingerprint?.checked,
-        friendsExpansion: !!ui.chkFriendsExpansion?.checked,
-        aggressiveSnipe: !!ui.chkAggressiveSnipe?.checked,
         autoReconnectEnabled: ui.chkAutoReconnect ? !!ui.chkAutoReconnect.checked : true,
         autoReconnectNative: !!ui.chkAutoReconnectNative?.checked,
         probes: Object.keys(newProbes).length > 0 ? newProbes : DEFAULT_SETTINGS.probes
@@ -670,4 +853,128 @@ function escapeHtml(s) {
 }
 function escapeAttr(s) {
     return escapeHtml(s);
+}
+
+// ── Sürüm Notları ──────────────────────────────────────────────────────────
+const CHANGELOG = [
+    {
+        version: 'v1.9.3',
+        date: '7 Haziran 2026',
+        isNew: true,
+        entries: [
+            { icon: '▸', text: 'Sunucu listesinde (Diğer Sunucular) artık her sunucunun GERÇEK ülkesi/şehri ve sana GERÇEK ping\'in gösteriliyor — eskiden yazan ping aslında sunucudaki oyuncuların ortalamasıydı, seninle alakası yoktu; kaldırıldı ve doğru veriyle değiştirildi' },
+            { icon: '▸', text: 'Ping\'ler arka planda otomatik ölçülür (dünya genelinde 20 bölge) — hiçbir şey yapmana gerek yok, sayfayı açınca kendiliğinden gelir; ölçülmemiş bir bölge çıkarsa dürüstçe mesafe (km) gösterilir' },
+            { icon: '▸', text: 'Bölge eşleştirme koordinat bazlı oldu: ABD-Doğu ile ABD-Batı bile ayrı ping gösterir, sana en yakın bölge gerçek mesafeyle bulunur' },
+            { icon: '▸', text: 'Dolu (20/20) sunucularda bölge çözülemediği için artık dürüstçe "Dolu — bölge yok" yazıyor — uydurma bilgi yok' },
+            { icon: '▸', text: 'Sunucu kartları liste yenilenince veya Refresh\'e basınca artık kaymıyor/zıplamıyor; ülke ve ping bilgisi kartın içinde düzgün duruyor' },
+            { icon: '▸', text: 'Nadiren oluşan bir donma/çökme (sonsuz döngü) giderildi; genel kararlılık ve performans iyileştirildi' },
+        ]
+    },
+    {
+        version: 'v1.9.2',
+        date: '6 Haziran 2026',
+        isNew: false,
+        entries: [
+            { icon: '▸', text: 'Artık her sunucunun hangi ülkede/şehirde olduğunu, sana ne kadar uzak (km) olduğunu ve ne kadar akıcı çalıştığını gösteriyoruz' },
+            { icon: '▸', text: 'Derin Tarama: Her sunucunun bölgesi, mesafesi ve performansı listede görünür; en yakın ve en hızlı sunucular en üste gelir, en iyisine "Önerilen" yazısı eklenir' },
+            { icon: '▸', text: 'Oto-Pilot: Tek tıkla sana en yakın bölgedeki sunucuya otomatik katılırsın — daha hızlı ve daha isabetli, hangi bölgeye bağlandığın net yazar' },
+            { icon: '▸', text: 'Yeni sunucu bulduğunda artık o sunucunun bölgesi de gösteriliyor' },
+            { icon: '▸', text: 'Sunucu Bekçisi yenilendi: Sadece sana yakın sunucuları izler; "en az kaç kişi olsun" diye tek bir hedef girersin, sunucu kapasitesini kendisi anlar ve tam o sayıyı bulana kadar bekler' },
+            { icon: '▸', text: 'Bekçi artık çok daha fazla sunucuyu (500 sunucuya kadar) dikkatlice tarıyor, sana uygun olanı kaçırmıyor' },
+            { icon: '▸', text: 'Konumun otomatik bulunur; reklam engelleyici açıkken bile çalışır ve hiçbir izin penceresi çıkmaz' },
+            { icon: '▸', text: 'Ping Ayarları: Seçtiğin bölge sayfayı yenileyince kayboluyordu, düzeltildi; ayrıca sana uygun bölge otomatik önerilir' },
+            { icon: '▸', text: 'Hatalar giderildi: uzaktaki sunucu için yanlış bildirim, yanlış doluluk sayısı ve yanlış sunucu seçimi düzeltildi — artık sadece gerçek ve doğru bilgi' },
+            { icon: '▸', text: 'Arka planda hız ve kararlılık iyileştirmeleri; gereksiz kodlar temizlendi, daha az veri ve istek harcanıyor' },
+        ]
+    },
+    {
+        version: 'v1.9.1',
+        date: '31 Mayıs 2026',
+        isNew: false,
+        entries: [
+            { icon: '▸', text: 'Roblox Varsayılan Teması (Default): tek anahtarla tüm Tracked tema efektlerini kapat, saf Roblox görünümüne dön — kalıcı' },
+            { icon: '▸', text: 'Communities sayfası tam şeffaf: içerik ve sekme arkaları kalktı, sadece wallpaper (sol liste frosted kalır)' },
+            { icon: '▸', text: 'About/Store sekmelerine çerçeve çizgileri geri geldi (düzgün buton görünümü)' },
+            { icon: '▸', text: 'Ücretsiz Item butonu şeffaflaştı (arkadaki gri kutu kalktı, sadece ikon)' },
+            { icon: '▸', text: 'Ücretsiz Item paneli Default temada da açılıyor; panel kapanınca üst çubukta beliren gri bant giderildi' },
+            { icon: '▸', text: 'Ücretsiz Item: "context invalidated" hatası giderildi + akıllı stok filtresi (stoğu/satışı gözükmeyen itemler radara alınmıyor)' },
+            { icon: '▸', text: 'Çubuk opaklığı Roblox arayüz güncellemelerine dayanıklı; performans iyileştirmeleri + ölü kod temizliği' },
+        ]
+    },
+    {
+        version: 'v1.9.0',
+        date: '26 Mayıs 2026',
+        isNew: false,
+        entries: [
+            { icon: '🧹', text: 'A+B Kombo ve C+D Cerrahi kaldırıldı — çalışmıyordu, ~1200 satır dead code temizlendi' },
+            { icon: '🎯', text: 'Oto-Pilot v4.1 Hibrit: Önce Roblox\'un kendi region-aware matchmaker\'ı denenir, fail olursa public scan fallback' },
+            { icon: '🧠', text: 'Akıllı ping algoritması: server.ping ↔ kullanıcının ölçtüğü best regional ping göreceli karşılaştırılır' },
+            { icon: '⚠️', text: 'Bad-server blocklist: Oto-Pilot sonrası floating panel ile "Sıradaki sunucu" — kötü server\'lar 24h boyunca exclude edilir' },
+            { icon: '🌍', text: 'Bölge Şablonu: Probe regions Avrupa/NA/Asya/SA/AU/Global preset seçimi' },
+            { icon: '✨', text: 'Popup UI tam yenilendi: warm gold brand kimliği, modern dark palette, Apple-style hover\'lar' },
+            { icon: '🔧', text: 'Free Items: Tek özet bildirim (eski 5 ayrı bildirim spam\'i giderildi)' },
+            { icon: '⚡', text: 'Friends modülü stale-while-revalidate cache: anlık görünüm, arka planda taze veri' },
+        ]
+    },
+    {
+        version: 'v1.8.0',
+        date: '15 Mayıs 2026',
+        isNew: false,
+        entries: [
+            { icon: '🔄', text: 'Auto-Reconnect: Oyun kapanınca aynı server\'a tek tıkla geri dön' },
+            { icon: '💾', text: 'Kaydedilen Serverlar: Server\'ları sakla, dilediğinde geri katıl' },
+            { icon: '🔍', text: 'Kapalı server tespiti: Kapanan serverlar listeden otomatik siliniyor' },
+            { icon: '🛡️', text: 'Oto-Pilot iyileştirmesi: Rate limit sorunu giderildi, 25sn akıllı retry' },
+            { icon: '🖥️', text: 'Overlay yenilendi: Server ID kopyala + kaydet butonları eklendi' },
+            { icon: '⚙️', text: 'Ayarlar navigasyonu düzeltildi (scroll spy tam çalışıyor)' },
+            { icon: '🔒', text: 'Manifest\'e "tabs" izni eklendi — overlay her zaman gösterilecek' },
+        ]
+    }
+];
+
+function renderChangelog() {
+    const list = document.getElementById('changelog-list');
+    if (!list) return;
+
+    list.innerHTML = CHANGELOG.map(entry => `
+        <div class="cl-entry${entry.isNew ? ' cl-entry--new' : ''}">
+            <div class="cl-entry-header">
+                <span class="cl-version">${entry.version}</span>
+                ${entry.isNew ? '<span class="cl-new-badge">YENİ</span>' : ''}
+                <span class="cl-date">${entry.date}</span>
+            </div>
+            <ul class="cl-list">
+                ${entry.entries.map(e => `<li><span class="cl-icon">${e.icon}</span>${escapeHtml(e.text)}</li>`).join('')}
+            </ul>
+        </div>
+    `).join('');
+}
+
+async function setupChangelog() {
+    renderChangelog();
+
+    const badge = document.getElementById('changelog-badge');
+    const CURRENT = CHANGELOG[0].version;
+
+    // Okunmamış sürüm varsa badge göster
+    const { rota_changelog_seen: seen } = await chrome.storage.local.get('rota_changelog_seen');
+    if (seen !== CURRENT && badge) badge.style.display = '';
+
+    // Sürüm Notları nav'a tıklanınca → okundu say
+    document.getElementById('toc-changelog')?.addEventListener('click', async () => {
+        if (badge) badge.style.display = 'none';
+        await chrome.storage.local.set({ rota_changelog_seen: CURRENT });
+    });
+
+    // Scroll ile section görünüre girince de okundu say
+    const section = document.getElementById('sec-changelog');
+    if (!section) return;
+    const obs = new IntersectionObserver(([entry]) => {
+        if (entry.isIntersecting) {
+            if (badge) badge.style.display = 'none';
+            chrome.storage.local.set({ rota_changelog_seen: CURRENT });
+            obs.disconnect();
+        }
+    }, { threshold: 0.2 });
+    obs.observe(section);
 }

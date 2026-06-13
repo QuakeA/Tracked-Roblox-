@@ -1,10 +1,12 @@
 {
   "manifest_version": 3,
   "name": "Tracked - Roblox Route Optimizer",
-  "version": "1.7.0",
-  "description": "Roblox için gelişmiş rota takibi, ping ölçümü, VPN tespiti ve CANLI ETKINLIK bulma. v1.7 - Sticky UI",
+  "version": "1.9.3",
+  "description": "Roblox için gelişmiş rota takibi, sunucu bölge tespiti, gerçek ping ölçümü, VPN tespiti ve CANLI ETKINLIK bulma. v1.9.3 - Sunucu Bölge & Gerçek Ping",
   "permissions": [
     "storage",
+    "unlimitedStorage",
+    "tabs",
     "activeTab",
     "scripting",
     "declarativeNetRequestWithHostAccess",
@@ -40,7 +42,7 @@
   },
   "action": {
     "default_popup": "popup.html",
-    "default_title": "Tracked v1.7",
+    "default_title": "Tracked v1.9.3",
     "default_icon": {
       "16": "icons/icon16.png",
       "48": "icons/icon48.png",
@@ -56,22 +58,44 @@
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
   },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "lib/flags/*.svg"
+      ],
+      "matches": [
+        "https://www.roblox.com/*"
+      ]
+    }
+  ],
   "content_scripts": [
+    {
+      "matches": [
+        "https://www.roblox.com/*"
+      ],
+      "js": [
+        "themes_critical.js"
+      ],
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
     {
       "matches": [
         "https://www.roblox.com/games/*"
       ],
       "css": [
-        "content_styles.css"
+        "content_styles.css",
+        "lib/flags.css"
       ],
       "js": [
         "config.js",
+        "lib/flags.js",
         "utils.js",
         "scanner.js",
         "ui.js",
         "i18n.js",
-        "instance_trigger.js",
-        "main.js"
+        "main.js",
+        "themes_content.js"
       ],
       "run_at": "document_end"
     },
@@ -95,7 +119,8 @@
         "content_styles.css"
       ],
       "js": [
-        "reconnect_overlay.js"
+        "reconnect_overlay.js",
+        "themes_content.js"
       ],
       "run_at": "document_end"
     },
@@ -105,6 +130,53 @@
       ],
       "js": [
         "reconnect_overlay.js"
+      ],
+      "run_at": "document_end"
+    },
+    {
+      "matches": [
+        "https://www.roblox.com/trades*"
+      ],
+      "js": [
+        "trade_analyzer.js"
+      ],
+      "run_at": "document_end"
+    },
+    {
+      "matches": [
+        "https://www.roblox.com/users/*/inventory*",
+        "https://www.roblox.com/users/inventory*"
+      ],
+      "js": [
+        "inventory_rac.js"
+      ],
+      "run_at": "document_end"
+    },
+    {
+      "matches": [
+        "https://www.roblox.com/catalog/*"
+      ],
+      "js": [
+        "catalog_enhancer.js"
+      ],
+      "run_at": "document_end"
+    },
+    {
+      "matches": [
+        "https://www.roblox.com/my/avatar*",
+        "https://www.roblox.com/users/*/avatar*"
+      ],
+      "js": [
+        "avatar_cost.js"
+      ],
+      "run_at": "document_end"
+    },
+    {
+      "matches": [
+        "https://www.roblox.com/my/avatar*"
+      ],
+      "js": [
+        "avatar_sandbox.js"
       ],
       "run_at": "document_end"
     }

@@ -14,16 +14,24 @@ const RecentGamesTracker = {
         
         // URL değişikliklerini izle (SPA)
         let lastUrl = location.href;
-        new MutationObserver(() => {
+        this._observer = new MutationObserver(() => {
             const url = location.href;
             if (url !== lastUrl) {
                 lastUrl = url;
                 setTimeout(() => this.trackPage(), 1000);
             }
-        }).observe(document, { subtree: true, childList: true });
+        });
+        this._observer.observe(document, { subtree: true, childList: true });
     },
+
+    // Eklenti reload/güncelleme sonrası bu ESKİ content script "ölür" (context invalidated).
+    // Ölü context'te chrome.* çağırmamak için: canlılık kontrolü + gözlemciyi durdurma.
+    _alive() { try { return !!(chrome.runtime && chrome.runtime.id); } catch (_) { return false; } },
+    _stop() { try { this._observer && this._observer.disconnect(); } catch (_) {} this._observer = null; },
     
     async trackPage() {
+        // Eklenti reload edildiyse bu eski script'in context'i geçersizdir → sessizce çık.
+        if (!this._alive()) { this._stop(); return; }
         try {
             const url = window.location.href;
             
@@ -65,6 +73,11 @@ const RecentGamesTracker = {
             console.log('[RecentGames] Saved:', recentGames.length, 'games');
             
         } catch (err) {
+            // Reload/güncelleme sonrası beklenen "context invalidated" — hata değil, sessizce dur.
+            if (!this._alive() || /context invalidated|Extension context/i.test((err && err.message) || '')) {
+                this._stop();
+                return;
+            }
             console.error('[RecentGames] Track error:', err);
         }
     },

@@ -9,25 +9,61 @@ const STORAGE_KEYS = {
     SETTINGS: 'rota_settings',
     MODE: 'rota_mode', // 'auto' or 'manual'
     SELECTED_REGION: 'rota_selected_region',
+    TARGET_REGION: 'rota_target_region', // null = otomatik (en yakın) | {code, label, lat, lon} → Oto-Pilot O bölgede sunucu arar
     JOIN_STRATEGY: 'rota_join_strategy', // 'normal' or 'fast'
     THEME: 'rota_theme', // 'dark' or 'light'
     PING_CACHE: 'rota_ping_cache', // { timestamp: number, results: [], jitter: number, grade: string }
-    PING_HISTORY: 'rota_ping_history' // Array of { timestamp, results }
+    PING_HISTORY: 'rota_ping_history', // Array of { timestamp, results }
+    LIBRARY_VIEW: 'rota_library_view' // 'comfort' (varsayılan, eski geniş kart) | 'compact' (yeni tek-satır)
 };
+
+// HEDEF BÖLGE — ÜLKE bazlı; şehirler Roblox'un GERÇEK datacenter konumları (datacenters.js CITY ile senkron,
+// 10 ülke / 18 şehir). Oto-Pilot ülke seçilince O ÜLKEDEKİ şehirlerden sunucuya EN YAKIN olana göre sıralar.
+const TARGET_REGIONS = [
+    { code: 'DE', continent: 'EU', cities: [{ city: 'Frankfurt', lat: 50.1109, lon: 8.6821 }] },
+    { code: 'NL', continent: 'EU', cities: [{ city: 'Amsterdam', lat: 52.3676, lon: 4.9041 }] },
+    { code: 'FR', continent: 'EU', cities: [{ city: 'Paris', lat: 48.8566, lon: 2.3522 }] },
+    { code: 'GB', continent: 'EU', cities: [{ city: 'London', lat: 51.5074, lon: -0.1278 }] },
+    { code: 'US', continent: 'NA', cities: [
+        { city: 'Ashburn',     lat: 39.0438, lon: -77.4874 },
+        { city: 'New York',    lat: 40.7128, lon: -74.0060 },
+        { city: 'Atlanta',     lat: 33.7490, lon: -84.3880 },
+        { city: 'Miami',       lat: 25.7617, lon: -80.1918 },
+        { city: 'Chicago',     lat: 41.8781, lon: -87.6298 },
+        { city: 'Dallas',      lat: 32.7767, lon: -96.7970 },
+        { city: 'Seattle',     lat: 47.6062, lon: -122.3321 },
+        { city: 'San Jose',    lat: 37.3382, lon: -121.8863 },
+        { city: 'Los Angeles', lat: 34.0522, lon: -118.2437 }
+    ] },
+    { code: 'BR', continent: 'SA', cities: [{ city: 'São Paulo', lat: -23.5505, lon: -46.6333 }] },
+    { code: 'JP', continent: 'AS', cities: [{ city: 'Tokyo', lat: 35.6762, lon: 139.6503 }] },
+    { code: 'SG', continent: 'AS', cities: [{ city: 'Singapore', lat: 1.3521, lon: 103.8198 }] },
+    { code: 'IN', continent: 'AS', cities: [{ city: 'Mumbai', lat: 19.0760, lon: 72.8777 }] },
+    { code: 'AU', continent: 'OC', cities: [{ city: 'Sydney', lat: -33.8688, lon: 151.2093 }] }
+];
+const CONTINENT_KEYS = { EU: 'continentEU', NA: 'continentNA', SA: 'continentSA', AS: 'continentAS', OC: 'continentOC' };
+function targetRegionLabel(t) {
+    if (!t) return TrackedI18n.t('bestLocationAuto');
+    const country = TrackedI18n.t('country' + t.code);
+    return (country && country !== 'country' + t.code) ? country : t.code;
+}
 
 const DEFAULT_SETTINGS = {
     timeoutMs: 3000,
     cacheMinutes: 10,
-    openInNewTab: false,
-    appendRegionParam: false,
     reducedMotion: false,
     silentMode: false,
+    // Varsayılan = AVRUPA şablonu (PROBE_PRESETS.eu ile birebir). Diğer bölgeler için kullanıcı
+    // ayarlardan "Bölge Şablonu" seçer (NA/Asya/SA/AU/Global) → problar O setle DEĞİŞİR (üstüne eklenmez).
+    // NOT: Sunucu listesi ms'i bu sete BAĞLI DEĞİL — SW'nin kendi 20 küresel probe'unu (TK_PING_PROBES) kullanır.
+    // Etiketler AWS bölgesinin GERÇEK konumudur (dürüst veri): eu-west-1=İrlanda, eu-north-1=İsveç, eu-south-1=İtalya.
+    // (Eski etiketler NL/PL/RO yazıyordu ama oralarda AWS bölgesi yok — yanlıştı.)
     probes: {
         "Almanya (DE)": "https://s3.eu-central-1.amazonaws.com",
-        "Hollanda (NL)": "https://s3.eu-west-1.amazonaws.com",
+        "İrlanda (IE)": "https://s3.eu-west-1.amazonaws.com",
         "Fransa (FR)": "https://s3.eu-west-3.amazonaws.com",
-        "Polonya (PL)": "https://s3.eu-north-1.amazonaws.com",
-        "Romanya (RO)": "https://s3.eu-south-1.amazonaws.com"
+        "İsveç (SE)": "https://s3.eu-north-1.amazonaws.com",
+        "İtalya (IT)": "https://s3.eu-south-1.amazonaws.com"
     }
 };
 
@@ -49,6 +85,7 @@ const state = {
     mode: 'auto', // 'auto' | 'manual'
     joinStrategy: 'fast', // 'normal' | 'fast'
     selectedRegion: null, // manual selection
+    targetRegion: null,   // HEDEF BÖLGE: null = otomatik (en yakın) | {code,city,lat,lon} → Oto-Pilot bu bölgede arar
     pingResults: [], // Array of { region, ms }
     pingHistory: [], // Array of { timestamp, results: [{region, ms},...] }
     bestRegion: null,
@@ -56,6 +93,7 @@ const state = {
     favorites: [],
     theme: 'dark',
     pingCache: null,
+    libraryView: 'comfort', // 'comfort' (eski geniş kart, VARSAYILAN) | 'compact' (yeni tek-satır)
     viewMode: 'list', // 'list' | 'graph'
     ipInfo: null,
     gameData: {} // v3.7: Live game activity data
@@ -90,6 +128,9 @@ const ui = {
     btnRefreshPing: document.getElementById('btn-refresh-ping'),
     btnToggleGraph: document.getElementById('btn-toggle-graph'),
     btnAddFav: document.getElementById('btn-add-fav'),
+    btnLibView: document.getElementById('btn-lib-view'),
+    libViewMenu: document.getElementById('lib-view-menu'),
+    libViewSwitch: document.getElementById('lib-view-switch'),
     pingList: document.getElementById('ping-list'),
     pingGraphContainer: document.getElementById('ping-graph-container'),
     pingChartSvg: document.getElementById('ping-chart-svg'),
@@ -159,22 +200,24 @@ document.addEventListener('DOMContentLoaded', async () => {
         handleOfflineState();
     }
 
-    // Storage değişikliği dinle — options sayfasından reducedMotion değişirse anında uygula
-    if (chrome.storage?.onChanged) {
-        chrome.storage.onChanged.addListener((changes, area) => {
-            if (area === 'local' && changes.rota_settings) {
-                const newSettings = changes.rota_settings.newValue || {};
-                state.settings = { ...state.settings, ...newSettings };
-                document.body.classList.toggle('reduced-motion', newSettings.reducedMotion === true);
-                if (typeof applyAppearanceSettings === 'function') applyAppearanceSettings();
-            }
-        });
-    }
-    
+    // Storage listener tek yerde (setupEventListeners içinde, line ~560) — duplicate kaldırıldı
+
     // v1.6.6: Load recent games
     loadRecentGames();
+    renderServerWatch(); // Sunucu Bekçisi — aktif canlı izleme paneli
+    // Bekçi durumu değişince (başlat/durdur/sunucu bulundu) kartı canlı güncelle
+    try {
+        chrome.storage.onChanged.addListener((changes, area) => {
+            if (area === 'local' && 'tracked_server_watch' in changes) renderServerWatch();
+        });
+    } catch (_) {}
     loadFriends();
-    
+
+    // v1.9.0: Friends panelini periyodik yenile — panel/sidepanel uzun açık kalınca
+    // eski/boş veri kalmasın (bug: 1 saat sonra arkadaşlar boş). 45sn'de bir, yalnızca
+    // sayfa GÖRÜNÜRken (gizliyken boşa istek atma). Cache TTL 60sn → spinner flicker yok.
+    setInterval(() => { if (document.visibilityState === 'visible') loadFriends(); }, 45000);
+
     // Refresh friends button — spin while loading, re-enable on completion
     const btnRefreshFriends = document.getElementById('btn-refresh-friends');
     if (btnRefreshFriends) {
@@ -197,6 +240,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (btnClearRecent) {
         btnClearRecent.addEventListener('click', () => {
             guardClick('clearRecent', 1500, clearRecentGames);
+        });
+    }
+
+    const btnClearSaved = document.getElementById('btn-clear-saved-servers');
+    if (btnClearSaved) {
+        btnClearSaved.addEventListener('click', () => {
+            chrome.storage.local.remove('rota_saved_servers', () => renderSavedServers());
         });
     }
 });
@@ -254,14 +304,16 @@ async function triggerGameLibraryUpdate() {
 async function loadState() {
     try {
         const data = await chrome.storage.local.get([
-            STORAGE_KEYS.SETTINGS, 
-            STORAGE_KEYS.MODE, 
-            STORAGE_KEYS.SELECTED_REGION, 
-            STORAGE_KEYS.FAVORITES, 
+            STORAGE_KEYS.SETTINGS,
+            STORAGE_KEYS.MODE,
+            STORAGE_KEYS.SELECTED_REGION,
+            STORAGE_KEYS.TARGET_REGION,
+            STORAGE_KEYS.FAVORITES,
             STORAGE_KEYS.JOIN_STRATEGY, 
             STORAGE_KEYS.THEME,
             STORAGE_KEYS.PING_CACHE,
             STORAGE_KEYS.PING_HISTORY,
+            STORAGE_KEYS.LIBRARY_VIEW,
             'rota_game_data' // v3.7: Game activity data
         ]);
         console.log('[Popup] Loaded state:', data);
@@ -293,11 +345,13 @@ async function loadState() {
 
         state.mode = data[STORAGE_KEYS.MODE] || 'auto';
         state.selectedRegion = data[STORAGE_KEYS.SELECTED_REGION] || Object.keys(state.settings.probes)[0];
+        state.targetRegion = data[STORAGE_KEYS.TARGET_REGION] || null;
         state.favorites = data[STORAGE_KEYS.FAVORITES] || [];
         state.joinStrategy = data[STORAGE_KEYS.JOIN_STRATEGY] || 'fast';
         state.theme = data[STORAGE_KEYS.THEME] || 'dark';
         state.pingCache = data[STORAGE_KEYS.PING_CACHE] || null;
         state.pingHistory = data[STORAGE_KEYS.PING_HISTORY] || [];
+        state.libraryView = (data[STORAGE_KEYS.LIBRARY_VIEW] === 'compact') ? 'compact' : 'comfort'; // varsayılan: eski geniş kart
         state.gameData = data.rota_game_data || {}; // v3.7: Live game data
 
         // v3.7: Set language from settings
@@ -472,7 +526,11 @@ function setupEventListeners() {
         ui.segments.forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const newMode = e.target.dataset.mode;
-                setMode(newMode);
+                if (newMode) { setMode(newMode); return; }
+                // "En İyi Konum" pill'i: hedef bölgeyi OTOMATİK'e (en yakın) sıfırlar.
+                state.targetRegion = null;
+                safeStorageSet({ [STORAGE_KEYS.TARGET_REGION]: null });
+                renderControls();
             });
         });
     }
@@ -500,14 +558,26 @@ function setupEventListeners() {
         });
     }
 
-    // Manual Region Dropdown
+    // HEDEF BÖLGE dropdown — Oto-Pilot'un sunucu ARAYACAĞI bölge (Roblox'un GERÇEK datacenter konumları).
+    // 'auto' = sana en yakın (varsayılan). Bölge seçilirse Oto-Pilot O bölgedeki sunucuyu bulur.
     if (ui.btnManualRegion) {
-        ui.btnManualRegion.addEventListener('click', (e) => {
-            const items = Object.keys(state.settings.probes).map(r => ({ label: TrackedI18n.localizeRegionName(r), value: r }));
+        ui.btnManualRegion.addEventListener('click', () => {
+            // Kıta başlıklarıyla gruplu liste (EU → NA → SA → AS → OC)
+            const items = [
+                { label: TrackedI18n.t('bestLocationAuto'), value: 'auto', desc: TrackedI18n.t('bestLocationAutoDesc') }
+            ];
+            ['EU', 'NA', 'SA', 'AS', 'OC'].forEach(ct => {
+                const group = TARGET_REGIONS.map((t, i) => ({ t, i })).filter(x => x.t.continent === ct);
+                if (!group.length) return;
+                items.push({ header: TrackedI18n.t(CONTINENT_KEYS[ct]) });
+                group.forEach(x => items.push({ label: targetRegionLabel(x.t), value: String(x.i) }));
+            });
             openDropdown(ui.btnManualRegion, items, (val) => {
-                console.log('[Popup] Manual region selected:', val);
-                state.selectedRegion = val;
-                safeStorageSet({ [STORAGE_KEYS.SELECTED_REGION]: val });
+                const sel = (val === 'auto') ? null : (TARGET_REGIONS[Number(val)] || null);
+                // label snapshot'ı da kaydet → content script (Oto-Pilot) mesajlarında kullanır
+                state.targetRegion = sel ? { code: sel.code, label: targetRegionLabel(sel), cities: sel.cities } : null;
+                safeStorageSet({ [STORAGE_KEYS.TARGET_REGION]: state.targetRegion });
+                console.log('[Popup] Hedef bölge:', state.targetRegion ? state.targetRegion.label : 'otomatik');
                 renderControls();
             });
         });
@@ -525,6 +595,9 @@ function setupEventListeners() {
     if (ui.btnToggleGraph) ui.btnToggleGraph.addEventListener('click', toggleGraphView);
     
     if (ui.btnAddFav) ui.btnAddFav.addEventListener('click', addToFavorites);
+
+    // Oyun kütüphanesi görünüm anahtarı (Win11 Gezgini "Görünüm" menüsü gibi)
+    setupLibraryViewSwitch();
 
     // Search input
     if (ui.inpSearch) {
@@ -556,11 +629,17 @@ function setupEventListeners() {
                 state.favorites = changes[STORAGE_KEYS.FAVORITES].newValue || [];
                 renderLibrary();
             }
+            if (changes[STORAGE_KEYS.LIBRARY_VIEW]) {
+                state.libraryView = (changes[STORAGE_KEYS.LIBRARY_VIEW].newValue === 'compact') ? 'compact' : 'comfort';
+                renderLibrary();
+            }
             if (changes[STORAGE_KEYS.SETTINGS]) {
                 console.log('[Popup] Settings updated externally');
                 const newSettings = { ...DEFAULT_SETTINGS, ...changes[STORAGE_KEYS.SETTINGS].newValue };
                 const langChanged = newSettings.language !== state.settings?.language;
                 state.settings = newSettings;
+                // reducedMotion → body class toggle (önceki duplicate listener'dan birleştirildi)
+                document.body.classList.toggle('reduced-motion', newSettings.reducedMotion === true);
                 applyAppearanceSettings();
                 // Dil değiştiyse translations'ı yeniden uygula (kullanıcı options'tan dil değiştirdiyse popup/sidepanel anında güncellensin)
                 if (langChanged && newSettings.language) {
@@ -574,6 +653,9 @@ function setupEventListeners() {
             if (changes.rota_game_data) {
                 state.gameData = changes.rota_game_data.newValue || {};
                 renderLibrary();
+            }
+            if (changes.rota_saved_servers) {
+                renderSavedServers();
             }
             
             // v1.6: Listen for auto-scan trigger from service worker
@@ -643,29 +725,77 @@ function applyTheme(theme) {
 function renderUI() {
     renderControls();
     renderLibrary();
+    renderSavedServers();
     // Default to list view
     if (state.viewMode === 'graph') {
         renderGraph();
     }
 }
 
-function renderControls() {
-    // Mode UI
-    ui.segments.forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.mode === state.mode);
+function renderSavedServers() {
+    const panel = document.getElementById('saved-servers-panel');
+    const list = document.getElementById('saved-servers-list');
+    if (!panel || !list) return;
+
+    chrome.storage.local.get('rota_saved_servers', (data) => {
+        const servers = data.rota_saved_servers || [];
+        panel.style.display = servers.length > 0 ? '' : 'none';
+        if (servers.length === 0) return;
+
+        const fmt = (ts) => new Date(ts).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' });
+        const abbr = (id) => id ? `${id.substring(0, 8)}…${id.slice(-4)}` : '';
+        const cleanTitle = (t) => String(t || '').replace(/\s*\|\s*(?:Play on\s*)?Roblox\s*$/i, '').trim() || 'Roblox Oyunu';
+
+        list.innerHTML = servers.map((s, i) => {
+            const dead = !!s.notFoundSince;
+            const deadBadge = dead
+                ? `<span class="saved-sv-dead-badge" title="Server kapalı olabilir — 5 dk sonra otomatik silinir">Kapalı?</span>`
+                : '';
+            return `
+            <div class="saved-sv-item${dead ? ' sv-possibly-dead' : ''}">
+                <div class="saved-sv-main">
+                    <div class="saved-sv-title" title="${escHtml(s.gameTitle)}">${escHtml(cleanTitle(s.gameTitle))}${deadBadge}</div>
+                    <div class="saved-sv-meta" title="${escHtml(s.jobId)}">${abbr(s.jobId)} · ${fmt(s.savedAt)}</div>
+                </div>
+                <div class="saved-sv-actions">
+                    <button class="pill-btn saved-sv-join" data-sv-idx="${i}" data-sv-place="${s.placeId}" data-sv-job="${escHtml(s.jobId)}">Katıl</button>
+                    <button class="icon-btn-danger sv-del-btn" data-sv-idx="${i}" title="Sil">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                    </button>
+                </div>
+            </div>`;
+        }).join('');
+
+        list.querySelectorAll('.saved-sv-join').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const url = `roblox://experiences/start?placeId=${btn.dataset.svPlace}&gameInstanceId=${encodeURIComponent(btn.dataset.svJob)}`;
+                chrome.tabs.create({ url, active: true });
+            });
+        });
+
+        list.querySelectorAll('.sv-del-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const idx = parseInt(btn.dataset.svIdx);
+                chrome.storage.local.get('rota_saved_servers', (d) => {
+                    const updated = (d.rota_saved_servers || []).filter((_, i) => i !== idx);
+                    chrome.storage.local.set({ rota_saved_servers: updated }, () => renderSavedServers());
+                });
+            });
+        });
     });
-    
-    // Animate Segment BG
-    const isManual = state.mode === 'manual';
-    if (ui.segmentBg) ui.segmentBg.style.transform = isManual ? 'translateX(100%)' : 'translateX(0)';
-    if (document.querySelector('.segmented-control')) document.querySelector('.segmented-control').setAttribute('data-selected', state.mode);
+}
 
-    // Show/Hide Manual Dropdown
-    if (ui.manualRegionRow) ui.manualRegionRow.style.display = isManual ? 'block' : 'none';
+function escHtml(s) {
+    return String(s || '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+}
 
-    // Update Labels
-    if (ui.lblStrategy) ui.lblStrategy.textContent = state.joinStrategy === 'normal' ? TrackedI18n.t('normalJoin') : TrackedI18n.t('fastRoute');
-    if (ui.lblManualRegion) ui.lblManualRegion.textContent = TrackedI18n.localizeRegionName(state.selectedRegion) || TrackedI18n.t('select');
+function renderControls() {
+    // HEDEF BÖLGE kontrolü: pill = otomatik (en yakın), dropdown = seçili hedef.
+    // Oto-Pilot (main.js v5.0) rota_target_region'ı storage'dan okur → o bölgede sunucu arar.
+    const isAuto = !state.targetRegion;
+    ui.segments.forEach(btn => { if (!btn.dataset.mode) btn.classList.toggle('active', isAuto); });
+    if (ui.manualRegionRow) ui.manualRegionRow.style.display = 'block';
+    if (ui.lblManualRegion) ui.lblManualRegion.textContent = targetRegionLabel(state.targetRegion);
 }
 
 function setMode(mode) {
@@ -911,7 +1041,7 @@ async function measurePings(force = false) {
         results.sort((a, b) => a.ms - b.ms);
         state.pingResults = results;
 
-        // CALC STATS
+        // CALC STATS — özet SENİN EN YAKIN/erişilebilir bölgelerine göre (uzak kıtalar bozmasın).
         const validResults = results.filter(r => r.ms < 900);
         const pings = validResults.map(r => r.ms);
 
@@ -920,14 +1050,19 @@ async function measurePings(force = false) {
         let grade = 'F';
 
         if (pings.length > 0) {
-            const sum = pings.reduce((a, b) => a + b, 0);
-            avgPing = Math.round(sum / pings.length);
-            // Jitter: her bölgenin kendi içindeki ping varyansının ortalaması
-            const jitterValues = validResults.map(r => r.jitter).filter(j => j >= 0);
+            const best = Math.min(...pings);
+            // ORTALAMA: sadece YAKIN bölgeler (en iyinin ~2 katına kadar) → Japonya/Avustralya/Brezilya gibi
+            // uzak kıtalar global ortalamayı şişirip notu yanlış düşürmesin. Bağlanacağın bölgeler bunlar.
+            const nearThr = best * 2 + 25;
+            const nearby = validResults.filter(r => r.ms <= nearThr);
+            avgPing = Math.round(nearby.reduce((a, r) => a + r.ms, 0) / nearby.length);
+            // Jitter: yakın bölgelerin varyans ortalaması
+            const jitterValues = nearby.map(r => r.jitter).filter(j => j >= 0);
             jitter = jitterValues.length > 0
                 ? Math.round(jitterValues.reduce((a, b) => a + b, 0) / jitterValues.length)
                 : 0;
-            grade = PingUtils.calculateGrade(avgPing, jitter);
+            // AĞ NOTU: bağlanacağın EN YAKIN bölgeye göre (gerçek deneyimin) — global ortalamaya göre DEĞİL.
+            grade = PingUtils.calculateGrade(best, jitter);
         }
 
         // Save to Cache
@@ -1021,10 +1156,11 @@ function renderPingList(results) {
         // If it's an error, force red dot
         const finalColorClass = res.ms >= 900 ? 'red' : colorClass;
 
+        const flag = (typeof tkFlag === 'function') ? tkFlag(res.region) : '';
         item.innerHTML = `
             <div class="ping-left">
                 <div class="status-dot ${finalColorClass}"></div>
-                <span>${TrackedI18n.localizeRegionName(res.region)}</span>
+                ${flag}<span>${TrackedI18n.localizeRegionName(res.region)}</span>
             </div>
             <div class="ping-right">${msDisplay}</div>
         `;
@@ -1184,13 +1320,67 @@ async function addToFavorites() {
 
 function cleanTitle(t) {
     if (!t) return 'Untitled Game';
-    return t.replace(' - Roblox', '').trim();
+    // Roblox başlık suffix'lerinin tümü: " - Roblox", " | Roblox", " | Play on Roblox" (case-insensitive)
+    return String(t)
+        .replace(/\s*\|\s*(?:Play on\s*)?Roblox\s*$/i, '')
+        .replace(/\s*-\s*Roblox\s*$/i, '')
+        .trim() || 'Untitled Game';
+}
+
+// ── Oyun Kütüphanesi Görünüm Anahtarı (Win11 Gezgini "Görünüm" menüsü tarzı) ──
+function handleLibViewOutside(e) {
+    if (ui.libViewSwitch && !ui.libViewSwitch.contains(e.target)) closeLibViewMenu();
+}
+function openLibViewMenu() {
+    if (!ui.libViewMenu || !ui.btnLibView) return;
+    ui.libViewMenu.hidden = false;
+    ui.btnLibView.setAttribute('aria-expanded', 'true');
+    if (ui.libViewSwitch) ui.libViewSwitch.classList.add('open');
+    // Aktif görünümü işaretle (tik işareti)
+    ui.libViewMenu.querySelectorAll('.lib-view-opt').forEach(opt => {
+        const on = opt.dataset.view === state.libraryView;
+        opt.classList.toggle('active', on);
+        opt.setAttribute('aria-checked', on ? 'true' : 'false');
+    });
+    document.addEventListener('click', handleLibViewOutside, true);
+}
+function closeLibViewMenu() {
+    if (!ui.libViewMenu) return;
+    ui.libViewMenu.hidden = true;
+    if (ui.btnLibView) ui.btnLibView.setAttribute('aria-expanded', 'false');
+    if (ui.libViewSwitch) ui.libViewSwitch.classList.remove('open');
+    document.removeEventListener('click', handleLibViewOutside, true);
+}
+function setLibraryView(view) {
+    const v = (view === 'compact') ? 'compact' : 'comfort';
+    if (state.libraryView === v) return;
+    state.libraryView = v;
+    safeStorageSet({ [STORAGE_KEYS.LIBRARY_VIEW]: v });
+    renderLibrary();
+}
+function setupLibraryViewSwitch() {
+    if (!ui.btnLibView || !ui.libViewMenu) return;
+    ui.btnLibView.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (ui.libViewMenu.hidden) openLibViewMenu();
+        else closeLibViewMenu();
+    });
+    ui.libViewMenu.querySelectorAll('.lib-view-opt').forEach(opt => {
+        opt.addEventListener('click', (e) => {
+            e.stopPropagation();
+            setLibraryView(opt.dataset.view);
+            closeLibViewMenu();
+        });
+    });
 }
 
 function renderLibrary() {
     if (!ui.libraryList) return;
     ui.libraryList.innerHTML = '';
-    
+    // Görünüm modu sınıfı (CSS düzeni buna göre değişir)
+    ui.libraryList.classList.toggle('view-compact', state.libraryView === 'compact');
+    ui.libraryList.classList.toggle('view-comfort', state.libraryView !== 'compact');
+
     const searchTerm = ui.inpSearch ? ui.inpSearch.value.trim().toLowerCase() : "";
 
     // Map to include original index for robust deletion
@@ -1223,12 +1413,14 @@ function renderLibrary() {
         return;
     }
 
+    const compactView = state.libraryView === 'compact';
+
     displayList.forEach((game) => {
         const el = document.createElement('div');
         el.className = 'lib-item';
-        
+
         const playtimeStr = formatPlaytime(game.playtimeSeconds || 0);
-        
+
         // v3.7: Get live game data
         const liveData = state.gameData && state.gameData[game.placeId];
         const playerCount = liveData ? liveData.playerCount : null;
@@ -1236,73 +1428,107 @@ function renderLibrary() {
         const hasUpdate = liveData && liveData.hasRecentUpdate;
         const updateText = liveData ? liveData.updateTimeText : '';
 
-        // v3.7: Build live stats HTML
-        let liveStatsHtml = '';
-        if (playerCount !== null) {
-            liveStatsHtml = `
-                <div class="live-stats">
-                    <span class="player-count-badge">
-                        <span class="live-dot"></span>
-                        ${playerCount.toLocaleString()} ${TrackedI18n.t('players')}
-                    </span>
-                    <span class="trend-indicator" title="Trend">${getTrendSvg(trendIcon)}</span>
-                </div>
-            `;
-        }
-        
-        // v3.7: Update badge HTML
-        let updateBadgeHtml = '';
-        if (hasUpdate) {
-            updateBadgeHtml = `
-                <div class="update-badge">
-                    ${BELL_SVG} ${TrackedI18n.t('newUpdate')}
-                    <span class="update-time">${updateText}</span>
-                </div>
-            `;
-        }
+        // Title kaynağı: SW'nin son fetch ettiği liveTitle (favorites'tan daha güncel olabilir) → cleanTitle ile suffix temizle
+        const liveTitle = liveData?.liveTitle;
+        const displayTitle = cleanTitle(liveTitle || game.title);
 
-        // Modern Card Layout - v3.7 Enhanced
-        el.innerHTML = `
-            <div class="lib-header">
+        if (compactView) {
+            // ── KOMPAKT TEK-SATIR KART (eski 2 katlı kart ~110px → ~52px; 50+ oyunda scroll yarıya iner) ──
+            const metaBits = [];
+            if (playerCount !== null) {
+                metaBits.push(`<span class="player-count-badge"><span class="live-dot"></span>${playerCount.toLocaleString()}</span>`);
+                if (trendIcon) metaBits.push(`<span class="trend-indicator" title="Trend">${getTrendSvg(trendIcon)}</span>`);
+            }
+            if (hasUpdate) metaBits.push(`<span class="update-chip" title="${TrackedI18n.t('newUpdate')}">${BELL_SVG}<span>${updateText}</span></span>`);
+            metaBits.push(`<span class="playtime-badge">${playtimeStr}</span>`);
+
+            el.innerHTML = `
                 <div class="lib-icon-box" data-place-id="${game.placeId}">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
                 </div>
                 <div class="lib-info">
-                    <div class="lib-title">
-                        ${game.title}
-                        ${trendIcon ? `<span class="title-trend">${getTrendSvg(trendIcon)}</span>` : ''}
-                    </div>
-                    <div class="lib-sub">
-                        <span>ID: ${game.placeId}</span>
-                        <span class="playtime-badge">• ${playtimeStr}</span>
-                    </div>
-                    ${liveStatsHtml}
-                    ${updateBadgeHtml}
+                    <div class="lib-title" title="ID: ${game.placeId}">${displayTitle}</div>
+                    <div class="lib-meta">${metaBits.join('')}</div>
                 </div>
-                <button class="icon-btn-danger delete-btn" data-original-idx="${game.originalIndex}" data-id="${game.placeId}" title="${TrackedI18n.t('deleteGame')}">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                </button>
-            </div>
-            <div class="lib-actions-row">
-                <button class="pill-btn scan" data-id="${game.placeId}">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                    ${TrackedI18n.t('scan')}
-                </button>
-                <button class="pill-btn join" data-id="${game.placeId}">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-                    ${TrackedI18n.t('join')}
-                </button>
-                <button class="pill-btn analyze" data-id="${game.placeId}" title="${TrackedI18n.t('eventAnalysisTip')}">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
-                </button>
-            </div>
-        `;
+                <div class="lib-acts">
+                    <button class="lib-act scan" data-id="${game.placeId}" title="${TrackedI18n.t('scan')}">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                    </button>
+                    <button class="lib-act join" data-id="${game.placeId}" title="${TrackedI18n.t('join')}">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                    </button>
+                    <button class="lib-act analyze" data-id="${game.placeId}" title="${TrackedI18n.t('eventAnalysisTip')}">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                    </button>
+                    <button class="lib-act danger delete-btn" data-original-idx="${game.originalIndex}" data-id="${game.placeId}" title="${TrackedI18n.t('deleteGame')}">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                    </button>
+                </div>
+            `;
+        } else {
+            // ── GENİŞ KART (VARSAYILAN / eski hâl): 2 katlı, büyük ikon + canlı istatistik + güncelleme rozeti + pill butonlar ──
+            let liveStatsHtml = '';
+            if (playerCount !== null) {
+                liveStatsHtml = `
+                    <div class="live-stats">
+                        <span class="player-count-badge">
+                            <span class="live-dot"></span>
+                            ${playerCount.toLocaleString()} ${TrackedI18n.t('players')}
+                        </span>
+                        <span class="trend-indicator" title="Trend">${getTrendSvg(trendIcon)}</span>
+                    </div>`;
+            }
+            let updateBadgeHtml = '';
+            if (hasUpdate) {
+                updateBadgeHtml = `
+                    <div class="update-badge">
+                        ${BELL_SVG} ${TrackedI18n.t('newUpdate')}
+                        <span class="update-time">${updateText}</span>
+                    </div>`;
+            }
+
+            el.innerHTML = `
+                <div class="lib-header">
+                    <div class="lib-icon-box" data-place-id="${game.placeId}">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                    </div>
+                    <div class="lib-info">
+                        <div class="lib-title" title="ID: ${game.placeId}">
+                            ${displayTitle}
+                            ${trendIcon ? `<span class="title-trend">${getTrendSvg(trendIcon)}</span>` : ''}
+                        </div>
+                        <div class="lib-sub">
+                            <span>ID: ${game.placeId}</span>
+                            <span class="playtime-badge">• ${playtimeStr}</span>
+                        </div>
+                        ${liveStatsHtml}
+                        ${updateBadgeHtml}
+                    </div>
+                    <button class="icon-btn-danger delete-btn" data-original-idx="${game.originalIndex}" data-id="${game.placeId}" title="${TrackedI18n.t('deleteGame')}">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                    </button>
+                </div>
+                <div class="lib-actions-row">
+                    <button class="pill-btn scan" data-id="${game.placeId}">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                        ${TrackedI18n.t('scan')}
+                    </button>
+                    <button class="pill-btn join" data-id="${game.placeId}">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                        ${TrackedI18n.t('join')}
+                    </button>
+                    <button class="pill-btn analyze" data-id="${game.placeId}" title="${TrackedI18n.t('eventAnalysisTip')}">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                    </button>
+                </div>
+            `;
+        }
         ui.libraryList.appendChild(el);
     });
 
     // Event Delegation
     const joinBtns = ui.libraryList.querySelectorAll('.join');
-    joinBtns.forEach(b => b.addEventListener('click', (e) => joinGame(e.target.closest('.join').dataset.id)));
+    joinBtns.forEach(b => b.addEventListener('click', (e) => joinClosestServer(e.target.closest('.join').dataset.id)));
     
     // Scan Buttons
     const scanBtns = ui.libraryList.querySelectorAll('.scan');
@@ -1439,7 +1665,7 @@ function showLiveEventPanel(game) {
     
     if (!panel || !gameNameEl || !btnEventScan) return;
     
-    gameNameEl.textContent = game.title || 'Oyun';
+    gameNameEl.textContent = (game.title || 'Oyun').replace(/\s*\|\s*(?:Play on\s*)?Roblox\s*$/i, '').trim();
     btnEventScan.dataset.placeId = game.placeId;
     
     panel.style.display = 'block';
@@ -1452,6 +1678,55 @@ function showLiveEventPanel(game) {
  * v1.6: Show Event Analysis Modal for a game
  * Sade: Ya var ya yok
  */
+// Göreli zaman: "3 saat", "2 gün" (dile göre birim)
+function eventRelTime(ms) {
+    const m = Math.round(Math.abs(ms) / 60000);
+    if (m < 60) return `${Math.max(1, m)} ${TrackedI18n.t('unitMin')}`;
+    const h = Math.round(m / 60);
+    if (h < 24) return `${h} ${TrackedI18n.t('unitHour')}`;
+    return `${Math.round(h / 24)} ${TrackedI18n.t('unitDay')}`;
+}
+
+// "3 saat sonra bitiyor" / "2 gün sonra başlıyor" / "5 saat önce bitti"
+function eventTimingLabel(ev) {
+    const now = Date.now();
+    const start = ev.startUtc ? Date.parse(ev.startUtc) : null;
+    const end = ev.endUtc ? Date.parse(ev.endUtc) : null;
+    if (ev.state === 'upcoming' && start) return TrackedI18n.t('eventStartsIn').replace('{t}', eventRelTime(start - now));
+    if (ev.state === 'live' && end) return TrackedI18n.t('eventEndsIn').replace('{t}', eventRelTime(end - now));
+    if (ev.state === 'ended' && end) return TrackedI18n.t('eventEndedAgo').replace('{t}', eventRelTime(now - end));
+    return '';
+}
+
+// KATMAN 1: Roblox'un RESMİ etkinlikleri (geliştiricinin beyanı — kesin, tahmin değil)
+function renderOfficialEvents(events) {
+    if (!events || events.length === 0) return '';
+    const VERIFIED = '<svg class="ev-verified" width="12" height="12" viewBox="0 0 24 24" fill="#0A84FF" stroke="none" title="Doğrulanmış"><path d="M12 1.5l2.6 1.95 3.25.2.95 3.15L21.5 10l-1.95 2.6.95 3.15-3.15.95L15.4 19.8 12 21.5l-2.6-1.7-3.25-.05-.95-3.15L3.25 13.8 4.2 10.65 2.5 7l3.15-.95.95-3.15 3.25-.2z"/><polyline points="8.4 12 11 14.5 15.6 9.4" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    const SHIELD = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="vertical-align:middle"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><polyline points="9 12 11 14 15 10"></polyline></svg>';
+    const cards = events.map(ev => {
+        const stateKey = ev.state === 'live' ? 'eventStatusLive' : ev.state === 'upcoming' ? 'eventStatusUpcoming' : 'eventStatusEnded';
+        const timing = eventTimingLabel(ev);
+        const host = ev.hostName
+            ? `<div class="ev-host">${TrackedI18n.t('eventHostedBy').replace('{h}', escapeHtml(ev.hostName))}${ev.hostVerified ? VERIFIED : ''}</div>`
+            : '';
+        return `
+            <div class="official-event ev-${ev.state}">
+                <div class="ev-top">
+                    <span class="ev-badge ev-badge-${ev.state}">${ev.state === 'live' ? '<span class="ev-live-dot"></span>' : ''}${TrackedI18n.t(stateKey)}</span>
+                    ${timing ? `<span class="ev-timing">${timing}</span>` : ''}
+                </div>
+                <div class="ev-title">${escapeHtml(ev.title)}</div>
+                ${ev.subtitle ? `<div class="ev-subtitle">${escapeHtml(ev.subtitle)}</div>` : ''}
+                ${host}
+            </div>`;
+    }).join('');
+    return `
+        <div class="official-events-panel">
+            <div class="official-events-header">${SHIELD} ${TrackedI18n.t('officialEvent')} <span class="oe-verified-note">· ${TrackedI18n.t('officialEventVerified')}</span></div>
+            ${cards}
+        </div>`;
+}
+
 async function showEventAnalysis(placeId) {
     let modal = document.getElementById('event-analysis-modal');
     if (!modal) {
@@ -1494,8 +1769,11 @@ async function showEventAnalysis(placeId) {
         }
         
         const result = response.analysis;
+        const officialEvents = response.officialEvents || [];
+        const hasLiveOrUpcoming = officialEvents.some(e => e.state === 'live' || e.state === 'upcoming');
+        const officialHtml = renderOfficialEvents(officialEvents);
         const signals = result.signals || [];
-        
+
         const signalListHtml = signals.map(s => {
             const icon = SIGNAL_ICONS[s.type] || SIGNAL_DEFAULT;
             return `
@@ -1533,22 +1811,28 @@ async function showEventAnalysis(placeId) {
         
         modal.querySelector('.analysis-body').innerHTML = `
             <div class="analysis-game">${response.title}</div>
-            ${resultHtml}
-            ${signals.length > 0 ? `
-                <div class="signals-panel">
-                    <strong>${CHART_SVG} ${TrackedI18n.t('detectedSignals')} (${signals.length}):</strong>
-                    ${signalListHtml}
-                </div>
-                <div class="score-bar">
-                    <div class="score-label">${TrackedI18n.t('totalScore')}: <b>${result.totalScore}</b></div>
-                    <div class="score-track">
-                        <div class="score-fill" style="width: ${Math.min(100, (result.totalScore / 160) * 100)}%; background: ${result.totalScore >= 110 ? '#30D158' : result.totalScore >= 60 ? '#FF9F0A' : '#8E8E93'}"></div>
+            ${officialHtml}
+            ${officialEvents.length === 0 ? `<div class="official-events-none">${TrackedI18n.t('officialEventNone')}</div>` : ''}
+            <div class="estimate-section">
+                <div class="estimate-header">${TrackedI18n.t('signalEstimate')}</div>
+                ${!hasLiveOrUpcoming ? `<div class="estimate-note">${TrackedI18n.t('signalEstimateNote')}</div>` : ''}
+                ${resultHtml}
+                ${signals.length > 0 ? `
+                    <div class="signals-panel">
+                        <strong>${CHART_SVG} ${TrackedI18n.t('detectedSignals')} (${signals.length}):</strong>
+                        ${signalListHtml}
                     </div>
-                    <div class="score-thresholds">
-                        <span>0</span><span>${TrackedI18n.t('threshold')}: 60</span><span>${TrackedI18n.t('definite')}: 110</span>
+                    <div class="score-bar">
+                        <div class="score-label">${TrackedI18n.t('totalScore')}: <b>${result.totalScore}</b></div>
+                        <div class="score-track">
+                            <div class="score-fill" style="width: ${Math.min(100, (result.totalScore / 160) * 100)}%; background: ${result.totalScore >= 110 ? '#30D158' : result.totalScore >= 60 ? '#FF9F0A' : '#8E8E93'}"></div>
+                        </div>
+                        <div class="score-thresholds">
+                            <span>0</span><span>${TrackedI18n.t('threshold')}: 60</span><span>${TrackedI18n.t('definite')}: 110</span>
+                        </div>
                     </div>
-                </div>
-            ` : `<div class="no-signals">${TrackedI18n.t('noSignals')}</div>`}
+                ` : `<div class="no-signals">${TrackedI18n.t('noSignals')}</div>`}
+            </div>
             <div class="analysis-actions">
                 <button class="pill-btn primary" id="btn-refresh-analysis">${REFRESH_SVG} ${TrackedI18n.t('refresh')}</button>
             </div>
@@ -1613,6 +1897,82 @@ const SCAN_SVG_WARN   = `<svg width="12" height="12" viewBox="0 0 24 24" fill="n
 const SCAN_SVG_ERR    = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#FF453A" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>`;
 const SCAN_SVG_PEOPLE = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>`;
 
+// ── BÖLGE SİSTEMİ (popup) ──────────────────────────────────────────────────
+// KATIL ve TARA artık kullanıcının bölgesine EN YAKIN sunucuyu bulur/gösterir.
+// Doluluk ÖNEMSİZ (yeter ki dolu olmasın) — tek kriter: bölge yakınlığı (mesafe).
+let _popupGeo = null;
+function popupHaversine(la1, lo1, la2, lo2) {
+    const R = 6371, dLa = (la2 - la1) * Math.PI / 180, dLo = (lo2 - lo1) * Math.PI / 180;
+    const a = Math.sin(dLa / 2) ** 2 + Math.cos(la1 * Math.PI / 180) * Math.cos(la2 * Math.PI / 180) * Math.sin(dLo / 2) ** 2;
+    return Math.round(2 * R * Math.asin(Math.sqrt(a)));
+}
+async function popupGetGeo() {
+    if (_popupGeo) return _popupGeo;
+    try {
+        const r = await chrome.runtime.sendMessage({ action: 'resolveUserLocation' });
+        if (r && r.ok && typeof r.lat === 'number') { _popupGeo = r; return r; }
+    } catch (_) {}
+    return null;
+}
+async function popupResolveRegion(placeId, jobId) {
+    try { return await chrome.runtime.sendMessage({ action: 'resolveServerRegion', placeId, jobId }); }
+    catch (_) { return null; }
+}
+// Dolu OLMAYAN (joinable) sunucu havuzu — Asc+Desc, dedupe. Doluluk filtresi yok.
+async function popupFetchPool(placeId) {
+    const fetchPage = async (order) => {
+        try {
+            const r = await fetch(`https://games.roblox.com/v1/games/${placeId}/servers/Public?sortOrder=${order}&limit=100`, { credentials: 'omit' });
+            if (!r.ok) return [];
+            return (await r.json()).data || [];
+        } catch (_) { return []; }
+    };
+    const seen = new Set(), pool = [];
+    for (const order of ['Asc', 'Desc']) {
+        for (const s of await fetchPage(order)) {
+            if (s && s.id && typeof s.playing === 'number' && typeof s.maxPlayers === 'number' && s.playing < s.maxPlayers && !seen.has(s.id)) {
+                seen.add(s.id); pool.push(s);
+            }
+        }
+    }
+    return pool;
+}
+// Çeşitli örnekleme: havuzdan eşit aralıklı n aday (sadece baştakiler değil → bölge çeşitliliği).
+function popupSample(pool, n) {
+    const N = Math.min(n, pool.length);
+    if (N >= pool.length) return pool.slice();
+    const stride = pool.length / N, out = [];
+    for (let i = 0; i < N; i++) out.push(pool[Math.floor(i * stride)]);
+    return out;
+}
+
+// KATIL → bölgesine EN YAKIN açık sunucuyu bul ve ONA katıl (erken çıkış: kendi bölgen bulununca dur).
+async function joinClosestServer(placeId) {
+    const geo = await popupGetGeo();
+    if (!geo) { joinGame(placeId); return; }                 // konum yok → eski genel katıl
+    showToast(TrackedI18n.t('scanning') || 'En yakın sunucu aranıyor…', 'success');
+    const pool = await popupFetchPool(placeId);
+    if (!pool.length) { joinGame(placeId); return; }
+    const nearTarget = (typeof geo.nearestDcKm === 'number') ? Math.round(geo.nearestDcKm * 1.3 + 200) : null;
+    const cand = popupSample(pool, 16);
+    let best = null;
+    for (let i = 0; i < cand.length; i++) {
+        const s = cand[i];
+        const reg = await popupResolveRegion(placeId, s.id);
+        if (reg && reg.ok && reg.region && typeof reg.lat === 'number') {
+            const dist = popupHaversine(geo.lat, geo.lon, reg.lat, reg.lon);
+            if (!best || dist < best.dist) best = { server: s, region: reg.region, dist };
+            if (nearTarget != null && dist <= nearTarget) break;   // kendi bölgen → daha iyisi olamaz
+        }
+        const wasLive = !(reg && reg.cached);
+        if (i < cand.length - 1 && wasLive) await new Promise(r => setTimeout(r, 200));
+    }
+    if (!best) { joinGame(placeId); return; }                 // hiç çözülemedi → eski katıl
+    const deepLink = `roblox://experiences/start?placeId=${placeId}&gameInstanceId=${best.server.id}`;
+    showToast(`${TrackedI18n.t('launching') || 'Başlatılıyor'} · ${best.region} (~${best.dist} km)`, 'success');
+    openUrl(deepLink, false);
+}
+
 async function scanServers(placeId) {
     if (!ui.modalScanner) {
         console.warn('[Scanner] modal element not found');
@@ -1623,53 +1983,45 @@ async function scanServers(placeId) {
     ui.scannerList.innerHTML = '';
     
     try {
-        const res = await fetch(`https://games.roblox.com/v1/games/${placeId}/servers/Public?sortOrder=Desc&limit=100`);
-        const data = await res.json();
-
-        if (!data.data || data.data.length === 0) {
+        const geo = await popupGetGeo();
+        const pool = await popupFetchPool(placeId);
+        if (!pool.length) {
             ui.scannerStatus.innerHTML = `${SCAN_SVG_WARN} ${TrackedI18n.t('noActiveServer') || 'Aktif sunucu yok'}`;
             return;
         }
 
-        let servers = data.data.filter(s => s.playing > 0 && s.playing < s.maxPlayers);
+        // YENİ SİSTEM: bölgeleri çöz → kullanıcının bölgesine EN YAKIN sırala (doluluk önemsiz).
+        const RANK_COLORS = ['#FFD700', '#C0C0C0', '#CD7F32'];
+        const cand = popupSample(pool, 14);
+        const resolved = [];
+        for (let i = 0; i < cand.length; i++) {
+            ui.scannerStatus.innerHTML = `${SCAN_SVG_SPIN} Bölge çözülüyor ${i + 1}/${cand.length}…`;
+            const s = cand[i];
+            const reg = await popupResolveRegion(placeId, s.id);
+            if (reg && reg.ok && reg.region) {
+                const dist = (geo && typeof reg.lat === 'number') ? popupHaversine(geo.lat, geo.lon, reg.lat, reg.lon) : null;
+                resolved.push({ server: s, region: reg.region, dist });
+            }
+            const wasLive = !(reg && reg.cached);
+            if (i < cand.length - 1 && wasLive) await new Promise(r => setTimeout(r, 200));
+        }
 
-        servers.sort((a, b) => {
-            const fpsA = a.fps || 0, fpsB = b.fps || 0;
-            if (fpsA >= 55 && fpsB >= 55) return (a.ping || 999) - (b.ping || 999);
-            return fpsB - fpsA;
-        });
-
-        servers = servers.slice(0, 20);
-
-        if (servers.length === 0) {
-            ui.scannerStatus.innerHTML = `${SCAN_SVG_WARN} Uygun sunucu bulunamadı`;
+        if (!resolved.length) {
+            ui.scannerStatus.innerHTML = `${SCAN_SVG_WARN} Bölge çözülemedi`;
             return;
         }
 
-        ui.scannerStatus.innerHTML = `${SCAN_SVG_OK} <strong>${servers.length}</strong> sunucu bulundu`;
+        resolved.sort((a, b) => (a.dist == null ? 1e9 : a.dist) - (b.dist == null ? 1e9 : b.dist));
+        ui.scannerStatus.innerHTML = geo
+            ? `${SCAN_SVG_OK} <strong>${resolved.length}</strong> sunucu · en yakın önce`
+            : `${SCAN_SVG_OK} <strong>${resolved.length}</strong> sunucu (konum yok — bölge gösteriliyor)`;
 
-        const RANK_COLORS = ['#FFD700', '#C0C0C0', '#CD7F32'];
-
-        servers.forEach((server, index) => {
+        resolved.forEach((item, index) => {
+            const { server, region, dist } = item;
             const rank = index + 1;
             const rankColor = rank <= 3 ? RANK_COLORS[rank - 1] : 'var(--text-tertiary)';
-
-            let pingDisplay = '--', pingClass = '';
-            if (server.ping != null) {
-                pingDisplay = `${server.ping}ms`;
-                pingClass = server.ping < 100 ? 'ping-good' : server.ping > 250 ? 'ping-bad' : 'ping-ok';
-            }
-
-            const fpsVal = server.fps ? Math.round(server.fps) : null;
-            const fpsClass = fpsVal ? (fpsVal >= 55 ? 'fps-good' : fpsVal >= 30 ? 'fps-ok' : 'fps-bad') : '';
-
-            let insightTagsHtml = '';
-            if (window.PingUtils && window.PingUtils.analyzeServerPlayers) {
-                const insight = window.PingUtils.analyzeServerPlayers(server);
-                insightTagsHtml = insight.badges.map(b =>
-                    `<span class="insight-tag ${b.type}" title="${b.label}">${b.icon}</span>`
-                ).join('');
-            }
+            const distTxt = dist != null ? ` · ~${dist} km` : '';
+            const flag = (typeof tkFlag === 'function') ? tkFlag(region) : '';
 
             const row = document.createElement('div');
             row.className = 'server-item';
@@ -1678,10 +2030,8 @@ async function scanServers(placeId) {
                 <div class="server-details">
                     <div class="server-main-row">
                         <span class="server-players">${SCAN_SVG_PEOPLE} ${server.playing}/${server.maxPlayers}</span>
-                        <span class="stat-badge ${pingClass}">${pingDisplay}</span>
-                        ${fpsVal ? `<span class="stat-badge ${fpsClass}">${fpsVal} FPS</span>` : ''}
+                        <span class="stat-badge" style="color:#30D158;border-color:#30D15840;" title="Bölge: ${region}${distTxt}">${flag}${region}${distTxt}</span>
                     </div>
-                    ${insightTagsHtml ? `<div class="insight-tags-row">${insightTagsHtml}</div>` : ''}
                 </div>
                 <button class="server-action-btn join-server" data-place-id="${placeId}" data-job-id="${server.id}">${TrackedI18n.t('join')}</button>
             `;
@@ -1735,7 +2085,6 @@ async function deleteGame(placeId, domEl) {
  * JOIN FLOW
  */
 function joinGame(placeId) {
-    const isNewTab = state.settings.openInNewTab;
     const isFast = state.joinStrategy === 'fast';
 
     if (isFast) {
@@ -1744,7 +2093,7 @@ function joinGame(placeId) {
         showToast(TrackedI18n.t('launching'), 'success');
         openUrl(deepLink, false);
     } else {
-        openUrl(`https://www.roblox.com/games/${placeId}/`, isNewTab);
+        openUrl(`https://www.roblox.com/games/${placeId}/`, false);
     }
 }
 
@@ -1890,11 +2239,22 @@ function openDropdown(triggerEl, items, onSelect) {
     dropdown.style.top = (rect.bottom + 6) + 'px'; // +6px gap
     dropdown.style.left = rect.left + 'px';
     dropdown.style.width = rect.width + 'px';
+    // Pencerenin altına TAŞMASIN: kalan alana sığdır → iç scroll son öğeye kadar tam çalışır.
+    const avail = Math.floor(window.innerHeight - rect.bottom - 14);
+    dropdown.style.maxHeight = Math.max(140, Math.min(320, avail)) + 'px';
 
     items.forEach(item => {
+        // Grup başlığı (tıklanamaz) — ör. kıta adları
+        if (item.header) {
+            const h = document.createElement('div');
+            h.className = 'dropdown-group-header';
+            h.textContent = item.header;
+            dropdown.appendChild(h);
+            return;
+        }
         const btn = document.createElement('button');
         btn.className = 'dropdown-item';
-        
+
         // Render item with optional description
         if (item.desc) {
              btn.innerHTML = `
@@ -1987,6 +2347,39 @@ window.TrackedApp = {
 /**
  * v1.6.6: RECENT GAMES FEATURE
  */
+
+// Sunucu Bekçisi — aktif canlı izlemeyi popup'ta göster (Son Ziyaret Edilen üstünde), kaldırılabilir.
+function renderServerWatch() {
+    const panel = document.getElementById('server-watch-panel');
+    const card = document.getElementById('watch-live-card');
+    if (!panel || !card) return;
+    try {
+        chrome.runtime.sendMessage({ action: 'getServerWatch' }, (resp) => {
+            const w = (resp && resp.ok) ? resp.active : null;
+            if (!w || !w.placeId) { panel.style.display = 'none'; card.innerHTML = ''; return; }
+            const actLabel = w.action === 'autojoin' ? TrackedI18n.t('watchAutoJoin') : TrackedI18n.t('watchNotify');
+            const crit = (w.minPlayers ? `≥${w.minPlayers}${w.maxPlayers > 0 ? '/' + w.maxPlayers : ''} ${TrackedI18n.t('player')}` : `${TrackedI18n.t('watchMaxPlayers')}: ${w.maxPlayers}`)
+                + ` · ${actLabel}`;
+            card.innerHTML = `
+                <div class="watch-live-row">
+                    <span class="watch-live-dot"></span>
+                    <div class="watch-live-info">
+                        <div class="watch-live-name">${escHtml(w.gameTitle || ('Place ' + w.placeId))}</div>
+                        <div class="watch-live-crit">${escHtml(crit)}</div>
+                    </div>
+                    <button class="watch-live-remove" id="watch-live-remove" title="${escHtml(TrackedI18n.t('watchStop'))}">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                </div>`;
+            panel.style.display = '';
+            const rm = card.querySelector('#watch-live-remove');
+            if (rm) rm.onclick = () => {
+                try { chrome.runtime.sendMessage({ action: 'stopServerWatch' }, () => renderServerWatch()); }
+                catch (_) { renderServerWatch(); }
+            };
+        });
+    } catch (_) { panel.style.display = 'none'; }
+}
 
 async function loadRecentGames() {
     const container = document.getElementById('recent-games-list');
@@ -2149,14 +2542,82 @@ function escapeHtml(text) {
 
 
 /**
- * FRIENDS MODULE (Recovered & Restored)
+ * FRIENDS MODULE (Stale-While-Revalidate)
+ * Cached HTML anında render edilir → user 0ms gecikme algılar.
+ * Arka planda fresh fetch yapılır, gelince DOM güncellenir.
  */
+function rebindFriendClickHandlers(container) {
+    container.querySelectorAll('.btn-join-small[data-place-id]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            joinFriendServer(btn.dataset.placeId, btn.dataset.gameId || null);
+        });
+    });
+    container.querySelectorAll('.recent-game-meta').forEach(el => {
+        try { initMarqueeTitle(el); } catch (_) {}
+    });
+}
+
+// Friends/presence fetch — 429 (rate-limit) ve 5xx/network hatasında backoff'lu retry.
+// Uzun boşta + avatar sekmesi açıkken Roblox API'leri throttle ediyor; retry'siz tek hata
+// panel'i boş bırakıyordu (bug: 1 saat sonra arkadaşlar boş, F5 düzeltmiyor).
+async function fetchFriendsRetry(url, opts, tries = 3) {
+    let r = null;
+    for (let i = 0; i < tries; i++) {
+        try { r = await fetch(url, opts); }
+        catch (e) { if (i === tries - 1) throw e; await new Promise(s => setTimeout(s, 700 * (i + 1))); continue; }
+        if (r.ok || ![429, 500, 502, 503].includes(r.status)) return r;
+        await new Promise(s => setTimeout(s, 700 * (i + 1)));
+    }
+    return r;
+}
+
+// Avatar resimlerini render ÖNCESİ decode et → tüm kartlar aynı anda (dümdüz) görünür,
+// tek tek "pat" diye belirmez. Her resme timeout; biri yavaşsa toplam render'ı kilitlemez.
+function preloadImages(urls, timeoutMs = 1500) {
+    const list = (urls || []).filter(Boolean);
+    if (list.length === 0) return Promise.resolve();
+    return Promise.all(list.map(url => new Promise((resolve) => {
+        const img = new Image();
+        let done = false;
+        const finish = () => { if (!done) { done = true; resolve(); } };
+        const t = setTimeout(finish, timeoutMs);
+        img.onload = img.onerror = () => { clearTimeout(t); finish(); };
+        img.src = url;
+    })));
+}
+
+// Liste tek blok hâlinde yumuşak belirir (kart-kart değil). Reflow ile animasyonu yeniden tetikler.
+function applyListFadeIn(el) {
+    if (!el) return;
+    el.classList.remove('friends-fade-in');
+    void el.offsetWidth;
+    el.classList.add('friends-fade-in');
+}
+
 async function loadFriends() {
     const container = document.getElementById('friends-list');
     if (!container) return;
 
-    // Loading state
-    container.innerHTML = '<div class="empty-state"><div class="spinner" style="width:16px;height:16px;border-width:2px;"></div></div>';
+    // 1) CACHE HIT — fresh fetch beklerken anında göster (60sn TTL)
+    let cacheRendered = false;
+    try {
+        const stored = await chrome.storage.local.get('rota_friends_cache');
+        const cache = stored.rota_friends_cache;
+        if (cache?.html && cache?.timestamp && (Date.now() - cache.timestamp < 60 * 1000)) {
+            container.innerHTML = cache.html;
+            rebindFriendClickHandlers(container);
+            applyListFadeIn(container); // popup açılışında liste tek blok yumuşak belirir
+            // Header text'i de restore et
+            const headerSpan = document.querySelector('#friends-panel .module-header h2 span');
+            if (headerSpan && cache.headerText) headerSpan.textContent = cache.headerText;
+            cacheRendered = true;
+        }
+    } catch (_) {}
+
+    // 2) Loading state SADECE cache yoksa göster
+    if (!cacheRendered) {
+        container.innerHTML = '<div class="empty-state"><div class="spinner" style="width:16px;height:16px;border-width:2px;"></div></div>';
+    }
 
     try {
         // 1. Get authenticated user ID
@@ -2168,7 +2629,7 @@ async function loadFriends() {
         const userData = await userRes.json();
         const userId = userData.id;
 
-        const friendsListRes = await fetch(`https://friends.roblox.com/v1/users/${userId}/friends`, { credentials: 'include' });
+        const friendsListRes = await fetchFriendsRetry(`https://friends.roblox.com/v1/users/${userId}/friends`, { credentials: 'include' });
         if (!friendsListRes.ok) throw new Error('API failed');
         const friendsData = await friendsListRes.json();
 
@@ -2180,7 +2641,7 @@ async function loadFriends() {
         const friendIds = friendsData.data.map(f => f.id);
 
         // 2. Get Presence (requires CSRF token)
-        const getPresence = async (extraHeaders = {}) => fetch('https://presence.roblox.com/v1/presence/users', {
+        const getPresence = async (extraHeaders = {}) => fetchFriendsRetry('https://presence.roblox.com/v1/presence/users', {
             method: 'POST',
             credentials: 'include',
             headers: { 'Content-Type': 'application/json', ...extraHeaders },
@@ -2214,52 +2675,63 @@ async function loadFriends() {
 
         // 3. Get Avatars for online friends
         const onlineIds = onlinePresences.map(p => p.userId);
-        const avatarRes = await fetch(`https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${onlineIds.join(',')}&size=150x150&format=Png&isCircular=true`);
+        const avatarRes = await fetchFriendsRetry(`https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${onlineIds.join(',')}&size=150x150&format=Png&isCircular=true`);
         if (!avatarRes.ok) throw new Error('API failed');
         const avatarData = await avatarRes.json();
         const avatarMap = {};
+        // Roblox thumbnails on-demand üretilir; cache'de olmayan avatar ilk istekte
+        // state:"Pending" + imageUrl:null döner. Bu ID'leri ayrı topla, ileride retry et.
+        const pendingIds = [];
         if (avatarData && avatarData.data) {
             avatarData.data.forEach(a => {
-                avatarMap[a.targetId] = a.imageUrl;
+                if (a.state === 'Completed' && a.imageUrl) {
+                    avatarMap[a.targetId] = a.imageUrl;
+                } else {
+                    // Pending / Blocked / TemporarilyUnavailable — retry kandidatı
+                    pendingIds.push(a.targetId);
+                }
             });
         }
 
-        // 4. Map back to friend data and render
-        container.innerHTML = '';
-        
-        for (const presence of onlinePresences) {
-            const friendInfo = friendsData.data.find(f => f.id === presence.userId);
-            let name = friendInfo ? friendInfo.displayName : TrackedI18n.t('unknown');
-            let realName = friendInfo ? friendInfo.name : '';
-            
-            // Fallback for missing names — ad-blocker network'ü engelleyebilir, bu durumda mevcut name'le devam et
-            if (!friendInfo || !friendInfo.name) {
+        // Avatarları render ÖNCESİ decode et → kartlar tek tek değil, tek blok belirir
+        await preloadImages(Object.values(avatarMap));
+
+        // Eksik isimleri ÖNCE paralel çöz. (Eskiden bu fetch döngü İÇİNDE await ediliyordu →
+        // her eksik isimde render serileşip kartlar tek tek beliriyordu.) Artık döngü tamamen senkron.
+        const nameFixes = {};
+        const missingName = onlinePresences.filter(p => {
+            const fi = friendsData.data.find(f => f.id === p.userId);
+            return !fi || !fi.name;
+        });
+        if (missingName.length > 0) {
+            await Promise.all(missingName.map(async (p) => {
                 try {
                     const ctrl = new AbortController();
                     const t = setTimeout(() => ctrl.abort(), 3000); // 3sn timeout
-                    const fallbackRes = await fetch(`https://users.roblox.com/v1/users/${presence.userId}`, {
-                        signal: ctrl.signal,
-                        credentials: 'omit'
-                    });
+                    const r = await fetch(`https://users.roblox.com/v1/users/${p.userId}`, { signal: ctrl.signal, credentials: 'omit' });
                     clearTimeout(t);
-                    if (fallbackRes.ok) {
-                        const fallbackData = await fallbackRes.json();
-                        name = fallbackData.displayName || name;
-                        realName = fallbackData.name || realName;
-                    }
-                } catch (e) {
-                    // Ad-blocker veya network hatası — TAMAMEN sessizce geç.
-                    // Bu fallback isteği opsiyonel (sadece display name güzelleştirmek için),
-                    // başarısız olması UI'ı bozmaz, kullanıcıya hiçbir şey iletmemize gerek yok.
+                    if (r.ok) { const d = await r.json(); nameFixes[p.userId] = { name: d.name || '', displayName: d.displayName || '' }; }
+                } catch (_) {
+                    // Ad-blocker/network — sessizce geç; mevcut isimle (ya da "unknown") devam ederiz.
                 }
-            }
+            }));
+        }
+
+        // 4. Map back to friend data and render — TEK SEFERDE (DocumentFragment → tek paint, dümdüz görünüm)
+        const frag = document.createDocumentFragment();
+
+        for (const presence of onlinePresences) {
+            const friendInfo = friendsData.data.find(f => f.id === presence.userId);
+            const fix = nameFixes[presence.userId];
+            const name = (friendInfo && friendInfo.displayName) || (fix && fix.displayName) || TrackedI18n.t('unknown');
+            const realName = (friendInfo && friendInfo.name) || (fix && fix.name) || '';
 
             const avatarUrl = avatarMap[presence.userId] || '';
             const initial = name.charAt(0).toUpperCase();
 
-            const avatarHtml = avatarUrl 
-                ? `<img src="${avatarUrl}" class="friend-avatar-img" alt="${name}">`
-                : `<div class="friend-avatar-img fallback" style="background:var(--card-hover);display:flex;align-items:center;justify-content:center;font-weight:bold;color:var(--text-primary);">${initial}</div>`;
+            const avatarHtml = avatarUrl
+                ? `<img src="${avatarUrl}" class="friend-avatar-img" alt="${name}" data-uid="${presence.userId}">`
+                : `<div class="friend-avatar-img fallback" data-uid="${presence.userId}" style="background:var(--card-hover);display:flex;align-items:center;justify-content:center;font-weight:bold;color:var(--text-primary);">${initial}</div>`;
 
             const gameName = presence.lastLocation || '';
             const gameLabel = gameName ? escapeHtml(gameName) : TrackedI18n.t('inGame') || 'In Game';
@@ -2279,13 +2751,82 @@ async function loadFriends() {
                 <button class="pill-btn primary btn-join-small" title="${joinTitle}" style="margin-right:8px; padding:4px 12px; font-size:11px; height:auto; min-height:24px;flex-shrink:0;">${joinLabel}</button>
             `;
 
-            item.querySelector('.btn-join-small').addEventListener('click', () => {
-                joinFriendServer(presence.placeId, friendGameId);
+            const joinBtn = item.querySelector('.btn-join-small');
+            // data attr'lar cache restore sonrası rebind için
+            joinBtn.dataset.placeId = String(presence.placeId);
+            if (friendGameId) joinBtn.dataset.gameId = String(friendGameId);
+            joinBtn.addEventListener('click', () => {
+                joinFriendServer(joinBtn.dataset.placeId, joinBtn.dataset.gameId || null);
             });
 
             initMarqueeTitle(item.querySelector('.recent-game-meta'));
-            container.appendChild(item);
+            frag.appendChild(item);
         }
+
+        // Tüm kartları TEK operasyonda DOM'a bas → aynı frame'de, sıralı/kart-kart değil.
+        container.innerHTML = '';
+        container.appendChild(frag);
+        // Cache zaten gösterildiyse sessiz güncelle; ilk görünümse tek blok yumuşak belir.
+        if (!cacheRendered) applyListFadeIn(container);
+
+        // RETRY: Pending thumbnail'leri 1.5sn sonra tekrar dene. Roblox bu süre
+        // içinde avatar render'ı tamamlar; fallback initial harfler asıl resimlerle
+        // değiştirilir. Tek-shot retry — başarısız olursa fallback kalır.
+        if (pendingIds.length > 0) {
+            setTimeout(async () => {
+                try {
+                    const retryRes = await fetch(`https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${pendingIds.join(',')}&size=150x150&format=Png&isCircular=true`);
+                    if (!retryRes.ok) return;
+                    const retryData = await retryRes.json();
+                    if (!retryData?.data) return;
+
+                    let replacedAny = false;
+                    retryData.data.forEach(a => {
+                        if (a.state !== 'Completed' || !a.imageUrl) return;
+                        const target = container.querySelector(`[data-uid="${a.targetId}"]`);
+                        if (!target) return;
+                        // Fallback div'i img ile değiştir (zaten img ise URL'i güncelle)
+                        if (target.tagName === 'IMG') {
+                            target.src = a.imageUrl;
+                        } else {
+                            const img = document.createElement('img');
+                            img.src = a.imageUrl;
+                            img.className = 'friend-avatar-img avatar-late';
+                            img.alt = target.getAttribute('alt') || '';
+                            img.setAttribute('data-uid', String(a.targetId));
+                            target.replaceWith(img);
+                        }
+                        replacedAny = true;
+                    });
+
+                    // Cache'i de güncelle ki bir sonraki popup açılışında resimler hazır görünsün
+                    if (replacedAny) {
+                        try {
+                            const headerSpan = document.querySelector('#friends-panel .module-header h2 span');
+                            chrome.storage.local.set({
+                                rota_friends_cache: {
+                                    html: container.innerHTML,
+                                    headerText: headerSpan ? headerSpan.textContent : '',
+                                    timestamp: Date.now()
+                                }
+                            }).catch(() => {});
+                        } catch (_) {}
+                    }
+                } catch (_) { /* sessiz fail — fallback'ler kalır */ }
+            }, 1500);
+        }
+
+        // CACHE SAVE — fresh render başarılı, sonraki popup açılışında anında göster
+        try {
+            const headerSpan = document.querySelector('#friends-panel .module-header h2 span');
+            chrome.storage.local.set({
+                rota_friends_cache: {
+                    html: container.innerHTML,
+                    headerText: headerSpan ? headerSpan.textContent : '',
+                    timestamp: Date.now()
+                }
+            }).catch(() => {});
+        } catch (_) {}
 
     } catch (err) {
         // "Failed to fetch" → genellikle ad-blocker (uBlock, AdBlock) Roblox API'lerini blocklar.
@@ -2295,6 +2836,9 @@ async function loadFriends() {
             err.message?.includes('NetworkError') ||
             err.message?.includes('ERR_BLOCKED')
         );
+        // Cache zaten render edildiyse, hata durumunda eski veriyi koru (stale-but-better-than-nothing)
+        if (cacheRendered) return;
+
         if (isNetworkBlock) {
             // Sessizce geç — UI'da kullanıcıya empty state gösteriliyor
             container.innerHTML = `<div class="empty-state"><div class="empty-desc" style="color:var(--text-secondary);font-size:12px">${TrackedI18n.t('adBlockerBlocked') || 'Ad-blocker Roblox API\'sini engelliyor'}</div></div>`;

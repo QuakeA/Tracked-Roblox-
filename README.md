@@ -8,7 +8,7 @@
 **Smart server selection, crash recovery & real-time ping analytics**
 
 [![Manifest](https://img.shields.io/badge/Manifest-V3-4285F4?style=flat-square&logo=googlechrome&logoColor=white)](manifest.json)
-[![Version](https://img.shields.io/badge/version-1.7.0-blue?style=flat-square)](manifest.json)
+[![Version](https://img.shields.io/badge/version-1.8.0-blue?style=flat-square)](manifest.json)
 [![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)](#-lisans)
 [![Roblox](https://img.shields.io/badge/Roblox-compatible-E2231A?style=flat-square&logo=roblox&logoColor=white)](https://roblox.com)
 [![i18n](https://img.shields.io/badge/i18n-TR%20%7C%20EN-orange?style=flat-square)](i18n.js)
@@ -43,15 +43,8 @@ Roblox'un kendi web istemcisi tek bir "Play" butonuyla yetinir — Tracked, oyun
 - FPS sağlığı + ping cezası kombinasyonu ile yüksek kalite skor
 - Tek tıkla _boş + sağlıklı + düşük ping_ sunucuya bağlanır
 
-### 🎯 Force Join (Engelle-ve-Katıl)
-- 3-aşamalı zorla-katıl motoru: hızlı tarama → pusu → sızma
-- Token Bucket + AIMD rate-limit dostu polling
-- **Block-flood**: Dolu sunucuları geçici olarak block list'e ekler → Roblox matchmaker'ı zorla yeni server'a yönlendirir
-- 🔒 **Güvenlik garantisi**: Arkadaşlar / takipçiler / takip edilenler **ASLA** blocklanmaz
-- A+B (block + new), C+D (fingerprint matching), Force Join (jobId direkt) modları
-
 ### 📡 Bölgesel Ping Ölçümü
-- 5 AWS region prob (Almanya, Hollanda, Fransa, Polonya, Romanya) — özelleştirilebilir
+- 5 AWS region prob (Almanya, İrlanda, Fransa, İsveç, İtalya) — özelleştirilebilir
 - Ultra-stabil algoritma: warmup + median + RFC 3550 jitter hesaplama
 - Best-of-N stratejisi (en düşük 3 örneğin medianı)
 - 10dk persistent cache → popup hızlı açılır
@@ -74,7 +67,7 @@ Roblox'un kendi web istemcisi tek bir "Play" butonuyla yetinir — Tracked, oyun
 
 ### 🌟 Sticky In-Game Bar
 - Roblox oyun sayfasına injecte edilen stat bar
-- 5 ana buton: Find New, Deep Scan, Force Join, C+D Targeted, Auto-Pilot
+- 5 ana buton: Yeni (Find New), Derin (Deep Scan), ID (kopyala), Oto-Pilot (en yakın sunucu), Bekçi (server watch)
 - SPA navigation watcher — Roblox'un client-side routing'inde kayboluyordu, çözüldü
 
 ---
@@ -108,7 +101,7 @@ Roblox'un kendi web istemcisi tek bir "Play" butonuyla yetinir — Tracked, oyun
 | 📡 **Ping Probes** | Custom AWS endpoints | Kendi region'ını ekle |
 | ⏱️ **Cache** | 1-60dk | Ping sonuçları için TTL |
 | 🔄 **Auto-Reconnect** | Aç/Kapa, Native bildirim | Crash recovery toggle |
-| 🎯 **Force Join** | Block target, Propagation, Fingerprint, Aggressive snipe | Power user ayarları |
+| 🎯 **Oto-Pilot** | En yakın sunucu seçimi, görece-ping cap, hedef bölge | Akıllı sunucu seçici |
 
 ---
 
@@ -155,7 +148,7 @@ Roblox'un kendi web istemcisi tek bir "Play" butonuyla yetinir — Tracked, oyun
 - ✅ **Tüm veriler local** — `chrome.storage.local` (cihazda kalır)
 - ✅ **3rd party API'ler**: sadece IP/ISP tespiti için ipinfo.io / ipwho.is / ipapi.co (10dk cache, opsiyonel)
 - ✅ **Açık kaynak** — kodun tamamı bu repoda
-- ✅ **Sosyal güvenlik**: arkadaşlar/takipçiler/takip edilenler block-flood'da **mutlak excluded**
+- ✅ **Hiçbir kullanıcı engellenmez** — eski "block-flood" mantığı tamamen kaldırıldı; Oto-Pilot artık sadece en yakın sunucuyu seçer, kimseyi blocklamaz
 
 `host_permissions` listesi `manifest.json`'da görülebilir — sadece roblox.com subdomain'leri ve gerekli yardımcı servisler.
 
@@ -165,7 +158,7 @@ Roblox'un kendi web istemcisi tek bir "Play" butonuyla yetinir — Tracked, oyun
 
 - **Roblox API'sinin `ping` field'ı kullanıcı-sunucu pingi DEĞİL** — server iç sağlık metriği. "Optimal Sunucu" butonu bu yüzden Roblox'un IP-based matchmaker'ını kullanır (en güvenilir).
 - **Chrome alarm minimum 30sn** — daha hızlı polling için fast-recheck timeout kombinasyonu kullanılıyor.
-- **Block-flood Roblox tarafında 5 dakika** sürebilir; auto-pilot kullanım sonrası `unblockAfterJoin` mekanizması temizliği yapar.
+- **Boş/taze public sunucu garanti edilemez** — Roblox public API'si "bana yeni sunucu aç" komutunu desteklemez; Oto-Pilot en yakın + en az oyunculu mevcut sunucuyu bulur (en dürüst yaklaşım).
 - **Ad-blocker'lar** ipwho.is / ipapi.co'yu blokluyor — fallback chain ile ipinfo.io'ya geçiyor, sorun yok.
 
 ---

@@ -5,6 +5,7 @@
   <meta charset="UTF-8">
   <title data-i18n="settings">Ayarlar - Tracked</title>
   <link rel="stylesheet" href="options.css">
+  <link rel="stylesheet" href="lib/flags.css">
 </head>
 <body>
   <div class="bg-noise"></div>
@@ -28,10 +29,6 @@
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>
             <span data-i18n="connectionSettings">Bağlantı</span>
           </a>
-          <a href="#sec-performance" class="toc-link" data-target="sec-performance">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="13 2 3 14 12 14 11 22 21 10 12 10"/></svg>
-            <span data-i18n="performance">Performans</span>
-          </a>
           <a href="#sec-reconnect" class="toc-link" data-target="sec-reconnect">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>
             <span data-i18n="autoReconnect">Reconnect</span>
@@ -44,9 +41,10 @@
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
             <span data-i18n="diagnostics">Tanılama</span>
           </a>
-          <a href="#sec-data" class="toc-link" data-target="sec-data">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-            <span data-i18n="dataManagement">Veri</span>
+          <a href="#sec-changelog" class="toc-link" data-target="sec-changelog" id="toc-changelog">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+            <span>Sürüm Notları</span>
+            <span class="toc-badge" id="changelog-badge" style="display:none"></span>
           </a>
         </nav>
 
@@ -165,88 +163,6 @@
             </div>
           </div>
 
-          <div class="settings-list">
-            <div class="setting-row">
-              <div class="setting-label">
-                <span data-i18n="openNewTab">Yeni Sekmede Aç</span>
-                <small data-i18n="openNewTabDesc">Katıl butonuna basınca oyun yeni sekmede açılır.</small>
-              </div>
-              <label class="switch"><input type="checkbox" id="chk-newtab"><span class="slider"></span></label>
-            </div>
-
-            <div class="setting-row">
-              <div class="setting-label">
-                <span data-i18n="regionParam">URL Bölge Parametresi</span>
-                <small data-i18n="regionParamDesc">Linke <code>?rotaRegion=CODE</code> parametresi ekler (Deneysel).</small>
-              </div>
-              <label class="switch"><input type="checkbox" id="chk-appendparam"><span class="slider"></span></label>
-            </div>
-          </div>
-        </section>
-
-        <!-- ─── PERFORMANS (A+B / C+D) ─── -->
-        <section class="card" id="sec-performance">
-          <div class="card-header-row">
-            <h2 data-i18n="performance">Performans (A+B / C+D)</h2>
-            <span class="badge beta">β</span>
-          </div>
-          <p class="info-text" data-i18n="performanceDesc">Force-new-server stratejilerinin davranışı. Default değerler dengeli — sadece bilinçli oynamak istediğinde değiştir.</p>
-
-          <div class="settings-grid">
-            <div class="metric-card">
-              <div class="metric-label">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="9"/></svg>
-                <span data-i18n="blockTarget">Block Hedef Sayısı</span>
-              </div>
-              <div class="metric-input-group">
-                <button class="step-btn" data-action="dec" type="button"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
-                <input type="number" id="inp-block-target" class="big-input" min="10" max="300" step="10" value="100">
-                <button class="step-btn" data-action="inc" type="button"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
-                <span class="metric-unit" data-i18n="pieces">adet</span>
-              </div>
-              <small class="metric-hint" data-i18n="blockTargetHint">A+B için maks. block sayısı (50–200 önerilir)</small>
-            </div>
-
-            <div class="metric-card">
-              <div class="metric-label">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                <span data-i18n="propagationWait">Block Yayılma Süresi</span>
-              </div>
-              <div class="metric-input-group">
-                <button class="step-btn" data-action="dec" type="button"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
-                <input type="number" id="inp-propagation" class="big-input" min="3" max="60" step="1" value="15">
-                <button class="step-btn" data-action="inc" type="button"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
-                <span class="metric-unit" data-i18n="seconds">sn</span>
-              </div>
-              <small class="metric-hint" data-i18n="propagationWaitHint">Phase 3 öncesi Roblox cache yayılma süresi (10–20sn ideal)</small>
-            </div>
-          </div>
-
-          <div class="settings-list">
-            <div class="setting-row">
-              <div class="setting-label">
-                <span data-i18n="useFingerprint">Avatar Fingerprint Eşleme (C+D)</span>
-                <small data-i18n="useFingerprintDesc">Token→hash eşleme ile server-bazlı surgical block. Düşük block sayısı, yüksek precision.</small>
-              </div>
-              <label class="switch"><input type="checkbox" id="chk-fingerprint" checked><span class="slider"></span></label>
-            </div>
-
-            <div class="setting-row">
-              <div class="setting-label">
-                <span data-i18n="friendsExpansion">Friends-of-In-Game Genişletme</span>
-                <small data-i18n="friendsExpansionDesc">Presence-confirmed kullanıcıların arkadaşlarını da hedef listeye ekler. Daha geniş kapsama.</small>
-              </div>
-              <label class="switch"><input type="checkbox" id="chk-friends-expansion" checked><span class="slider"></span></label>
-            </div>
-
-            <div class="setting-row">
-              <div class="setting-label">
-                <span data-i18n="aggressiveSnipe">Agresif Snipe Polling</span>
-                <small data-i18n="aggressiveSnipeDesc">Daha sık server list polling. Hızlı yakalar ama 429 risk artar.</small>
-              </div>
-              <label class="switch"><input type="checkbox" id="chk-aggressive-snipe"><span class="slider"></span></label>
-            </div>
-          </div>
         </section>
 
         <!-- ─── AUTO-RECONNECT ─── -->
@@ -286,6 +202,44 @@
             </div>
           </div>
           <p class="info-text" data-i18n="probesDesc">Bölgesel gecikmeyi ölçmek için kullanılan sunucu adresleri. İsimler sabittir, sadece test adreslerini değiştirebilirsiniz. Her satırın sağındaki ▶ butonuyla canlı test atabilirsiniz.</p>
+
+          <!-- v4.2: Region preset — kullanıcı kendi coğrafyasına uygun şablon seçer (dil seçici tarzı custom dropdown) -->
+          <div class="probe-preset-row">
+            <div class="probe-preset-label">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+              <span>Bölge Şablonu</span>
+            </div>
+            <div class="smart-preset-select" id="smart-preset-select">
+              <button class="preset-current" id="preset-current-btn" type="button">
+                <span class="preset-code" id="current-preset-code">—</span>
+                <span class="preset-name" id="current-preset-name">Şablon seç</span>
+                <svg class="preset-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+              </button>
+              <div class="preset-dropdown" id="preset-dropdown">
+                <button class="preset-option" data-key="eu" type="button">
+                  <span class="preset-code">EU</span>
+                  <span class="preset-name">Avrupa <span class="preset-hint">varsayılan · TR + EU</span></span>
+                </button>
+                <button class="preset-option" data-key="na" type="button">
+                  <span class="preset-code">NA</span>
+                  <span class="preset-name">Kuzey Amerika <span class="preset-hint">US + Kanada</span></span>
+                </button>
+                <button class="preset-option" data-key="asia" type="button">
+                  <span class="preset-code">AS</span>
+                  <span class="preset-name">Asya <span class="preset-hint">JP / KR / SG / HK</span></span>
+                </button>
+                <button class="preset-option" data-key="sa" type="button">
+                  <span class="preset-code">SA</span>
+                  <span class="preset-name">Güney Amerika <span class="preset-hint">BR + LATAM</span></span>
+                </button>
+                <button class="preset-option" data-key="au" type="button">
+                  <span class="preset-code">AU</span>
+                  <span class="preset-name">Avustralya <span class="preset-hint">AU + NZ + Pasifik</span></span>
+                </button>
+              </div>
+            </div>
+            <button id="btn-apply-preset" class="probe-preset-apply" type="button" disabled>Uygula</button>
+          </div>
 
           <div id="probe-list" class="probe-list">
             <!-- JS injects rows -->
@@ -349,6 +303,12 @@
         </section>
 
         <!-- ─── VERİ YÖNETİMİ (Danger) ─── -->
+        <section class="card" id="sec-changelog">
+          <h2>Sürüm Notları</h2>
+          <p class="info-text">Tracked'in her sürümündeki yenilikler ve düzeltmeler.</p>
+          <div id="changelog-list"></div>
+        </section>
+
         <section class="card danger-zone" id="sec-data">
           <h2 data-i18n="dataManagement">Veri Yönetimi</h2>
           <div class="danger-row">
@@ -364,6 +324,14 @@
               <small data-i18n="clearCacheDesc">Ping ölçümleri ve geçici verileri temizler.</small>
             </div>
             <button id="btn-clear-cache" class="btn danger-outline" type="button" data-i18n="clear">Temizle</button>
+          </div>
+          <!-- v1.9.0: Oto-Pilot bad-server blocklist temizleme -->
+          <div class="danger-row">
+            <div class="setting-label">
+              <span>Oto-Pilot Blocklist'i Temizle</span>
+              <small id="otopilot-bl-info">Yüksek ping nedeniyle işaretlenmiş server'ları siler (24h TTL otomatik).</small>
+            </div>
+            <button id="btn-clear-otopilot-bl" class="btn danger-outline" type="button">Temizle</button>
           </div>
           <div class="danger-row">
             <div class="setting-label">
@@ -394,7 +362,9 @@
 
   <div id="toast-container"></div>
 
+  <script src="lib/flags.js"></script>
   <script src="i18n.js"></script>
+  <script src="ping_utils.js"></script>
   <script src="options.js"></script>
 </body>
 </html>

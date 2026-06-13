@@ -54,6 +54,12 @@ const TrackedScanner = {
         console.log(`[Tracked] Rate limit active for ${durationMs}ms`);
     },
 
+    // Aktif rate-limit'in kalan süresi (ms). Otomatik yeniden deneme bunu bekler.
+    rateLimitRemainingMs: function() {
+        if (!this.state.isRateLimited) return 0;
+        return Math.max(0, this.state.rateLimitResetTime - Date.now());
+    },
+
     fetchWithRetry: async function(url, attempt = 1) {
         // v2.4.4: Rate limit kontrolü
         this.checkRateLimit();
@@ -94,19 +100,20 @@ const TrackedScanner = {
 
             // v2.4.4: Rate limit handling - daha agresif
             if (response.status === 429) {
-                console.log(`[Tracked] Rate limit uyarısı (deneme ${attempt})`);
-                
+                // Roblox'un KESİN bekleme süresini oku (varsa) → sabit 15s yerine tam o kadar bekle (genelde daha kısa).
+                const ra = parseInt(response.headers.get('Retry-After') || '0', 10);
+                const cooldownMs = ra > 0 ? Math.min(ra * 1000, 30000) : 12000;
+                console.log(`[Tracked] Rate limit (deneme ${attempt}), Retry-After=${ra || '-'}s → cooldown ${cooldownMs}ms`);
+
                 // v2.4.4: Max attempt kontrolü
                 if (attempt >= 3) {
-                    // 3 denemeden sonra rate limit aktif et (15 saniye)
-                    this.setRateLimit(15000);
+                    this.setRateLimit(cooldownMs);
                     throw new Error('RATE_LIMIT');
                 }
-                
+
                 const backoffDelay = this.calculateBackoff(attempt, true);
-                console.log(`[Tracked] Rate limit wait: ${Math.round(backoffDelay)}ms`);
                 await TrackedUtils.delay(backoffDelay);
-                
+
                 return this.fetchWithRetry(url, attempt + 1);
             }
 
@@ -425,7 +432,10 @@ const TrackedScanner = {
         let pageCount = 0;
         let consecutiveErrors = 0;
 
-        console.log('[Tracked] Starting NEW SERVER scan (sortOrder=Desc)...');
+        // BUG FIX: sortOrder=Asc → Roblox EN AZ oyunculu (en yeni/boş) sunucuyu ilk sıraya koyar.
+        // Eskiden Desc (en dolu ilk) idi → en dolu sayfalardan tarayıp 5 sayfada durunca gerçekten
+        // yeni/boş sunuculara ulaşamıyordu. Asc ile taze sunucular İLK sayfalarda gelir.
+        console.log('[Tracked] Starting NEW SERVER scan (sortOrder=Asc)...');
 
         try {
             while (hasMore && servers.length < maxScan && consecutiveErrors < 3 && pageCount < 8 && !this.state.abortController?.signal?.aborted) {
@@ -436,7 +446,7 @@ const TrackedScanner = {
                         await TrackedUtils.delay(TrackedConfig.API.DELAY_MS);
                     }
 
-                    const url = this.buildUrl(placeId, cursor, 'Desc');
+                    const url = this.buildUrl(placeId, cursor, 'Asc');
                     console.log(`[Tracked] New server scan - Page ${pageCount}`);
                     
                     const data = await this.fetchWithRetry(url);
@@ -462,12 +472,11 @@ const TrackedScanner = {
                         if (!s || typeof s !== 'object') return false;
                         if (!s.id) return false;
                         if (typeof s.playing !== 'number' || typeof s.maxPlayers !== 'number') return false;
-                        if (s.playing >= s.maxPlayers) return false;
-                        
-                        const fullness = (s.playing / s.maxPlayers) * 100;
-                        const ping = s.ping || 0;
-                        
-                        return fullness < 40 && (ping === 0 || ping < 200);
+                        if (s.playing >= s.maxPlayers) return false; // sadece DOLU olmayan
+                        // GARANTİ: ping/fullness SERT filtresi YOK → boş sunucular ping/doluluk yüzünden
+                        // elenmesin (eski bug: "ara sıra bulamıyor"). Asc en boşları zaten öne koyuyor;
+                        // scoreNewServers en taze (≤2 oyuncu) + en iyi pingi tepeye sıralayıp nokta atışı verir.
+                        return true;
                     });
 
                     if (valid.length > 0) {
@@ -537,36 +546,138 @@ const TrackedScanner = {
         }
     },
 
-    scoreNewServers: (servers) => {
+    // ============================================
+    // SNAPSHOT-FARK: GERÇEKTEN TAZE SUNUCU (Roblox sunucu YAŞI vermiyor → tek dürüst yol budur)
+    // Listeyi al → ~watchMs izle → tekrar al. Arada YENİ beliren jobId'ler = o pencerede DOĞMUŞ sunucular
+    // (bir sunucu listede ancak ilk oyuncusu girince görünür → "yeni belirdi" = "yeni açıldı").
+    // Hiç yeni belirmezse [] döner → dürüst "yeni açılan sunucu yok". Tahmin/uydurma YOK.
+    // ============================================
+    findFreshServers: async function(placeId, onProgress = null, watchMs = 35000) {
+        if (!placeId) return [];
+        try { this.checkRateLimit(); } catch (err) { throw err; }
+        if (this.state.isScanning) { console.warn('[Tracked] Scan already in progress'); return []; }
+
+        this.state.isScanning = true;
+        this.state.scanType = 'fresh';
+        this.state.abortController = new AbortController();
+        const signal = this.state.abortController.signal;
+
+        const SNAP_DELAY = 800; // snapshot sayfaları arası — GET liste hafif, kısa gecikme yeter
+
+        // Asc sayfalardan jobId→server haritası (en boş aralık = taze sunucular ilk sayfalarda belirir).
+        const snapshot = async (maxPages) => {
+            const map = new Map();
+            let cursor = null;
+            for (let p = 0; p < maxPages; p++) {
+                if (signal.aborted) break;
+                let data = null;
+                try { data = await this.fetchWithRetry(this.buildUrl(placeId, cursor, 'Asc')); }
+                catch (e) { if (e.message && e.message.includes('RATE_LIMIT')) throw e; break; }
+                if (!data || !Array.isArray(data.data) || data.data.length === 0) break;
+                for (const s of data.data) {
+                    if (s && s.id && typeof s.playing === 'number' && typeof s.maxPlayers === 'number') map.set(s.id, s);
+                }
+                const nc = data.nextPageCursor;
+                if (nc && typeof nc === 'string' && nc !== '' && nc !== 'null' && nc !== 'undefined') {
+                    cursor = nc;
+                    await TrackedUtils.delay(SNAP_DELAY);
+                } else break;
+            }
+            return map;
+        };
+
+        try {
+            // 1) BAŞLANGIÇ snapshot — geniş (mevcut sunucuları kaydet → sonradan "yeni" sanılanlardan ayrılsın)
+            if (onProgress) onProgress({ phase: 'snapshot1' });
+            const before = await snapshot(6);
+            if (signal.aborted) return [];
+
+            // 2) İZLEME penceresi — beklerken geri sayım
+            const start = Date.now();
+            while (Date.now() - start < watchMs) {
+                if (signal.aborted) return [];
+                const remain = Math.max(1, Math.ceil((watchMs - (Date.now() - start)) / 1000));
+                if (onProgress) onProgress({ phase: 'watch', remain });
+                await TrackedUtils.delay(1000);
+            }
+
+            // 3) İKİNCİ snapshot — en boş aralık yeter (taze sunucular düşük oyunculu, ilk sayfalarda)
+            if (onProgress) onProgress({ phase: 'snapshot2' });
+            const after = await snapshot(4);
+            if (signal.aborted) return [];
+
+            // 4) YENİ beliren + katılabilir = TAZE
+            const fresh = [];
+            for (const [id, s] of after) {
+                if (before.has(id)) continue;            // zaten vardı → taze değil
+                if (s.playing >= s.maxPlayers) continue;  // dolu → atla
+                fresh.push({ ...s, isNew: true, freshlyOpened: true });
+            }
+            fresh.sort((a, b) => a.playing - b.playing);  // en boş (en taze) önce
+            console.log(`[Tracked] Taze tarama: önce=${before.size}, sonra=${after.size}, TAZE=${fresh.length}`);
+            return fresh;
+        } finally {
+            this.state.isScanning = false;
+            this.state.abortController = null;
+        }
+    },
+
+    // v3.4: userBestPing destekli GÖRECELI scoring — server.ping ≈ user'ın best regional pingi en iyi
+    scoreNewServers: (servers, userBestPing = null) => {
         if (!Array.isArray(servers)) {
             console.warn('[Tracked] scoreNewServers received non-array');
             return [];
         }
-        
         if (servers.length === 0) return [];
-        
+
         return servers.map(server => {
-            let score = 1000;
-            
-            const fullness = (server.playing / server.maxPlayers) * 100;
-            score -= (fullness * 15);
-            
-            if (server.playing <= 2) score += 200;
-            else if (server.playing <= 5) score += 100;
-            else if (server.playing <= 10) score += 50;
-            
+            let score = 0;
+
+            // Boşluk oranı — birincil faktör (%50 ağırlık)
+            const emptyRatio = 1 - (server.playing / server.maxPlayers);
+            score += Math.round(emptyRatio * 500);
+            if (server.playing <= 2)      score += 150;
+            else if (server.playing <= 5) score += 80;
+
+            // Ping — kullanıcının best regional pingine GÖRECELI değerlendir
             const ping = server.ping || 0;
             if (ping > 0) {
-                if (ping < 60) score += 150;        // çok düşük: bonus arttı
-                else if (ping < 90) score += 100;
-                else if (ping < 120) score += 30;   // 50→30 (eski: 50)
-                else if (ping > 150) score -= 100;  // 200→150 ve -50→-100 (sıkı ceza)
-                else if (ping > 200) score -= 200;  // ekstra ceza yüksek ping
-            }
+                if (userBestPing && userBestPing > 0) {
+                    // v4.0: Fiziksel sınır farkındalıklı scoring
+                    const delta = ping - userBestPing;
 
-            if (server.fps) {
-                if (server.fps >= 58) score += 80;
-                else if (server.fps >= 55) score += 40;
+                    if (delta < -5) {
+                        // Filter normalde yakalar, bypass olursa: ÇOK CİDDİ ceza
+                        score -= 400;
+                    } else if (delta >= -5 && delta < 5) {
+                        // Tam user'ın best'i ± 5ms — sınırda, biraz şüpheli (outlier olabilir)
+                        score += 280;
+                    } else if (delta >= 5 && delta <= 25) {
+                        score += 450;  // İdeal: bir tık üstte = bölge eşleşmesi belirgin
+                    } else if (delta <= 60) {
+                        score += 320;
+                    } else if (delta <= 100) {
+                        score += 180;
+                    } else if (delta <= 150) {
+                        score += 30;
+                    } else {
+                        score -= 120;
+                    }
+                } else {
+                    // Fallback: absolute bins (eski davranış)
+                    if (ping < 80)       score += 400;
+                    else if (ping < 100) score += 320;
+                    else if (ping < 130) score += 220;
+                    else if (ping < 160) score += 120;
+                    else if (ping < 200) score += 40;
+                    else if (ping < 250) score -= 60;
+                    else                 score -= 150;
+                }
+            } else {
+                // v3.5: ping=0 (bilinmeyen). userBest biliniyorsa CESARETSİZ değerlendir —
+                // known-good ping'li bir sunucu varsa o seçilsin, çünkü tahmin edilebilir.
+                // Eskiden +100 idi (nötr) → known-good ile beraber ranked. Şimdi +30 (known < bilinmeyen).
+                score += userBestPing ? 30 : 100;
             }
 
             return { ...server, score, isNew: true };
@@ -583,25 +694,61 @@ const TrackedScanner = {
         
         return servers.map(server => {
             let score = 1000;
-            score -= (server.playing * 80);
-            
-            if (typeof server.ping === 'number') {
-                if (server.ping < 80) score += 60;
-                else if (server.ping < 120) score += 30;
-                else if (server.ping > 200) score -= 40;
-            }
-            
-            if (server.fps) {
-                if (server.fps >= 58) score += 40;
-                else if (server.fps >= 55) score += 20;
-            }
-            
+            // GÜVENİLİR metrikler: oyuncu sayısı (boşluk/tazelik) + doluluk + FPS (sunucu sağlığı).
+            // PING ÇIKARILDI — Roblox'un ortalama-oyuncu-pingi güvenilmez (yarısı yanlış), sıralamayı
+            // yanıltıyordu. Artık skor yalnızca doğrulanabilir verilere dayanıyor.
+            score -= (server.playing * 80);                       // az oyuncu = daha taze/boş
+
             const fullness = (server.playing / server.maxPlayers) * 100;
-            if (fullness < 30) score += 20;
-            else if (fullness > 80) score -= 30;
-            
+            if (fullness < 30) score += 60;
+            else if (fullness < 60) score += 20;
+            else if (fullness > 85) score -= 60;
+
+            // FPS = sunucunun anlık sağlığı (yüksek = akıcı, düşük = lag). Roblox'un verdiği gerçek veri.
+            const fps = server.fps ? Math.round(server.fps) : 0;
+            if (fps >= 58) score += 120;
+            else if (fps >= 45) score += 50;
+            else if (fps > 0 && fps < 30) score -= 100;          // lag'li sunucu cezası
+
             return { ...server, score };
         }).sort((a, b) => b.score - a.score);
+    },
+
+    // ÇİFT-DOĞRULAMA GEÇİŞİ: en iyi adayları TAZE veriyle yeniden kontrol et. Hâlâ canlı mı, bu arada
+    // doldu mu, oyuncu/FPS durumu ne? Bulunmayan (kapanmış) ya da dolmuş adaylar ELENİR; bulunanlar
+    // GÜNCEL veriyle döner → kullanıcıya yalnızca gerçekten katılabilir, doğrulanmış sunucular gider.
+    verifyServers: async function(placeId, candidates, onProgress = null) {
+        if (!Array.isArray(candidates) || candidates.length === 0) return [];
+        const wanted = new Map(candidates.map(c => [String(c.id), c]));
+        const fresh = new Map(); // jobId → güncel sunucu durumu
+        let cursor = null, page = 0;
+        // Asc → en boş (= adaylarımız) ilk gelir → 6 sayfa içinde yakalanırlar.
+        while (page < 6 && fresh.size < wanted.size) {
+            page++;
+            if (page > 1) await TrackedUtils.delay(TrackedConfig.API.DELAY_MS);
+            let data;
+            try { data = await this.fetchWithRetry(this.buildUrl(placeId, cursor, 'Asc')); }
+            catch (e) { break; }
+            if (!data || !Array.isArray(data.data) || data.data.length === 0) break;
+            data.data.forEach(s => { if (s && s.id && wanted.has(String(s.id))) fresh.set(String(s.id), s); });
+            if (onProgress) onProgress({ found: fresh.size, target: wanted.size, page });
+            const nc = data.nextPageCursor;
+            if (nc && typeof nc === 'string' && nc !== '' && nc !== 'null') cursor = nc; else break;
+        }
+        const verified = [];
+        wanted.forEach((cand, id) => {
+            const f = fresh.get(id);
+            if (!f) return;                              // kapanmış/bulunamadı → doğrulanmadı, ele
+            if (typeof f.playing === 'number' && typeof f.maxPlayers === 'number' && f.playing >= f.maxPlayers) return; // bu arada DOLDU → ele
+            verified.push({
+                ...cand,
+                playing: (typeof f.playing === 'number') ? f.playing : cand.playing,
+                maxPlayers: (typeof f.maxPlayers === 'number') ? f.maxPlayers : cand.maxPlayers,
+                fps: (f.fps != null) ? f.fps : cand.fps,
+                verified: true
+            });
+        });
+        return verified;
     },
 
     // ============================================
@@ -784,7 +931,8 @@ const TrackedScanner = {
     // v3.0: AUTO-BLOCKER - Akıllı Filtreleme ve Otomatik Bağlanma
     // ============================================
     autoBlockerScan: async function(placeId, onProgress = null, onBlocked = null, onServerFound = null, opts = {}) {
-        console.log('[Tracked] AUTO-BLOCKER v3.1: Paralel tarama başlatılıyor...');
+        const scanStartTime = Date.now();
+        console.log(`[Tracked] Oto-Pilot v3.8: SCAN BAŞLADI — placeId=${placeId}, maxPing=${opts.maxPing}ms, userBest=${opts.userBestPing}ms`);
 
         if (this.state.isScanning) {
             throw new Error('Tarama zaten çalışıyor');
@@ -802,11 +950,23 @@ const TrackedScanner = {
         this.state.isScanning = true;
         this.state.scanType = 'autoblocker';
 
-        const BLOCKER_DELAY = 500;
-        const MAX_PAGES     = 10;
-        const MAX_PLAYERS   = opts.maxPlayers ?? 5;   // eski: 2 (çok katıydı)
-        const MAX_PING      = opts.maxPing    ?? 300;  // eski: 150ms (çok katıydı)
+        const BLOCKER_DELAY = 900;
+        const MAX_PAGES     = 14;  // v3.3: 10 → 14 — büyük oyunlarda daha derin tarama
+        const MAX_PLAYERS   = opts.maxPlayers ?? 5;
+        const MAX_PING      = opts.maxPing    ?? 300;
+        const USER_BEST_PING = opts.userBestPing ?? null;  // v3.4: kullanıcının ölçtüğü best regional ping
         const signal        = opts.signal ?? null;
+
+        // v3.6: Bad-server blocklist — manuel "ping kötü" feedback'iyle birikiyor (24h TTL)
+        let badJobIds = new Set();
+        try {
+            const blStore = await chrome.storage.local.get('rota_otopilot_blocklist');
+            const bl = blStore?.rota_otopilot_blocklist || [];
+            const now = Date.now();
+            const TTL = 24 * 60 * 60 * 1000;
+            badJobIds = new Set(bl.filter(e => e?.ts && (now - e.ts) < TTL).map(e => e.id));
+            if (badJobIds.size > 0) console.log(`[Tracked] v3.6: ${badJobIds.size} bad server jobId blocklist'te (24h)`);
+        } catch (_) {}
 
         let blockedCount = 0;
         let scannedCount = 0;
@@ -840,12 +1000,23 @@ const TrackedScanner = {
             if (!server || !server.id || typeof server.playing !== 'number') {
                 return { valid: false, reason: 'invalid' };
             }
+            // v3.6: önceden "kötü" işaretlenmiş jobId'leri reject
+            if (badJobIds.has(server.id)) {
+                return { valid: false, reason: 'blocklisted', detail: 'bad ping geçmişi' };
+            }
             if (server.playing > MAX_PLAYERS) {
                 return { valid: false, reason: 'too_many_players', detail: `${server.playing} oyuncu` };
             }
             const ping = server.ping || 0;
             if (ping > MAX_PING && ping > 0) {
                 return { valid: false, reason: 'high_ping', detail: `${ping}ms` };
+            }
+            // v4.0: SIKİ fiziksel sınır kontrolü — flat 5ms tolerans
+            // userBest = senin ölçtüğün physical min. 5ms altı = measurement noise sınırı.
+            // Daha düşük = server FARKLI BÖLGEDE, oradaki oyunculara göre düşük (sen 200ms+ alırsın).
+            // user=47ms → reject <42ms. user=40ms → reject <35ms. Net ve agresif.
+            if (USER_BEST_PING && ping > 0 && ping < USER_BEST_PING - 5) {
+                return { valid: false, reason: 'far_region', detail: `${ping}ms < ${USER_BEST_PING-5}ms (uzak bölge sinyali)` };
             }
             if (server.playing >= server.maxPlayers) {
                 return { valid: false, reason: 'full' };
@@ -855,17 +1026,22 @@ const TrackedScanner = {
 
         let cursorAsc = null, cursorDesc = null;
         let pageCount = 0;
+        let rl429Retries = 0; // 429 sonrası kaç kez bekleme yapıldı
 
-        // v3.2: Tüm aday sunucuları biriktir, sonunda en iyisini seç
-        // (eski: ilk uygun adayı bulan kazanır → düşük kaliteli sonuçlar)
-        // Yeni: 3 sayfa boyunca aday topla, sonra skorla ve en iyiyi seç (~1.5sn)
+        // v4.0: COMPREHENSIVE scan — early exit threshold yüksek tutuldu (30)
+        // → daha geniş aday havuzu = filter+scoring sonrası daha güvenilir seçim
         const allCandidates = [];
-        const MIN_PAGES_BEFORE_PICK = 3; // En az 3 sayfa ara (yeterli aday için)
-        const EARLY_EXIT_CANDIDATE_COUNT = 8; // 8+ aday → erken çık (yeterli numune)
+        const MIN_PAGES_BEFORE_PICK = 4;       // 3 → 4 — minimum derinlik
+        const EARLY_EXIT_CANDIDATE_COUNT = 30; // 12 → 30 — geniş örneklem
+
+        // İptal-uyumlu bekleme: signal abort edilirse erken çıkar
+        const abortableSleep = (ms) => new Promise((resolve) => {
+            const tid = setTimeout(resolve, ms);
+            signal?.addEventListener('abort', () => { clearTimeout(tid); resolve(); }, { once: true });
+        });
 
         try {
             while (pageCount < MAX_PAGES && this.state.isScanning) {
-                // Kullanıcı durdurduysa çık
                 if (signal?.aborted) {
                     console.log('[Tracked] v3.1: Kullanıcı taramayı durdurdu.');
                     return null;
@@ -873,20 +1049,31 @@ const TrackedScanner = {
 
                 pageCount++;
 
-                // Asc + Desc PARALEL çek (2x hız)
-                const [ascResult, descResult] = await Promise.all([
-                    fetchPage(cursorAsc, 'Asc'),
-                    fetchPage(cursorDesc, 'Desc')
-                ]);
+                // Asc + Desc sıralı çek — paralel 2x fetch Roblox rate-limiter'ı tetikliyor
+                const ascResult = await fetchPage(cursorAsc, 'Asc');
+                if (signal?.aborted) return null;
+                await abortableSleep(600); // iki istek arası nefes
+                const descResult = await fetchPage(cursorDesc, 'Desc');
 
-                // Rate limit kontrolü
+                // Rate limit (429) → akıllı bekleme + 1 retry
                 if (ascResult.rateLimited || descResult.rateLimited) {
-                    this.setRateLimit(15000);
-                    console.log('[Tracked] v3.1: Rate limit, duruyorum.');
-                    // Şu ana kadar bulunan adayları kullanmaya çalış
+                    console.log(`[Tracked] v3.1: 429 rate limit (retry #${rl429Retries + 1})`);
+                    if (rl429Retries < 1) {
+                        rl429Retries++;
+                        const waitMs = 25000; // 25sn — Roblox rate-limit window'u genellikle bu kadardır
+                        onProgress?.({ scanned: scannedCount, blocked: blockedCount, page: pageCount, status: 'rate_limit_wait', waitMs });
+                        await abortableSleep(waitMs);
+                        if (signal?.aborted) return null;
+                        pageCount--; // aynı sayfayı tekrar dene
+                        continue;
+                    }
+                    // İkinci 429 → yeterli aday varsa onlarla devam, yoksa dur
+                    this.setRateLimit(20000);
+                    console.log('[Tracked] v3.1: Rate limit (2. deneme de başarısız), duruyorum.');
                     if (allCandidates.length > 0) break;
                     return null;
                 }
+                rl429Retries = 0; // başarılı istek → sayacı sıfırla
 
                 // Her iki sayfadan gelen adayları topla
                 for (const result of [ascResult, descResult]) {
@@ -909,26 +1096,46 @@ const TrackedScanner = {
                 const nextDesc = descResult.data?.nextPageCursor;
                 if (nextDesc && nextDesc !== 'null') cursorDesc = nextDesc;
 
-                // Progress
                 onProgress?.({ scanned: scannedCount, blocked: blockedCount, page: pageCount, status: 'filtering' });
 
-                // Erken çıkış: yeterli aday biriktirdik VE minimum sayfa eşiğini geçtik
                 if (pageCount >= MIN_PAGES_BEFORE_PICK && allCandidates.length >= EARLY_EXIT_CANDIDATE_COUNT) {
                     break;
                 }
 
-                // Sayfada sonu vurmuşuz (cursor null) → daha fazla sayfa yok
                 if (!cursorAsc && !cursorDesc) break;
 
-                await TrackedUtils.delay(BLOCKER_DELAY);
+                await abortableSleep(BLOCKER_DELAY);
             }
 
-            // Tüm sayfalar tarandı (veya yeterli aday) → en iyiyi seç
+            // v3.4: userBestPing ile GÖRECELI scoring
+            // v3.6: Top 5 adayı storage'a kaydet — "ping kötü" feedback için sıradaki adayı kullanmak üzere
             if (allCandidates.length > 0) {
-                const scored = this.scoreNewServers(allCandidates);
+                const scored = this.scoreNewServers(allCandidates, USER_BEST_PING);
                 const best = scored[0];
-                console.log(`[Tracked] v3.2: ${allCandidates.length} aday içinden en iyisi seçildi: ${best.playing} oyuncu, ${best.ping || '?'}ms ping, skor=${best.score}`);
-                console.log(`[Tracked] v3.2: Top 3 adaylar:`, scored.slice(0, 3).map(s => ({ players: s.playing, ping: s.ping, fps: s.fps, score: s.score })));
+
+                // Top 5'i storage'a yaz (retry için)
+                try {
+                    const topCandidates = scored.slice(0, 5).map(s => ({
+                        jobId: s.id,
+                        players: s.playing,
+                        ping: s.ping,
+                        score: s.score
+                    }));
+                    chrome.storage.local.set({
+                        rota_otopilot_last_scan: {
+                            placeId,
+                            selectedJobId: best.id,
+                            candidates: topCandidates,
+                            userBestPing: USER_BEST_PING,
+                            timestamp: Date.now()
+                        }
+                    }).catch(() => {});
+                } catch (_) {}
+
+                const scanDuration = ((Date.now() - scanStartTime) / 1000).toFixed(1);
+                console.log(`[Tracked] v3.8: SCAN BİTTİ (${scanDuration}sn) — ${scannedCount} server tarandı, ${blockedCount} filtrelendi, ${allCandidates.length} aday → ${pageCount} sayfa`);
+                console.log(`[Tracked] v3.8: SEÇİLEN → ${best.playing} oyuncu, ${best.ping || '?'}ms ping (user best=${USER_BEST_PING}ms), skor=${best.score}`);
+                console.log(`[Tracked] v3.8: Top 3 adaylar:`, scored.slice(0, 3).map(s => ({ players: s.playing, ping: s.ping, score: s.score })));
                 onServerFound?.(best);
                 return best;
             }
@@ -951,55 +1158,45 @@ const TrackedScanner = {
     // Değişiklik yapıldığında HER İKİ KOPYA da güncellenmelidir.
     // ============================================
     analyzeServerPlayers: function(server) {
-        if (!server || !server.id) return { score: 0, badges: [], simulated: true };
-        
+        if (!server || !server.id) return { score: 0, badges: [], simulated: false };
+
+        // DÜRÜST SUNUCU SAĞLIĞI: yalnızca GERÇEK/doğrulanabilir veri → doluluk + FPS.
+        // (Eski hâli: ping + sahte "sunucu yaşı" hash'i ile uydurma "oyuncu analizi" yapıyordu.
+        //  Roblox public API'si oyuncuların kim olduğunu vermez → gerçek oyuncu analizi mümkün değil.)
         const badges = [];
-        let trustScore = 50; // Güven skoru 0-100
-        
-        const ping = server.ping || 0;
-        const fps = server.fps || 0;
-        const fullness = (server.playing / server.maxPlayers) * 100;
-        
-        // Sunucu ID'sinden "sözde yaş" hesapla (simülasyon)
-        const serverHash = server.id.split('').reduce((a, b) => a + b.charCodeAt(0), 0);
-        const simulatedAge = (serverHash % 365); // 0-365 gün
-        
-        // 💎 ELİT SUNUCU: Mükemmel koşullar
-        if (ping > 0 && ping < 60 && fps >= 58 && fullness > 30 && fullness < 80) {
-            badges.push({ type: 'elite', icon: '<svg width="13" height="13" viewBox="0 0 24 24" fill="rgba(255,215,0,0.35)" stroke="#FFD700" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>', label: 'Elit Sunucu' });
-            trustScore += 40;
+        let health = 50;
+        const fps = server.fps ? Math.round(server.fps) : 0;
+        const playing = server.playing || 0;
+        const maxP = server.maxPlayers || 1;
+        const fullness = (playing / maxP) * 100;
+
+        // ── Popülasyon (gerçek doluluk) ──
+        if (playing <= 2 || fullness < 20) {
+            badges.push({ type: 'fresh', icon: '<svg width="13" height="13" viewBox="0 0 24 24" fill="rgba(48,209,88,0.22)" stroke="#30D158" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"></path><path d="M2 21c0-3 1.85-5.36 5.08-6"></path></svg>', label: 'Taze' });
+            health += 20;
+        } else if (fullness > 85) {
+            badges.push({ type: 'crowded', icon: '<svg width="13" height="13" viewBox="0 0 24 24" fill="rgba(255,159,10,0.22)" stroke="#FF9F0A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>', label: 'Dolu' });
+            health -= 15;
+        } else {
+            badges.push({ type: 'balanced', icon: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#64B4FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M7 12h10"></path><path d="M10 18h4"></path></svg>', label: 'Dengeli' });
+            health += 10;
         }
-        // ⭐ GÜVENLİ KULLANICI: Stabil + Orta doluluk
-        else if (ping > 0 && ping < 120 && fps >= 50 && fullness >= 20) {
-            badges.push({ type: 'safe', icon: '<svg width="13" height="13" viewBox="0 0 24 24" fill="rgba(48,209,88,0.25)" stroke="#30D158" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><polyline points="9 12 11 14 15 10"></polyline></svg>', label: 'Güvenli Kullanıcı' });
-            trustScore += 25;
+
+        // ── Sunucu sağlığı (gerçek FPS) ──
+        if (fps >= 58) {
+            badges.push({ type: 'smooth', icon: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#30D158" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>', label: 'Akıcı' });
+            health += 30;
+        } else if (fps > 0 && fps < 35) {
+            badges.push({ type: 'laggy', icon: '<svg width="13" height="13" viewBox="0 0 24 24" fill="rgba(255,69,58,0.22)" stroke="#FF453A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>', label: 'Lag\'li' });
+            health -= 30;
         }
-        
-        // 🤓 YENİ KULLANICI: Az doluluk veya yeni sunucu
-        if (fullness < 25 || server.playing <= 2) {
-            badges.push({ type: 'newbie', icon: '<svg width="13" height="13" viewBox="0 0 24 24" fill="rgba(100,180,255,0.25)" stroke="#64B4FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>', label: 'Yeni Kullanıcı' });
-            trustScore -= 10;
-        }
-        
-        // 🛡️ STABİL: Uzun süre açık kalmış (simüle edilmiş)
-        if (simulatedAge > 100 && fps >= 45) {
-            badges.push({ type: 'stable', icon: '<svg width="13" height="13" viewBox="0 0 24 24" fill="rgba(191,90,242,0.25)" stroke="#BF5AF2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>', label: 'Stabil' });
-            trustScore += 15;
-        }
-        
-        // ⚠️ RİSKLİ: Yüksek ping veya düşük FPS
-        if (ping > 180 || (fps > 0 && fps < 35)) {
-            badges.push({ type: 'risky', icon: '<svg width="13" height="13" viewBox="0 0 24 24" fill="rgba(255,159,10,0.25)" stroke="#FF9F0A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>', label: 'Riskli' });
-            trustScore -= 25;
-        }
-        
+
         return {
-            score: Math.max(0, Math.min(100, trustScore)),
+            score: Math.max(0, Math.min(100, health)),
             badges: badges,
-            simulatedServerAge: simulatedAge,
-            ping: ping,
             fps: fps,
-            simulated: true // Bu verilerin simüle edildiğini belirt
+            fullness: Math.round(fullness),
+            simulated: false // artık tamamen GERÇEK veri (doluluk + FPS)
         };
     }
 };

@@ -1,0 +1,26 @@
+/* Tracked — bayrak ikonu kabı (lib/flags.js tkFlag() ile üretilir). */
+.tk-flag {
+  display: inline-flex;
+  width: 18px;
+  height: 13px;
+  border-radius: 2px;
+  overflow: hidden;
+  flex-shrink: 0;
+  vertical-align: middle;
+  line-height: 0;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.18), 0 1px 2px rgba(0, 0, 0, 0.22);
+}
+.tk-flag img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  pointer-events: none;
+}
+/* Boyut varyantları */
+.tk-flag.tk-flag-sm { width: 15px; height: 11px; border-radius: 1.5px; }
+.tk-flag.tk-flag-lg { width: 22px; height: 16px; }
+
+/* Flex-gap olmayan bağlamda (popup TARA stat-badge) bayrak-metin boşluğu.
+   .server-region / .ping-left / .tracked-modal-region zaten flex gap kullanır → margin gerekmez. */
+.stat-badge .tk-flag { margin-right: 5px; }

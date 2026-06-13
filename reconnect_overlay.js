@@ -5,6 +5,10 @@
 (function() {
     'use strict';
 
+    // Çift yükleme koruması (scripting.executeScript fallback re-injects the file)
+    if (window._trackedReconnectSetup) return;
+    window._trackedReconnectSetup = true;
+
     // Reduced motion ayarı
     try {
         chrome.storage?.local?.get('rota_settings').then(d => {
@@ -45,8 +49,23 @@
             : '';
 
         const jobChip = session.jobId
-            ? `<div class="tr-reconnect-chip"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Server ID: <code>${escapeHtml(String(session.jobId).substring(0, 8))}…</code></div>`
+            ? `<div class="tr-reconnect-chip">
+                <div class="tr-chip-header">
+                  <span>Server ID</span>
+                  <button class="tr-copy-btn" data-full-id="${escapeHtml(session.jobId)}" title="Kopyala">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                  </button>
+                </div>
+                <code class="tr-full-id">${escapeHtml(session.jobId)}</code>
+               </div>`
             : `<div class="tr-reconnect-chip warn">Server ID kayıt edilmedi — yeni server'a düşersin</div>`;
+
+        const saveButton = session.jobId
+            ? `<button class="tr-save-server-btn" data-action="save-server">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                <span>Bu Serveri Kaydet</span>
+               </button>`
+            : '';
 
         // İkinci buton: jobId varsa "Optimal Server" (ping-sorted), yoksa "Yeniden Gir" (fallback default join)
         const optimalLabel = session.jobId ? 'Optimal Sunucu' : 'Yeniden Gir';
@@ -81,6 +100,7 @@
                 <div class="tr-reconnect-desc">Az önce bu oyunda oynuyordun. Bağlantın koptu — devam etmek ister misin?</div>
 
                 ${jobChip}
+                ${saveButton}
 
                 <div class="tr-reconnect-actions">
                     ${sameButton}
@@ -142,6 +162,41 @@
         });
 
         overlay.querySelector('[data-action="close"]')?.addEventListener('click', closeOverlay);
+
+        // Kopyala butonu — tam jobId panoya kopyalanır
+        overlay.querySelector('.tr-copy-btn')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const fullId = e.currentTarget.dataset.fullId;
+            const btn = e.currentTarget;
+            navigator.clipboard?.writeText(fullId).then(() => {
+                const orig = btn.innerHTML;
+                btn.innerHTML = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#30D158" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>';
+                setTimeout(() => { btn.innerHTML = orig; }, 1500);
+            }).catch(() => {});
+        });
+
+        // Serveri kaydet butonu — rota_saved_servers'a ekler
+        overlay.querySelector('[data-action="save-server"]')?.addEventListener('click', async (e) => {
+            const btn = e.currentTarget;
+            if (btn.disabled) return;
+            try {
+                const data = await chrome.storage.local.get('rota_saved_servers');
+                const servers = data.rota_saved_servers || [];
+                const alreadySaved = servers.some(s => s.jobId === session.jobId);
+                if (!alreadySaved) {
+                    servers.unshift({
+                        placeId: session.placeId,
+                        jobId: session.jobId,
+                        gameTitle: String(session.gameTitle || 'Roblox Oyunu').replace(/\s*\|\s*(?:Play on\s*)?Roblox\s*$/i, '').trim(),
+                        savedAt: Date.now()
+                    });
+                    await chrome.storage.local.set({ rota_saved_servers: servers.slice(0, 30) });
+                }
+                btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#30D158" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg><span>Kaydedildi ✓</span>';
+                btn.classList.add('saved');
+                btn.disabled = true;
+            } catch (_) {}
+        });
     }
 
     // Mesaj listener — SW'den crash overlay broadcast'ini dinle

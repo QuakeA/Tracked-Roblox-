@@ -200,55 +200,46 @@ window.PingUtils = {
      * @returns {Object} - { score, badges, simulated }
      */
     analyzeServerPlayers(server) {
-        if (!server || !server.id) return { score: 0, badges: [], simulated: true };
-        
+        if (!server || !server.id) return { score: 0, badges: [], simulated: false };
+
+        // DÜRÜST SUNUCU SAĞLIĞI: yalnızca GERÇEK/doğrulanabilir veri → doluluk + FPS.
+        // (Eski hâli ping + sahte "sunucu yaşı" hash'i ile uydurma analiz yapıyordu; Roblox public
+        //  API'si oyuncuların kim olduğunu vermez → gerçek oyuncu analizi mümkün değil.)
+        // NOT: TrackedScanner.analyzeServerPlayers ile AYNI tutulmalı (iki kopya).
         const badges = [];
-        let trustScore = 50;
-        
-        const ping = server.ping || 0;
-        const fps = server.fps || 0;
-        const fullness = (server.playing / server.maxPlayers) * 100;
-        
-        // Sunucu ID'sinden "yaş" hesaplama (simülasyon)
-        const serverHash = server.id.split('').reduce((a, b) => a + b.charCodeAt(0), 0);
-        const simulatedAge = serverHash % 365;
-        
-        // 💎 Elit Sunucu
-        if (ping > 0 && ping < 60 && fps >= 58 && fullness > 30 && fullness < 80) {
-            badges.push({ type: 'elite', icon: '<svg width="13" height="13" viewBox="0 0 24 24" fill="rgba(255,215,0,0.35)" stroke="#FFD700" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>', label: 'Elit Sunucu' });
-            trustScore += 40;
+        let health = 50;
+        const fps = server.fps ? Math.round(server.fps) : 0;
+        const playing = server.playing || 0;
+        const maxP = server.maxPlayers || 1;
+        const fullness = (playing / maxP) * 100;
+
+        // ── Popülasyon (gerçek doluluk) ──
+        if (playing <= 2 || fullness < 20) {
+            badges.push({ type: 'fresh', icon: '<svg width="13" height="13" viewBox="0 0 24 24" fill="rgba(48,209,88,0.22)" stroke="#30D158" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"></path><path d="M2 21c0-3 1.85-5.36 5.08-6"></path></svg>', label: 'Taze' });
+            health += 20;
+        } else if (fullness > 85) {
+            badges.push({ type: 'crowded', icon: '<svg width="13" height="13" viewBox="0 0 24 24" fill="rgba(255,159,10,0.22)" stroke="#FF9F0A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>', label: 'Dolu' });
+            health -= 15;
+        } else {
+            badges.push({ type: 'balanced', icon: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#64B4FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M7 12h10"></path><path d="M10 18h4"></path></svg>', label: 'Dengeli' });
+            health += 10;
         }
-        // ⭐ Güvenli
-        else if (ping > 0 && ping < 120 && fps >= 50 && fullness >= 20) {
-            badges.push({ type: 'safe', icon: '<svg width="13" height="13" viewBox="0 0 24 24" fill="rgba(48,209,88,0.25)" stroke="#30D158" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><polyline points="9 12 11 14 15 10"></polyline></svg>', label: 'Güvenli' });
-            trustScore += 25;
+
+        // ── Sunucu sağlığı (gerçek FPS) ──
+        if (fps >= 58) {
+            badges.push({ type: 'smooth', icon: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#30D158" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>', label: 'Akıcı' });
+            health += 30;
+        } else if (fps > 0 && fps < 35) {
+            badges.push({ type: 'laggy', icon: '<svg width="13" height="13" viewBox="0 0 24 24" fill="rgba(255,69,58,0.22)" stroke="#FF453A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>', label: 'Lag\'li' });
+            health -= 30;
         }
-        
-        // 🤓 Yeni
-        if (fullness < 25 || server.playing <= 2) {
-            badges.push({ type: 'newbie', icon: '<svg width="13" height="13" viewBox="0 0 24 24" fill="rgba(100,180,255,0.25)" stroke="#64B4FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>', label: 'Yeni' });
-            trustScore -= 10;
-        }
-        
-        // 🛡️ Stabil
-        if (simulatedAge > 100 && fps >= 45) {
-            badges.push({ type: 'stable', icon: '<svg width="13" height="13" viewBox="0 0 24 24" fill="rgba(191,90,242,0.25)" stroke="#BF5AF2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>', label: 'Stabil' });
-            trustScore += 15;
-        }
-        
-        // ⚠️ Riskli
-        if (ping > 180 || (fps > 0 && fps < 35)) {
-            badges.push({ type: 'risky', icon: '<svg width="13" height="13" viewBox="0 0 24 24" fill="rgba(255,159,10,0.25)" stroke="#FF9F0A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>', label: 'Riskli' });
-            trustScore -= 25;
-        }
-        
+
         return {
-            score: Math.max(0, Math.min(100, trustScore)),
+            score: Math.max(0, Math.min(100, health)),
             badges: badges,
-            simulatedServerAge: simulatedAge,
-            ping: ping,
             fps: fps,
-            simulated: true
+            fullness: Math.round(fullness),
+            simulated: false
         };
     }
 };

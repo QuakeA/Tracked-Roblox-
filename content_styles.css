@@ -42,9 +42,9 @@
   background: linear-gradient(180deg, 
     rgba(255,255,255,0.12) 0%, 
     rgba(255,255,255,0.06) 100%) !important;
-  backdrop-filter: blur(20px) saturate(1.5) !important;
-  -webkit-backdrop-filter: blur(20px) saturate(1.5) !important;
-  
+  backdrop-filter: blur(30px) saturate(1.5) !important;
+  -webkit-backdrop-filter: blur(30px) saturate(1.5) !important;
+
   border-radius: 12px !important;
   padding: 5px 8px !important;
   box-shadow: 
@@ -143,6 +143,55 @@
   color: #E8D5F7 !important;
 }
 
+/* Sunucu Bekçisi — aktif (izlenirken) durumu: yeşil pulse */
+.tracked-bar-btn.btn-watch.watching {
+  background: linear-gradient(180deg, rgba(48,209,88,0.22) 0%, rgba(48,209,88,0.1) 100%) !important;
+  color: #30D158 !important;
+  border-color: rgba(48,209,88,0.45) !important;
+  animation: tk-watch-pulse 1.8s ease-in-out infinite !important;
+}
+@keyframes tk-watch-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(48,209,88,0.0); }
+  50% { box-shadow: 0 0 10px 1px rgba(48,209,88,0.35); }
+}
+
+/* Bekçi modal'ı — aksiyon toggle butonları (Bildir / Oto-katıl) */
+.watch-action-row {
+  display: flex !important;
+  gap: 8px !important;
+  margin: 12px 0 !important;
+}
+.watch-act-btn {
+  flex: 1 !important;
+  padding: 9px 12px !important;
+  border-radius: 8px !important;
+  border: 1px solid rgba(255,255,255,0.14) !important;
+  background: rgba(255,255,255,0.05) !important;
+  color: rgba(255,255,255,0.7) !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+}
+.watch-act-btn:hover { background: rgba(255,255,255,0.1) !important; }
+.watch-act-btn.active {
+  background: rgba(48,209,88,0.18) !important;
+  color: #30D158 !important;
+  border-color: rgba(48,209,88,0.4) !important;
+}
+
+/* Bekçi modal'ı — başka oyun izleniyor uyarısı */
+.watch-warn {
+  margin: 0 0 10px !important;
+  padding: 9px 12px !important;
+  border-radius: 8px !important;
+  background: rgba(255,159,10,0.12) !important;
+  border: 1px solid rgba(255,159,10,0.35) !important;
+  color: #FF9F0A !important;
+  font-size: 12.5px !important;
+  line-height: 1.4 !important;
+}
+
 .tracked-bar-btn.btn-new-server:hover {
   background: linear-gradient(180deg,
     rgba(191,90,242,0.25) 0%,
@@ -172,69 +221,6 @@
     0 0 12px rgba(255,69,58,0.4) !important;
   transform: translateY(-1px) !important;
 }
-
-/* ============================================
-   C+D CERRAHİ BUTTON - Cyan/Surgical (token-to-userId targeting)
-   ============================================ */
-.tracked-bar-btn.btn-targeted {
-  background: linear-gradient(180deg,
-    rgba(50,200,220,0.22) 0%,
-    rgba(50,200,220,0.10) 100%) !important;
-  color: #C8F4FA !important;
-  border: 1px solid rgba(50,200,220,0.25) !important;
-}
-
-.tracked-bar-btn.btn-targeted:hover {
-  background: linear-gradient(180deg,
-    rgba(50,200,220,0.40) 0%,
-    rgba(50,200,220,0.22) 100%) !important;
-  box-shadow:
-    inset 0 1px 0 rgba(255,255,255,0.2),
-    0 0 14px rgba(50,200,220,0.5) !important;
-  transform: translateY(-1px) !important;
-}
-
-/* ============================================
-   v3.0: AUTO-PILOT BUTTON - Mor/Akıllı Filtreleme
-   ============================================ */
-.tracked-bar-btn.btn-autopilot {
-  background: linear-gradient(180deg,
-    rgba(191,90,242,0.25) 0%,
-    rgba(191,90,242,0.12) 100%) !important;
-  color: #F0E0FF !important;
-  border: 1px solid rgba(191,90,242,0.3) !important;
-  flex-shrink: 0 !important;
-  white-space: nowrap !important;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.2) !important;
-}
-
-.tracked-bar-btn.btn-autopilot:hover {
-  background: linear-gradient(180deg,
-    rgba(191,90,242,0.4) 0%,
-    rgba(191,90,242,0.25) 100%) !important;
-  box-shadow: 
-    inset 0 1px 0 rgba(255,255,255,0.25),
-    0 0 20px rgba(191,90,242,0.6),
-    0 0 40px rgba(191,90,242,0.3) !important;
-  transform: translateY(-1px) !important;
-}
-
-.tracked-bar-btn.btn-autopilot.scanning {
-  animation: autopilot-pulse 1s infinite !important;
-}
-
-@keyframes autopilot-pulse {
-  0%, 100% { 
-    box-shadow: 0 0 0 0 rgba(191,90,242,0.4),
-                inset 0 1px 0 rgba(255,255,255,0.25) !important;
-  }
-  50% { 
-    box-shadow: 0 0 16px 3px rgba(191,90,242,0.7),
-                inset 0 1px 0 rgba(255,255,255,0.35) !important;
-  }
-}
-
-/* (shimmer sweep removed — outer aura pulse on bar handles the animation) */
 
 /* ============================================
    v2.5: Instance Trigger - Progress Bar
@@ -694,7 +680,7 @@
 }
 
 /* Region badge — muhtemel DC tahmini (ping bazlı kestirim) */
-.server-region {
+.tracked-sv-region {
   display: inline-flex;
   align-items: center;
   gap: 3px;
@@ -709,16 +695,10 @@
   cursor: help;
   white-space: nowrap;
 }
-.server-region[data-confidence="medium"] {
+.tracked-sv-region[data-confidence="medium"] {
   background: rgba(255,255,255,0.06);
   border-color: rgba(255,255,255,0.12);
   opacity: 0.85;
-}
-.server-region[data-confidence="low"] {
-  background: rgba(255,255,255,0.04);
-  border-color: rgba(255,255,255,0.08);
-  opacity: 0.55;
-  font-style: italic;
 }
 
 /* Custom ping tooltip (C paketi) — native title yerine zengin popover.
@@ -791,15 +771,15 @@
   line-height: 1.35;
 }
 
-.server-fps {
+.tracked-sv-fps {
   font-size: 11px;
   font-weight: 600;
   padding: 1px 5px;
   border-radius: 4px;
 }
-.server-fps.fps-good { background: rgba(48,209,88,0.15); color: #30D158; }
-.server-fps.fps-ok   { background: rgba(255,159,10,0.15); color: #FF9F0A; }
-.server-fps.fps-bad  { background: rgba(255,69,58,0.15);  color: #FF453A; }
+.tracked-sv-fps.fps-good { background: rgba(48,209,88,0.15); color: #30D158; }
+.tracked-sv-fps.fps-ok   { background: rgba(255,159,10,0.15); color: #FF9F0A; }
+.tracked-sv-fps.fps-bad  { background: rgba(255,69,58,0.15);  color: #FF453A; }
 
 .server-score-row {
   display: flex;
@@ -965,6 +945,26 @@
   background: rgba(191,90,242,0.3);
   color: white;
   margin-left: 4px;
+}
+
+/* Çift-doğrulama: taze veriyle teyit edilmiş sunucu rozeti */
+.verified-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 8px;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: rgba(48,209,88,0.18);
+  color: #30D158;
+  border: 1px solid rgba(48,209,88,0.35);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+.verified-badge svg { flex-shrink: 0; }
+.server-item.verified {
+  border-color: rgba(48,209,88,0.25);
 }
 
 .server-actions {
@@ -1213,69 +1213,222 @@
   box-shadow: 0 4px 8px rgba(0,0,0,0.2) !important;
 }
 
-/* 💎 Elit Sunucu */
-.insight-badge.elite {
-  background: linear-gradient(135deg, rgba(255,215,0,0.3), rgba(191,90,242,0.25)) !important;
-  color: #FFD700 !important;
-  border: 1px solid rgba(255,215,0,0.5) !important;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.3) !important;
-  box-shadow: 0 0 12px rgba(255,215,0,0.2), 0 2px 4px rgba(0,0,0,0.1) !important;
+/* Dürüst sunucu-sağlığı rozetleri (yalnızca gerçek veri: doluluk + FPS) */
+
+/* Taze — boş/yeni sunucu (düşük doluluk) */
+.insight-badge.fresh {
+  background: linear-gradient(135deg, rgba(48,209,88,0.22), rgba(30,180,80,0.16)) !important;
+  color: #30D158 !important;
+  border: 1px solid rgba(48,209,88,0.4) !important;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
 }
 
-/* ⭐ Güvenli Kullanıcı */
-.insight-badge.safe {
-  background: linear-gradient(135deg, rgba(48,209,88,0.25), rgba(30,180,80,0.2)) !important;
+/* Dengeli — orta doluluk */
+.insight-badge.balanced {
+  background: linear-gradient(135deg, rgba(100,180,255,0.2), rgba(80,150,255,0.15)) !important;
+  color: #64B4FF !important;
+  border: 1px solid rgba(100,180,255,0.4) !important;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+}
+
+/* Dolu — kalabalık (yüksek doluluk) */
+.insight-badge.crowded {
+  background: linear-gradient(135deg, rgba(255,159,10,0.22), rgba(255,120,0,0.16)) !important;
+  color: #FF9F0A !important;
+  border: 1px solid rgba(255,159,10,0.4) !important;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+}
+
+/* Akıcı — yüksek FPS (sağlıklı sunucu) */
+.insight-badge.smooth {
+  background: linear-gradient(135deg, rgba(48,209,88,0.25), rgba(40,200,120,0.2)) !important;
   color: #30D158 !important;
   border: 1px solid rgba(48,209,88,0.45) !important;
   box-shadow: 0 0 10px rgba(48,209,88,0.15), 0 2px 4px rgba(0,0,0,0.1) !important;
 }
 
-/* 🤓 Yeni Kullanıcı */
-.insight-badge.newbie {
-  background: linear-gradient(135deg, rgba(100,180,255,0.25), rgba(80,150,255,0.2)) !important;
-  color: #64B4FF !important;
-  border: 1px solid rgba(100,180,255,0.45) !important;
+/* Lag'li — düşük FPS (lag riski) */
+.insight-badge.laggy {
+  background: linear-gradient(135deg, rgba(255,69,58,0.25), rgba(220,50,40,0.2)) !important;
+  color: #FF453A !important;
+  border: 1px solid rgba(255,69,58,0.45) !important;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+  animation: laggy-pulse 2s ease-in-out infinite !important;
 }
 
-/* 🛡️ Stabil */
-.insight-badge.stable {
-  background: linear-gradient(135deg, rgba(191,90,242,0.25), rgba(150,60,200,0.2)) !important;
-  color: #BF5AF2 !important;
-  border: 1px solid rgba(191,90,242,0.45) !important;
-  box-shadow: 0 0 10px rgba(191,90,242,0.15), 0 2px 4px rgba(0,0,0,0.1) !important;
-}
-
-/* ⚠️ Riskli */
-.insight-badge.risky {
-  background: linear-gradient(135deg, rgba(255,159,10,0.25), rgba(255,120,0,0.2)) !important;
-  color: #FF9F0A !important;
-  border: 1px solid rgba(255,159,10,0.45) !important;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
-  animation: risky-pulse 2s ease-in-out infinite !important;
-}
-
-@keyframes risky-pulse {
+@keyframes laggy-pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.8; }
 }
 
-/* A+B Beta etiketi */
-.beta-tag {
-  position: absolute;
-  top: 2px;
-  right: 2px;
-  font-size: 7px;
-  font-weight: 700;
-  line-height: 1;
-  color: #FFD60A;
-  letter-spacing: 0;
-  pointer-events: none;
+/* ── Sunucu bölge / mesafe / performans chip'leri (RoSeal tarzı zengin veri) ── */
+.server-region-cell {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  flex-wrap: wrap !important;
+  margin-top: 6px !important;
 }
 
-.tracked-bar-btn.btn-beta {
-  position: relative;
+.server-region,
+.server-distance,
+.server-version,
+.server-ping,
+.region-recommend,
+.server-perf {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  padding: 3px 8px !important;
+  border-radius: 6px !important;
+  font-size: 10.5px !important;
+  font-weight: 600 !important;
+  white-space: nowrap !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
 }
+
+/* Bölge — şehir (mavi-mor pin) */
+.server-region {
+  background: linear-gradient(135deg, rgba(125,120,255,0.20), rgba(100,90,235,0.14)) !important;
+  color: #B5B0FF !important;
+  border: 1px solid rgba(125,120,255,0.38) !important;
+}
+.server-region svg { flex-shrink: 0 !important; }
+
+/* Bölge bilinmiyor — sönük */
+.server-region.unknown {
+  background: rgba(255,255,255,0.05) !important;
+  color: rgba(235,235,245,0.5) !important;
+  border: 1px solid rgba(255,255,255,0.1) !important;
+}
+
+/* Mesafe — nötr */
+.server-distance {
+  background: rgba(255,255,255,0.06) !important;
+  color: rgba(235,235,245,0.78) !important;
+  border: 1px solid rgba(255,255,255,0.12) !important;
+}
+
+/* Ölçülen gerçek ping — yeşil (gerçek veri, dürüst) */
+.server-ping {
+  background: linear-gradient(135deg, rgba(48,209,88,0.20), rgba(40,200,120,0.14)) !important;
+  color: #30D158 !important;
+  border: 1px solid rgba(48,209,88,0.38) !important;
+  font-variant-numeric: tabular-nums !important;
+}
+
+/* "Önerilen" rozeti — sana en yakın / en düşük ping'li sunucu */
+.region-recommend {
+  background: linear-gradient(135deg, rgba(255,214,10,0.22), rgba(255,180,0,0.15)) !important;
+  color: #FFD60A !important;
+  border: 1px solid rgba(255,214,10,0.45) !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.02em !important;
+}
+.region-recommend svg { flex-shrink: 0 !important; }
+
+/* Bekçi modalı — bölge filtresi notu */
+.watch-region-note {
+  font-size: 11px !important;
+  line-height: 1.4 !important;
+  color: rgba(235,235,245,0.55) !important;
+  margin: 8px 0 0 !important;
+  padding: 7px 10px !important;
+  background: rgba(125,120,255,0.08) !important;
+  border: 1px solid rgba(125,120,255,0.18) !important;
+  border-radius: 7px !important;
+}
+
+/* Bekçi modalı — akıllı kapasite ipucu */
+.watch-capacity-hint {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  line-height: 1.4 !important;
+  color: #30D158 !important;
+  margin: 8px 0 0 !important;
+  padding: 6px 10px !important;
+  background: rgba(48,209,88,0.10) !important;
+  border: 1px solid rgba(48,209,88,0.28) !important;
+  border-radius: 7px !important;
+}
+
+/* Sürüm — nötr, monospace tonu */
+.server-version {
+  background: rgba(255,255,255,0.05) !important;
+  color: rgba(235,235,245,0.6) !important;
+  border: 1px solid rgba(255,255,255,0.1) !important;
+  font-variant-numeric: tabular-nums !important;
+}
+
+/* Performans % (fizik FPS tabanlı, BAT'sız) */
+.server-perf.perf-good {
+  background: linear-gradient(135deg, rgba(48,209,88,0.22), rgba(40,200,120,0.16)) !important;
+  color: #30D158 !important;
+  border: 1px solid rgba(48,209,88,0.4) !important;
+}
+.server-perf.perf-ok {
+  background: linear-gradient(135deg, rgba(255,214,10,0.20), rgba(255,180,0,0.14)) !important;
+  color: #FFD60A !important;
+  border: 1px solid rgba(255,214,10,0.38) !important;
+}
+.server-perf.perf-bad {
+  background: linear-gradient(135deg, rgba(255,69,58,0.22), rgba(220,50,40,0.16)) !important;
+  color: #FF453A !important;
+  border: 1px solid rgba(255,69,58,0.4) !important;
+}
+
+/* Bölge çözülüyor — shimmer */
+.server-region.region-loading {
+  background: rgba(255,255,255,0.05) !important;
+  color: rgba(235,235,245,0.5) !important;
+  border: 1px solid rgba(255,255,255,0.1) !important;
+  animation: region-shimmer 1.2s ease-in-out infinite !important;
+}
+@keyframes region-shimmer {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 0.85; }
+}
+
+/* "Bölgeyi göster" tıkla-çöz butonu */
+.region-show-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  padding: 3px 8px !important;
+  border-radius: 6px !important;
+  font-size: 10.5px !important;
+  font-weight: 600 !important;
+  white-space: nowrap !important;
+  cursor: pointer !important;
+  background: rgba(125,120,255,0.10) !important;
+  color: #B5B0FF !important;
+  border: 1px dashed rgba(125,120,255,0.4) !important;
+  transition: background 0.15s ease, border-color 0.15s ease !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+}
+.region-show-btn:hover {
+  background: rgba(125,120,255,0.18) !important;
+  border-color: rgba(125,120,255,0.6) !important;
+}
+.region-show-btn svg { flex-shrink: 0 !important; }
+
+/* Join modal (Yeni) bölge satırı */
+.tracked-modal-region {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  margin: 10px 0 2px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: #B5B0FF !important;
+}
+.tracked-modal-region.unknown { color: rgba(235,235,245,0.5) !important; }
+.tracked-modal-region.region-loading {
+  color: rgba(235,235,245,0.5) !important;
+  animation: region-shimmer 1.2s ease-in-out infinite !important;
+}
+.tracked-modal-region svg { flex-shrink: 0 !important; }
 
 /* ============================================
    REDUCED MOTION (Accessibility) — content script
@@ -1500,30 +1653,94 @@
 
 /* Server ID chip */
 .tr-reconnect-chip {
-  display: inline-flex !important;
-  align-items: center !important;
-  gap: 6px !important;
+  display: block !important;
   font-size: 11px !important;
   font-weight: 600 !important;
   color: rgba(255, 255, 255, 0.65) !important;
   background: rgba(255, 255, 255, 0.05) !important;
   border: 1px solid rgba(255, 255, 255, 0.08) !important;
   border-radius: 8px !important;
-  padding: 6px 10px !important;
-  margin: 0 auto 18px !important;
+  padding: 8px 10px !important;
+  margin: 0 0 10px !important;
   font-family: -apple-system, "SF Mono", monospace !important;
+}
+.tr-chip-header {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  margin-bottom: 5px !important;
+}
+.tr-chip-header span {
+  flex: 1 !important;
   letter-spacing: 0.3px !important;
 }
-.tr-reconnect-chip code {
+.tr-copy-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  background: rgba(255,255,255,0.07) !important;
+  border: none !important;
+  border-radius: 5px !important;
+  padding: 3px 5px !important;
+  cursor: pointer !important;
+  color: rgba(255,255,255,0.55) !important;
+  transition: background 0.12s, color 0.12s !important;
+  line-height: 1 !important;
+}
+.tr-copy-btn:hover {
+  background: rgba(255,255,255,0.14) !important;
+  color: #fff !important;
+}
+.tr-full-id {
+  display: block !important;
   color: #5AC8FA !important;
   background: transparent !important;
   font-weight: 700 !important;
-  font-family: inherit !important;
+  font-size: 9.5px !important;
+  letter-spacing: 0.2px !important;
+  word-break: break-all !important;
+  line-height: 1.5 !important;
+  font-family: "SF Mono", "Fira Code", monospace !important;
 }
 .tr-reconnect-chip.warn {
+  display: inline-flex !important;
+  align-items: center !important;
   color: #FFD60A !important;
   background: rgba(255, 214, 10, 0.08) !important;
   border-color: rgba(255, 214, 10, 0.2) !important;
+}
+
+/* Serveri Kaydet butonu */
+.tr-save-server-btn {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  width: 100% !important;
+  background: transparent !important;
+  border: 1px dashed rgba(255,255,255,0.15) !important;
+  border-radius: 8px !important;
+  color: rgba(255,255,255,0.5) !important;
+  font-size: 11.5px !important;
+  font-weight: 600 !important;
+  font-family: inherit !important;
+  padding: 8px 12px !important;
+  margin-bottom: 14px !important;
+  cursor: pointer !important;
+  transition: background 0.15s, color 0.15s, border-color 0.15s !important;
+  letter-spacing: 0.2px !important;
+}
+.tr-save-server-btn:hover {
+  background: rgba(255,255,255,0.06) !important;
+  color: rgba(255,255,255,0.8) !important;
+  border-color: rgba(255,255,255,0.28) !important;
+}
+.tr-save-server-btn.saved {
+  color: #30D158 !important;
+  border-color: rgba(48,209,88,0.3) !important;
+  background: rgba(48,209,88,0.06) !important;
+}
+.tr-save-server-btn:disabled {
+  cursor: default !important;
 }
 
 .tr-reconnect-actions {
@@ -1646,6 +1863,92 @@
 }
 @keyframes tr-reconnect-btn-shine {
   to { left: 100%; }
+}
+
+/* ============================================
+   Server List Enhancer — Roblox "Other Servers" sekmesi
+   ============================================ */
+/* Kartta badge için ALT BOŞLUK ayır — TÜM kartlara eşit → float-grid uniform kalır (zıplamaz/bozulmaz) */
+.game-server-details { position: relative !important; padding-bottom: 26px !important; }
+.tracked-sv-enhancer {
+  position: absolute !important;     /* akıştan çıkık → kart yüksekliği DEĞİŞMEZ → grid bozulmaz/zıplamaz */
+  bottom: 4px !important;            /* ayrılan alanın içinde, ID'nin altında, KART İÇİNDE */
+  left: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  flex-wrap: nowrap !important;
+  white-space: nowrap !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  animation: tr-sv-fade-in 0.2s ease !important;
+}
+@keyframes tr-sv-fade-in {
+  from { opacity: 0; transform: translateY(3px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.tracked-sv-ping {
+  display: inline-block !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  font-variant-numeric: tabular-nums !important;
+  padding: 2px 7px !important;
+  border-radius: 4px !important;
+  white-space: nowrap !important;
+  line-height: 1.5 !important;
+}
+.tracked-sv-ping.good { background: rgba(48,209,88,0.18) !important; color: #30D158 !important; border: 1px solid rgba(48,209,88,0.25) !important; }
+.tracked-sv-ping.warn { background: rgba(255,214,10,0.15) !important; color: #FFD60A !important; border: 1px solid rgba(255,214,10,0.22) !important; }
+.tracked-sv-ping.bad  { background: rgba(255,69,58,0.15) !important;  color: #FF453A !important; border: 1px solid rgba(255,69,58,0.22) !important; }
+/* Mesafe rozeti (ping yoksa) + bölge yükleniyor durumu */
+.tracked-sv-dist {
+  display: inline-block !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  font-variant-numeric: tabular-nums !important;
+  padding: 2px 7px !important;
+  border-radius: 4px !important;
+  white-space: nowrap !important;
+  line-height: 1.5 !important;
+  background: rgba(255,255,255,0.07) !important;
+  color: rgba(255,255,255,0.82) !important;
+  border: 1px solid rgba(255,255,255,0.14) !important;
+}
+.tracked-sv-region svg { flex-shrink: 0 !important; }
+.tracked-sv-region.region-loading { opacity: 0.55 !important; }
+
+/* Oto-Pilot bar butonu (mor/auto-blocker) — diğer bar butonlarıyla aynı, vurgulu mor */
+.tracked-bar-btn.btn-autopilot {
+  background: linear-gradient(180deg,
+    rgba(191,90,242,0.25) 0%,
+    rgba(191,90,242,0.12) 100%) !important;
+  color: #F0E0FF !important;
+  border: 1px solid rgba(191,90,242,0.3) !important;
+  flex-shrink: 0 !important;
+  white-space: nowrap !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.2) !important;
+}
+.tracked-bar-btn.btn-autopilot:hover {
+  background: linear-gradient(180deg,
+    rgba(191,90,242,0.4) 0%,
+    rgba(191,90,242,0.25) 100%) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.25),
+    0 0 20px rgba(191,90,242,0.6),
+    0 0 40px rgba(191,90,242,0.3) !important;
+  transform: translateY(-1px) !important;
+}
+.tracked-bar-btn.btn-autopilot.scanning {
+  animation: autopilot-pulse 1s infinite !important;
+}
+@keyframes autopilot-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(191,90,242,0.4),
+                inset 0 1px 0 rgba(255,255,255,0.25) !important;
+  }
+  50% {
+    box-shadow: 0 0 16px 3px rgba(191,90,242,0.7),
+                inset 0 1px 0 rgba(255,255,255,0.35) !important;
+  }
 }
 
 /* Reduced motion uyumu */
