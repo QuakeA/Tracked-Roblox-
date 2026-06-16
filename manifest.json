@@ -154,6 +154,16 @@
     },
     {
       "matches": [
+        "https://www.roblox.com/users/*/profile*"
+      ],
+      "js": [
+        "i18n.js",
+        "profile_insight.js"
+      ],
+      "run_at": "document_end"
+    },
+    {
+      "matches": [
         "https://www.roblox.com/catalog/*"
       ],
       "js": [

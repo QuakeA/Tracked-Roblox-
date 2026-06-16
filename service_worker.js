@@ -2572,6 +2572,92 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true;
   }
 
+  // ── OYUNCU İÇGÖRÜ PANELİ (Profil sayfası) — künye + sosyal sayımlar + presence + rozet ──
+  // Tek mesajda CORS-bypass batch. Her alan hata-toleranslı (başarısız → null → panel o satırı gizler).
+  if (request.action === "getUserProfileInsight") {
+    const uid = String(request.userId || '').replace(/\D/g, '');
+    (async () => {
+      if (!uid) { sendResponse({ ok: false, error: 'no_userId' }); return; }
+      const jget = async (url) => {
+        try {
+          const r = await fetch(url, { headers: { 'Accept': 'application/json' }, credentials: 'include' });
+          if (!r.ok) return null;
+          return await r.json();
+        } catch { return null; }
+      };
+      // Presence: POST + CSRF challenge (popup loadFriends deseni)
+      const fetchPresence = async () => {
+        const body = JSON.stringify({ userIds: [Number(uid)] });
+        const doPost = (csrf) => fetch('https://presence.roblox.com/v1/presence/users', {
+          method: 'POST', credentials: 'include',
+          headers: { 'Content-Type': 'application/json', ...(csrf ? { 'x-csrf-token': csrf } : {}) },
+          body
+        });
+        try {
+          let r = await doPost();
+          if (r.status === 403 && r.headers.get('x-csrf-token')) r = await doPost(r.headers.get('x-csrf-token'));
+          if (!r.ok) return null;
+          const d = await r.json();
+          return d?.userPresences?.[0] || null;
+        } catch { return null; }
+      };
+
+      const [info, names, fc, foc, fic, badges, pres] = await Promise.all([
+        jget(`https://users.roblox.com/v1/users/${uid}`),
+        jget(`https://users.roblox.com/v1/users/${uid}/username-history?limit=25&sortOrder=Desc`),
+        jget(`https://friends.roblox.com/v1/users/${uid}/friends/count`),
+        jget(`https://friends.roblox.com/v1/users/${uid}/followers/count`),
+        jget(`https://friends.roblox.com/v1/users/${uid}/followings/count`),
+        jget(`https://badges.roblox.com/v1/users/${uid}/badges?limit=100&sortOrder=Desc`),
+        fetchPresence()
+      ]);
+
+      sendResponse({
+        ok: !!info,
+        user: info ? {
+          id: info.id, name: info.name, displayName: info.displayName,
+          created: info.created || null, isBanned: !!info.isBanned,
+          hasVerifiedBadge: !!info.hasVerifiedBadge
+        } : null,
+        usernameHistory: Array.isArray(names?.data) ? names.data.map(x => x.name).filter(Boolean) : [],
+        counts: {
+          friends: typeof fc?.count === 'number' ? fc.count : null,
+          followers: typeof foc?.count === 'number' ? foc.count : null,
+          followings: typeof fic?.count === 'number' ? fic.count : null
+        },
+        badges: badges ? { count: (badges.data || []).length, hasMore: !!badges.nextPageCursor } : null,
+        presence: pres ? {
+          type: pres.userPresenceType, lastLocation: pres.lastLocation || '',
+          placeId: pres.placeId || pres.rootPlaceId || null, gameId: pres.gameId || null, universeId: pres.universeId || null
+        } : null
+      });
+    })();
+    return true;
+  }
+
+  // Profil: seninle ORTAK arkadaş sayısı (benim arkadaş listem ∩ profilin arkadaş listesi)
+  if (request.action === "getMutualFriendCount") {
+    const uid = String(request.userId || '').replace(/\D/g, '');
+    (async () => {
+      if (!uid) { sendResponse({ ok: false }); return; }
+      try {
+        const me = await fetch('https://users.roblox.com/v1/users/authenticated', { credentials: 'include' })
+          .then(r => r.ok ? r.json() : null).catch(() => null);
+        if (!me?.id) { sendResponse({ ok: false }); return; }
+        if (String(me.id) === uid) { sendResponse({ ok: true, self: true, mutual: null }); return; }
+        const [mine, theirs] = await Promise.all([
+          fetch(`https://friends.roblox.com/v1/users/${me.id}/friends`, { credentials: 'include' }).then(r => r.ok ? r.json() : null).catch(() => null),
+          fetch(`https://friends.roblox.com/v1/users/${uid}/friends`, { credentials: 'include' }).then(r => r.ok ? r.json() : null).catch(() => null),
+        ]);
+        if (!Array.isArray(mine?.data) || !Array.isArray(theirs?.data)) { sendResponse({ ok: false }); return; }
+        const mineSet = new Set(mine.data.map(f => f.id));
+        const mutual = theirs.data.filter(f => mineSet.has(f.id));
+        sendResponse({ ok: true, mutual: mutual.length, sample: mutual.slice(0, 3).map(f => f.displayName || f.name) });
+      } catch { sendResponse({ ok: false }); }
+    })();
+    return true;
+  }
+
   // ── SUNUCU BEKÇİSİ (Server Watch): TEK oyun — aynı anda yalnızca bir oyun izlenir ──
   if (request.action === "startServerWatch") {
     (async () => {

@@ -889,6 +889,7 @@
 
     const myUserId   = await getMyUserId();
     const pageUserId = idMatch ? idMatch[1] : myUserId;
+    const isOwn      = isOwnUrl || String(pageUserId) === String(myUserId);
     if (!pageUserId) {
       showPanel(`${header('Envanter Değeri')}<div class="irac-state err">Kullanıcı ID tespit edilemedi.</div>`);
       return;
@@ -934,9 +935,11 @@
       }
     }
 
-    // 3. DOM scan — Recommendations dışı (scanDOM Y-filtresi)
+    // 3. DOM scan — SADECE kendi envanterinde. Başka kullanıcıda sayfa-geneli /catalog tarama
+    //    senin kişisel öneri/item linklerini sızdırıp onun (özellikle private) envanterine
+    //    yanlış değer ekliyordu → başkalarında yalnız kullanıcıya-özel API'ler kullanılır.
     const rapMissIds = [];
-    for (const it of domItems) {
+    for (const it of (isOwn ? domItems : [])) {
       if (state.itemMap.has(it.assetId)) continue;
       const info = rolimonsResult.data?.[it.assetId];
       if (info?.[2] > 0) {
@@ -993,8 +996,8 @@
     loadFloorPrices(false);
     startAutoRefresh();
 
-    // Sürekli DOM gözlemcisi — scroll edip yeni UGC item'lar gelirse otomatik panel'e ekle
-    watchInventoryGrowth();
+    // Sürekli DOM gözlemcisi — sadece KENDİ envanterinde (başkasında sayfa-geneli sızıntıyı önler)
+    if (isOwn) watchInventoryGrowth();
 
     // KAPSAMLI TARAMA — Tüm asset type'larındaki classic + UGC limited'ları yakala
     // HER ZAMAN çalışır, ilk kaynaklar 0 item bulsa bile.
