@@ -1226,7 +1226,7 @@ function renderGraph(animate = true) {
 
     const padL = 34, padR = 16, padT = 14, padB = 18;
     const plotW = W - padL - padR, plotH = H - padT - padB;
-    const x0 = padL, yB = H - padB, yT = padT;
+    const x0 = padL, yB = H - padB;
 
     let maxMs = 0;
     history.forEach(e => e.results.forEach(r => { if (r.ms < 900 && r.ms > maxMs) maxMs = r.ms; }));
@@ -1246,8 +1246,7 @@ function renderGraph(animate = true) {
         lbl.textContent = val;
         svg.appendChild(lbl);
     }
-    const unit = mk('text', { x: x0 - 6, y: yT - 3, 'text-anchor': 'end', fill: 'rgba(255,255,255,.32)', 'font-size': 8 });
-    unit.textContent = TrackedI18n.t('ms'); svg.appendChild(unit);
+    // (Birim "ms" ayrıca yazılmıyor — en üst değerle çakışıyordu; legend ve eksen sayıları zaten ms.)
     // x ekseni zaman ipucu
     const e1 = mk('text', { x: x0, y: H - 5, fill: 'rgba(255,255,255,.3)', 'font-size': 8 }); e1.textContent = TrackedI18n.t('older');
     const e2 = mk('text', { x: W - padR, y: H - 5, 'text-anchor': 'end', fill: 'rgba(255,255,255,.3)', 'font-size': 8 }); e2.textContent = TrackedI18n.t('now');
