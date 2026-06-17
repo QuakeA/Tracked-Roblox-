@@ -1962,8 +1962,9 @@
   animation: none !important;
 }
 
-/* ── Tracked Plus kilit rozeti (oyun-içi bar Pro butonları) ── */
-.tracked-bar-btn.tk-pro { position: relative; overflow: visible; }
-.tracked-bar-btn .tk-lock { position: absolute; top: -5px; right: -5px; display: inline-flex; align-items: center; justify-content: center; width: 14px; height: 14px; border-radius: 50%; background: linear-gradient(150deg, #7b4cff, #4c8bf5); color: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.45); pointer-events: none; z-index: 2; }
-.tracked-bar-btn .tk-lock svg { width: 8px; height: 8px; display: block; }
-.tk-plus .tk-lock { display: none !important; }
+/* ── Tracked Plus: oyun-içi bar'da TEK kilit (logodan sonra) — gelişmiş araçların tümünü temsil eder ── */
+.tk-bar-lock { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; padding: 0; margin: 0 3px 0 1px; border: none; border-radius: 7px; cursor: pointer; background: linear-gradient(150deg, #7b4cff, #4c8bf5); color: #fff; box-shadow: 0 2px 8px rgba(100,80,220,.45); transition: transform .12s ease, box-shadow .2s ease; flex-shrink: 0; }
+.tk-bar-lock:hover { transform: translateY(-1px); box-shadow: 0 4px 13px rgba(100,80,220,.62); }
+.tk-bar-lock:active { transform: translateY(0); }
+.tk-bar-lock svg { display: block; }
+.tk-plus .tk-bar-lock { display: none !important; }

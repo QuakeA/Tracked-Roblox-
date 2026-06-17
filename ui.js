@@ -20,6 +20,9 @@ const TrackedUI = {
                     <circle cx="12" cy="12" r="3"></circle>
                 </svg>
             </div>
+            <button class="tk-bar-lock" id="tk-bar-lock" title="Gelişmiş sunucu araçları Tracked Plus'ta — yükseltmek için tıkla">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12 1a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2h-1V6a5 5 0 0 0-5-5zm3 8H9V6a3 3 0 0 1 6 0v3z"/></svg>
+            </button>
             <button class="tracked-bar-btn btn-new-server" id="btn-find-new" title="Yeni açılmış sunucu bul">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                     <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
@@ -64,14 +67,12 @@ const TrackedUI = {
 
         // v3.0: Event listener'ları güvenli şekilde ekle
         setTimeout(() => {
-            // ── Tracked Plus: gelişmiş sunucu araçları (Yeni/Derin/Oto-Pilot/Bekçi) Pro; kilit rozeti + Plus yönlendirme ──
-            const LOCK = '<span class="tk-lock" title="Tracked Plus"><svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><path d="M12 1a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2h-1V6a5 5 0 0 0-5-5zm3 8H9V6a3 3 0 0 1 6 0v3z"/></svg></span>';
+            // ── Tracked Plus: gelişmiş sunucu araçları (Yeni/Derin/Oto-Pilot/Bekçi) Pro. Her butona
+            //    ayrı rozet yerine bar'da TEK kilit (logodan sonra). Plus alınca kilit gizlenir. ──
             const isPlus = () => (window.TrackedLicense ? window.TrackedLicense.isPlus() : Promise.resolve(false));
             const proGuard = async () => { if (await isPlus()) return true; try { chrome.runtime.sendMessage({ action: 'openPlusPage' }); } catch (_) {} return false; };
-            ['btn-find-new', 'btn-deep-scan', 'btn-autopilot', 'btn-watch'].forEach(id => {
-                const b = bar.querySelector('#' + id);
-                if (b && !b.querySelector('.tk-lock')) { b.classList.add('tk-pro'); b.insertAdjacentHTML('beforeend', LOCK); }
-            });
+            const barLock = bar.querySelector('#tk-bar-lock');
+            if (barLock) barLock.onclick = (e) => { e.stopPropagation(); proGuard(); };
             const refreshLocks = async () => { bar.classList.toggle('tk-plus', await isPlus()); };
             refreshLocks();
             if (window.TrackedLicense) window.TrackedLicense.onChange(refreshLocks);
