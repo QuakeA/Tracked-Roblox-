@@ -26,8 +26,6 @@ const ui = {
     inpTimeout: document.getElementById('inp-timeout'),
     inpCache: document.getElementById('inp-cache'),
     // Appearance
-    chkSilent: document.getElementById('chk-silent'),
-    chkReducedMotion: document.getElementById('chk-reduced-motion'),
     chkNowPlaying: document.getElementById('chk-now-playing'),
     chkGameCodes: document.getElementById('chk-game-codes'),
     // Performance
@@ -120,7 +118,7 @@ updateOtopilotBlInfo(); // ilk yüklemede count göster
 // Change listeners (everything that affects settings)
 [
     ui.inpTimeout, ui.inpCache,
-    ui.chkSilent, ui.chkReducedMotion, ui.chkNowPlaying, ui.chkGameCodes, ui.selLanguage,
+    ui.chkNowPlaying, ui.chkGameCodes, ui.selLanguage,
     ui.chkAutoReconnect, ui.chkAutoReconnectNative
 ].forEach(el => {
     if (el) {
@@ -351,13 +349,8 @@ async function loadSettings() {
     // Apply to UI
     if (ui.inpTimeout) ui.inpTimeout.value = settings.timeoutMs;
     if (ui.inpCache) ui.inpCache.value = settings.cacheMinutes;
-    if (ui.chkSilent) ui.chkSilent.checked = settings.silentMode === true;
     if (ui.chkNowPlaying) ui.chkNowPlaying.checked = settings.nowPlaying === true;
     if (ui.chkGameCodes) ui.chkGameCodes.checked = settings.gameCodes !== false;
-    if (ui.chkReducedMotion) {
-        ui.chkReducedMotion.checked = settings.reducedMotion === true;
-        document.body.classList.toggle('reduced-motion', settings.reducedMotion === true);
-    }
     if (ui.chkAutoReconnect) ui.chkAutoReconnect.checked = settings.autoReconnectEnabled !== false;
     if (ui.chkAutoReconnectNative) ui.chkAutoReconnectNative.checked = settings.autoReconnectNative === true;
     if (ui.selLanguage) ui.selLanguage.value = settings.language || 'tr';
@@ -705,8 +698,8 @@ async function saveSettings() {
     const newSettings = {
         timeoutMs: parseInt(ui.inpTimeout?.value) || 3000,
         cacheMinutes: parseInt(ui.inpCache?.value) || 10,
-        silentMode: !!ui.chkSilent?.checked,
-        reducedMotion: !!ui.chkReducedMotion?.checked,
+        silentMode: false,
+        reducedMotion: false,
         nowPlaying: !!ui.chkNowPlaying?.checked,
         gameCodes: ui.chkGameCodes ? !!ui.chkGameCodes.checked : true,
         language: selectedLanguage,
