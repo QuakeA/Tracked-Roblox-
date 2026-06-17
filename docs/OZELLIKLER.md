@@ -4,7 +4,7 @@
 > hangi dosyada/sayfada çalıştıkları ve teknik notlar burada. Unutunca buradan oku.
 > Kök README.md pazarlama amaçlı ve **eski** (v1.8.0, kaldırılan A+B/C+D'den bahsediyor) — **güncel doğru kaynak budur.**
 >
-> Sürüm: 1.9.4 · Manifest V3 · Diller: TR (varsayılan) + EN ([i18n.js](../i18n.js))
+> Sürüm: 1.9.5 · Manifest V3 · Diller: TR (varsayılan) + EN ([i18n.js](../i18n.js))
 
 ---
 
@@ -225,7 +225,7 @@ Animasyonlu avatar çerçevesi özelliği (`avatar_frames.js`) **tamamen kaldır
 
 **Nerede:** `/users/*/inventory*` → [inventory_rac.js](../inventory_rac.js) + SW (`fetchRolimonsForRAC`, `fetchRolimonsPlayerAssets`, `fetchUserAllLimiteds`, `fetchResaleDataBatch`).
 - Envanter sayfasına **toplam RAP/değer** paneli; kullanıcının limited'larını çekip Rolimons değeriyle hesaplar.
-- **Gizlilik fix (v1.9.4):** DOM taraması (`scanDOM` + `watchInventoryGrowth`) sayfa-geneli `/catalog/` linklerini topladığından, **başka birinin** (özellikle **private**) envanter sayfasında **senin** kişisel öneri/item linklerini yakalayıp ona yanlış değer atıyordu (senin envanter değerin görünüyordu). Düzeltme: DOM taraması artık **yalnız KENDİ envanterinde** (`isOwn`); başkalarında sadece kullanıcıya-özel yetkili API'ler (Rolimons playerassets + V1 collectibles + UGC tarama) → private başka kullanıcı → tüm kaynaklar boş → dürüstçe **"Bu kullanıcının envanteri private"**, veri sızmaz.
+- **Gizlilik fix (v1.9.5):** DOM taraması (`scanDOM` + `watchInventoryGrowth`) sayfa-geneli `/catalog/` linklerini topladığından, **başka birinin** (özellikle **private**) envanter sayfasında **senin** kişisel öneri/item linklerini yakalayıp ona yanlış değer atıyordu (senin envanter değerin görünüyordu). Düzeltme: DOM taraması artık **yalnız KENDİ envanterinde** (`isOwn`); başkalarında sadece kullanıcıya-özel yetkili API'ler (Rolimons playerassets + V1 collectibles + UGC tarama) → private başka kullanıcı → tüm kaynaklar boş → dürüstçe **"Bu kullanıcının envanteri private"**, veri sızmaz.
 
 ---
 
@@ -296,16 +296,16 @@ Roller:
 
 ---
 
-## 16. Oyuncu İçgörü Paneli (Profil Sayfası) (v1.9.4)
+## 16. Oyuncu İçgörü Paneli (Profil Sayfası) (v1.9.5)
 
 **Nerede:** `/users/{id}/profile` → [profile_insight.js](../profile_insight.js) (+ `i18n.js`, manifest'te aynı girişte) + SW `getUserProfileInsight` / `getMutualFriendCount`.
 
 - **Tek dokunulmamış yüksek-değerli yüzeydi** — profil ana sayfasında daha önce hiç Tracked yoktu (sadece `/inventory` ve `/avatar` alt-sayfaları). RoPro'nun en sevilen profil özelliklerini bizim güçlerimizle birleştirir.
 - **Sağda yüzen frosted kart** (`#tracked-profile-insight`, `position:fixed`) — catalog_enhancer deseni; profil DOM'una bağımlı DEĞİL (kırılgan mount yok). Themes ile uyumlu. SPA nav'da yeniden çalışır (catalog `watchNavigation`). Scrollbar gizli.
-- **Küçült/aç (v1.9.4):** başlıktaki minimize butonu → panel **46×46 kare ikona** dönüşür (kareye tıkla → büyür). Durum **KALICI** (`tracked_pi_minimized` storage) → refresh/profil geçişi/tarayıcı kapatmada korunur; küçükken veri arkada yüklenmeye devam eder. Veri **aşamalı** dolar (künye/sosyal hızlı, değer yavaş — skeleton'dan).
+- **Küçült/aç (v1.9.5):** başlıktaki minimize butonu → panel **46×46 kare ikona** dönüşür (kareye tıkla → büyür). Durum **KALICI** (`tracked_pi_minimized` storage) → refresh/profil geçişi/tarayıcı kapatmada korunur; küçükken veri arkada yüklenmeye devam eder. Veri **aşamalı** dolar (künye/sosyal hızlı, değer yavaş — skeleton'dan).
 - **Bölümler (özellik yığını):**
   - **Künye:** hesap yaşı + oluşturma tarihi + doğrulanmış rozeti + banlı mı + eski kullanıcı adları (username-history).
-  - **Değer:** toplam RAP + tahmini değer (Rolimons) + limited sayısı + en değerli 3 item (küçük 44px thumbnail). **Pipeline (v1.9.4):** **BİRİNCİL = `fetchRolimonsPlayerAssets`** (başka kullanıcının public envanteri için en güvenilir/hızlı kaynak — fetchUserAllLimiteds tek başına profilde DOM olmadığı için boş dönüyordu) + `fetchRolimonsForRAC` (RAP/value haritası) + `fetchItemThumbnails`. **FALLBACK = `fetchUserAllLimiteds`** (Rolimons'ta yoksa). Rolimons `[2]`=RAP, `[3]`=value (−1 ise RAP'e düşer; count × değer). Private → dürüstçe "Envanter gizli".
+  - **Değer:** toplam RAP + tahmini değer (Rolimons) + limited sayısı + en değerli 3 item (küçük 44px thumbnail). **Pipeline (v1.9.5):** **BİRİNCİL = `fetchRolimonsPlayerAssets`** (başka kullanıcının public envanteri için en güvenilir/hızlı kaynak — fetchUserAllLimiteds tek başına profilde DOM olmadığı için boş dönüyordu) + `fetchRolimonsForRAC` (RAP/value haritası) + `fetchItemThumbnails`. **FALLBACK = `fetchUserAllLimiteds`** (Rolimons'ta yoksa). Rolimons `[2]`=RAP, `[3]`=value (−1 ise RAP'e düşer; count × değer). Private → dürüstçe "Envanter gizli".
   - **Sosyal:** arkadaş/takipçi/takip sayıları + **seninle ortak arkadaş** sayısı (`getMutualFriendCount`: benim liste ∩ profilin listesi; isim örneği taşma yüzünden kaldırıldı, sadece sayı) + **presence** (online/oyunda/studio) + oyundaysa **[Katıl]** (deep-link `roblox://...placeId+gameInstanceId`, joinFriendServer deseni).
   - **Güven Sinyalleri (DÜRÜST vetting):** yalnız gerçek metrik rozetleri — "Yeni hesap: X gün" / "5+ yıl hesap" / "Doğrulanmış" / "Yüksek değerli envanter" / "N rozet". **Uydurma risk skoru ASLA** (feedback_honest_data_only). Kendi profilinde gizli.
 - **SW handler'ları:**
@@ -315,7 +315,7 @@ Roller:
 
 ---
 
-## 17. Şu An Çalıyor (Medya Widget'ı) (v1.9.4)
+## 17. Şu An Çalıyor (Medya Widget'ı) (v1.9.5)
 
 **Nerede:** tüm roblox.com → [now_playing.js](../now_playing.js) (all-roblox + games content_scripts) + SW `mediaGetNowPlaying`/`mediaControl`/`mediaFocusTab` + Options "Şu An Çalıyor" toggle.
 

@@ -1,4 +1,4 @@
-// profile_insight.js — Tracked v1.9.4: Oyuncu İçgörü Paneli (Profil Sayfası)
+// profile_insight.js — Tracked v1.9.5: Oyuncu İçgörü Paneli (Profil Sayfası)
 // /users/{id}/profile sayfasına native görünümlü, sağda yüzen bir bilgi kartı enjekte eder.
 // Bölümler: Künye (yaş/oluşturma/doğrulanmış/eski adlar) · Değer (RAP+değer+top item) ·
 //           Sosyal (arkadaş/takipçi/takip + ortak arkadaş + online "ne oynuyor" + Katıl) ·

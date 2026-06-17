@@ -1,4 +1,4 @@
-// avatar_sandbox.js — Tracked v1.9.4
+// avatar_sandbox.js — Tracked v1.9.5
 // "Avatarda Dene" — AVATAR EDİTÖRÜ sayfasında. AKILLI HİBRİT:
 //   • Deneme item'ı YOKKEN → Roblox'un native 3D önizlemesi (canlı) görünür.
 //   • Deneme item'ı EKLENİNCE → bizim render, native önizleme kutusunun ÜSTÜNE (aynı

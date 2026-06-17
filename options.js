@@ -859,10 +859,25 @@ function escapeAttr(s) {
 // ── Sürüm Notları ──────────────────────────────────────────────────────────
 const CHANGELOG = [
     {
-        version: 'v1.9.4',
-        date: '13 Haziran 2026',
+        version: 'v1.9.5',
+        date: '17 Haziran 2026',
         isNew: true,
         entries: [
+            { icon: '▸', text: 'Şu An Çalıyor (medya widget): YouTube / YouTube Music / Spotify\'da çalan şarkıyı Roblox sayfasında gösterir; oynat/duraklat, sonraki/önceki, ileri-geri sarma ve yüzdeli ses kontrolü buradan yapılır. Veri gerçek (mediaSession), hiçbir şey tarayıcından çıkmaz. Ayarlardan açılır (varsayılan kapalı)' },
+            { icon: '▸', text: 'Widget\'tan müzik arama: kartın içine yazıp ararsın, sonuçlardan birine tıklayınca YouTube/YT Music arka planda çalmaya başlar — sen Roblox\'ta kalırsın. Spotify\'da sonuç gösterilir, parça Spotify\'da açılır (DRM nedeniyle)' },
+            { icon: '▸', text: 'Widget sürüklenebilir (8 köşeye yapışır) ve sağ/sol kenarından genişletilebilir; konum/boyut kalıcı. Kapaktan dürüst dinamik renk, küçültülebilir kare mod' },
+            { icon: '▸', text: 'Oyun Kodları paneli: oyun sayfalarında sağ-altta "Kodlar" — o oyunun kodlarını bulup gösterir (küratörlü kaynak + oyun açıklaması + oyunun resmi sosyal kanalları + web araması). Resmi kod API\'si olmadığından kodlar "doğrulanmamış" etiketli; uydurma yok, gerçek kaynaklara yönlendirir' },
+            { icon: '▸', text: 'Ayarlardan "Sessiz Mod" ve "Hareket Azalt" kaldırıldı' },
+            { icon: '▸', text: 'Çeşitli kararlılık ve performans iyileştirmeleri' },
+        ]
+    },
+    {
+        version: 'v1.9.4',
+        date: '13 Haziran 2026',
+        isNew: false,
+        entries: [
+            { icon: '▸', text: 'Oyuncu İçgörü Paneli: profil sayfasında oyuncunun künyesi (hesap yaşı, oluşturma, doğrulanmış rozet), değeri (RAP/tahmini değer, en değerli itemler) ve sosyal bilgisi (arkadaş/takipçi, ortak arkadaş, çevrimiçi durumu) tek kartta' },
+            { icon: '▸', text: 'Envanter gizlilik düzeltmesi: başkasının (özellikle private) envanter sayfasında yanlışlıkla senin değerin görünebiliyordu; artık başkalarında sadece yetkili API\'ler kullanılır, private ise dürüstçe "envanter gizli" der' },
             { icon: '▸', text: 'Oyun Kütüphanesi\'ne görünüm anahtarı eklendi: tek tıkla "Geniş" (büyük kart) veya "Kompakt" (tek satır — çok oyunda kaydırma yarıya iner) arasında geç; seçim kalıcı' },
             { icon: '▸', text: 'Etkinlik Analizi yenilendi: artık önce oyunun RESMİ Roblox etkinliklerini gösterir (adı, ne zaman başlıyor/bitiyor, canlı mı) — tahmin değil kesin bilgi. Resmi etkinlik yoksa sinyallere göre dürüstçe "tahmin" yapar' },
             { icon: '▸', text: 'Bölgesel ping ve ayar problarında artık gerçek ülke bayrağı ikonları görünüyor; bazı ülke isimleri (İtalya/İsveç/İrlanda) düzgün yazılıyor' },

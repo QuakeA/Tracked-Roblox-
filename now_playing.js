@@ -1,4 +1,4 @@
-// now_playing.js — Tracked v1.9.4: "Şu An Çalıyor" medya widget'ı
+// now_playing.js — Tracked v1.9.5: "Şu An Çalıyor" medya widget'ı
 // Spotify Web / YouTube Music / YouTube'da çalan şarkıyı algılar, Roblox sayfasında sol-altta
 // animasyonlu bir kartta gösterir + kontrol (çal/duraklat/sonraki/önceki/seek) sağlar.
 // OPT-IN: yalnız ayar (rota_settings.nowPlaying) AÇIKKEN çalışır. Veri gerçek (mediaSession),
@@ -405,7 +405,7 @@
       `<button class="np-segbtn${s === _idleSource ? ' on' : ''}" data-s="${s}" title="${SRC_OF[s].label}">${SRC_OF[s].icon}<span>${SRC_OF[s].label}</span></button>`).join('');
     const backBtn = back ? `<button class="np-min-btn np-back-btn" title="Çalana dön">${ICON_BACK}</button>` : '';
     w.innerHTML = `
-      <div class="np-head">${back ? backBtn : ''}<span class="np-logo">${TRACKED_MARK}</span><span class="np-brand">Tracked music</span>${VERSION ? `<span class="np-ver">• v${VERSION}</span>` : ''}<button class="np-min-btn np-min-only" title="Küçült" style="margin-left:auto">${ICON_MIN}</button></div>
+      <div class="np-head">${back ? backBtn : ''}<span class="np-logo">${TRACKED_MARK}</span><span class="np-brand">Tracked</span>${VERSION ? `<span class="np-ver">• v${VERSION}</span>` : ''}<button class="np-min-btn np-min-only" title="Küçült" style="margin-left:auto">${ICON_MIN}</button></div>
       <div class="np-idle-note">${ICON_NOTE}</div>
       <div class="np-search">
         <span class="np-search-ic"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg></span>
@@ -508,7 +508,7 @@
       ? `<img class="np-art" src="${esc(_media.artwork)}" alt="">`
       : `<div class="np-art fb">${ICON_NOTE}</div>`;
     w.innerHTML = `
-      <div class="np-head"><span class="np-logo">${TRACKED_MARK}</span><span class="np-brand">Tracked music</span>${VERSION ? `<span class="np-ver">• v${VERSION}</span>` : ''}<button class="np-min-btn np-search-btn" title="Başka müzik ara" style="margin-left:auto">${ICON_SEARCH}</button><button class="np-min-btn" title="Küçült">${ICON_MIN}</button></div>
+      <div class="np-head"><span class="np-logo">${TRACKED_MARK}</span><span class="np-brand">Tracked</span>${VERSION ? `<span class="np-ver">• v${VERSION}</span>` : ''}<button class="np-min-btn np-search-btn" title="Başka müzik ara" style="margin-left:auto">${ICON_SEARCH}</button><button class="np-min-btn" title="Küçült">${ICON_MIN}</button></div>
       <div class="np-top">
         <button class="np-art-link" title="Sekmeye geç">${artHtml}<span class="np-min-eq"><i></i><i></i><i></i></span><span class="np-min-ov">${ICON_EXPAND}</span></button>
         <div class="np-mid">

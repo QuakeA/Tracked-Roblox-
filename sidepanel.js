@@ -1,4 +1,4 @@
-// sidepanel.js - Tracked v1.9.4 Side Panel Script
+// sidepanel.js - Tracked v1.9.5 Side Panel Script
 // CSP uyumlu - harici dosya olarak yüklendi
 
 // PING LISTENER (DOMContentLoaded öncesi register — açılır açılmaz hazır)

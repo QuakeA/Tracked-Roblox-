@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────────────────
-// Tracked v1.9.4 — Catalog Enhancer
+// Tracked v1.9.5 — Catalog Enhancer
 // Roblox catalog item sayfasına RAP, Floor, Demand, Trend, Flags, Value
 // widget'ı enjekte eder. Roblox sadece "Best Price" gösteriyor, biz tüm
 // kritik trader bilgilerini ekleyelim. Premium gerektirmez.

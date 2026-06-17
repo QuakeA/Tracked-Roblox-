@@ -1,4 +1,4 @@
-// avatar_cost.js — Tracked v1.9.4
+// avatar_cost.js — Tracked v1.9.5
 // Avatar editöründe ÜSTÜNDEKİ (giyili) item'ların TOPLAM Robux değerini gösterir.
 // Avatar önizlemesinin hemen altına native görünümlü bir ibare enjekte eder, canlı güncellenir.
 // Standalone IIFE — reconnect_overlay.js pattern'i.

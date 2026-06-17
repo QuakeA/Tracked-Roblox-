@@ -1,5 +1,5 @@
 ﻿
-// service_worker.js - Tracked v1.9.4 - Hybrid Event Detector
+// service_worker.js - Tracked v1.9.5 - Hybrid Event Detector
 
 // ==================== INITIALIZATION ====================
 chrome.runtime.onInstalled.addListener((details) => {
