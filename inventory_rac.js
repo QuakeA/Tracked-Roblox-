@@ -1047,11 +1047,16 @@
     });
   }
 
+  // Tracked Plus gerektirir (Envanter analizi Pro özelliğidir)
+  const plus = () => (window.TrackedLicense ? window.TrackedLicense.isPlus() : Promise.resolve(false));
+  let _inited = false;
+  const gatedStart = async () => { if (!_inited && await plus()) { _inited = true; init(); watchSpaNavigation(); } };
+
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => { init(); watchSpaNavigation(); });
+    document.addEventListener('DOMContentLoaded', gatedStart);
   } else {
-    init();
-    watchSpaNavigation();
+    gatedStart();
   }
+  if (window.TrackedLicense) window.TrackedLicense.onChange(() => gatedStart());
 
 })();

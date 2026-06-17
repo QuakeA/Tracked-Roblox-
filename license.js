@@ -80,6 +80,10 @@
     if (req.action === 'licenseDeactivate') { deactivate().then(send); return true; }
   });
 
+  // SW içinden Plus kontrolü (diğer modüller için): sync (önbellek) + async (storage)
+  self.tkIsPlus = () => isPlus(self._tkLic);
+  self.tkIsPlusAsync = async () => isPlus(await getState());
+
   // Periyodik yeniden doğrulama (12 saat) + açılışta bir kez
   try { chrome.alarms.create('tkLicenseRevalidate', { periodInMinutes: 720 }); } catch (_) {}
   chrome.alarms.onAlarm.addListener(a => { if (a && a.name === 'tkLicenseRevalidate') validate(); });

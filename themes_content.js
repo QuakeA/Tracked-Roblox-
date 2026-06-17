@@ -4818,8 +4818,17 @@ async function init() {
   });
 }
 
-if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
-else init();
+// Tracked Plus gerektirir (Temalar Pro özelliğidir). Plus değilse erken (critical) temayı kaldır → varsayılan görünüm.
+const _tkPlus = () => (window.TrackedLicense ? window.TrackedLicense.isPlus() : Promise.resolve(false));
+let _themeInited = false;
+const _gatedThemeInit = async () => {
+  if (_themeInited) return;
+  if (await _tkPlus()) { _themeInited = true; init(); }
+  else { try { document.getElementById('tracked-critical-theme')?.remove(); } catch (_) {} }
+};
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', _gatedThemeInit);
+else _gatedThemeInit();
+if (window.TrackedLicense) window.TrackedLicense.onChange(() => _gatedThemeInit());
 
 })();
 }

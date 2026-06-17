@@ -1312,10 +1312,16 @@
     setupObserver();
   }
 
+  // Tracked Plus gerektirir (Trade analizi Pro özelliğidir)
+  const plus = () => (window.TrackedLicense ? window.TrackedLicense.isPlus() : Promise.resolve(false));
+  let _inited = false;
+  const gatedInit = async () => { if (!_inited && await plus()) { _inited = true; init(); } };
+
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
+    document.addEventListener('DOMContentLoaded', gatedInit);
   } else {
-    init();
+    gatedInit();
   }
+  if (window.TrackedLicense) window.TrackedLicense.onChange(() => gatedInit());
 
 })();

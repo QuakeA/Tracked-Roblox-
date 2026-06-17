@@ -1730,6 +1730,7 @@ function renderOfficialEvents(events) {
 }
 
 async function showEventAnalysis(placeId) {
+    if (!(await requirePlus('Etkinlik Analizi'))) return;
     let modal = document.getElementById('event-analysis-modal');
     if (!modal) {
         modal = document.createElement('div');
@@ -1949,7 +1950,23 @@ function popupSample(pool, n) {
 }
 
 // KATIL → bölgesine EN YAKIN açık sunucuyu bul ve ONA katıl (erken çıkış: kendi bölgen bulununca dur).
+// ── Tracked Plus kontrolü (Oto-Pilot / Tara / Etkinlik Analizi Pro) ──
+let _plusCache = null;
+async function popupIsPlus() {
+    if (_plusCache !== null) return _plusCache;
+    try { const r = await chrome.runtime.sendMessage({ action: 'licenseGet' }); _plusCache = !!(r && r.isPlus); } catch (_) { _plusCache = false; }
+    return _plusCache;
+}
+async function requirePlus(feature) {
+    if (await popupIsPlus()) return true;
+    showToast(`${feature} · Tracked Plus özelliği — 7 gün ücretsiz dene`, 'info');
+    try { chrome.runtime.openOptionsPage(); } catch (_) {}
+    return false;
+}
+try { chrome.storage.onChanged.addListener((ch, a) => { if (a === 'local' && ch.tracked_license) _plusCache = null; }); } catch (_) {}
+
 async function joinClosestServer(placeId) {
+    if (!(await requirePlus('Oto-Pilot'))) return;
     const geo = await popupGetGeo();
     if (!geo) { joinGame(placeId); return; }                 // konum yok → eski genel katıl
     showToast(TrackedI18n.t('scanning') || 'En yakın sunucu aranıyor…', 'success');
@@ -1976,6 +1993,7 @@ async function joinClosestServer(placeId) {
 }
 
 async function scanServers(placeId) {
+    if (!(await requirePlus('Tara'))) return;
     if (!ui.modalScanner) {
         console.warn('[Scanner] modal element not found');
         return;

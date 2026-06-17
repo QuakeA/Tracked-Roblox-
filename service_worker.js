@@ -4294,7 +4294,9 @@ async function monitorActiveSession() {
     const sd = await chrome.storage.local.get('rota_settings');
     settings = sd.rota_settings || {};
   } catch (_) {}
-  if (settings.autoReconnectEnabled === false) {
+  // Auto-Reconnect Tracked Plus özelliğidir — kapalıysa VEYA Plus değilse çalıştırma
+  const plusOk = self.tkIsPlusAsync ? await self.tkIsPlusAsync() : false;
+  if (settings.autoReconnectEnabled === false || !plusOk) {
     // Açık değilse mevcut session da temizle (kullanıcı kapatmışsa stale data kalmasın)
     chrome.storage.local.remove('tracked_active_session').catch(() => {});
     return;
