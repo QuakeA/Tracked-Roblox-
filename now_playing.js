@@ -89,32 +89,19 @@
     return m[key] || m.bl;
   }
   const SQ = 56; // küçültülmüş kare boyutu
-  let _hSide = 'r', _vSide = 't'; // resize tutamaçlarının (serbest) kenarı — çıpaya göre
+  const npScale = () => ((_minimized || _mode === 'idle' || _mode === 'search') ? 1 : Math.max(0.85, Math.min(1.6, 1 + (_resH - 230) / 600)));
   function applyLayout() {
     const w = document.getElementById(WIDGET_ID); if (!w) return;
-    const isSearch = (_mode === 'idle' || _mode === 'search');
-    const A = _anchor;
-    const ox = (A === 'tl' || A === 'bl' || A === 'l') ? 'left' : (A === 'tr' || A === 'br' || A === 'r') ? 'right' : 'center';
-    const oy = (A === 'tl' || A === 'tr' || A === 't') ? 'top' : (A === 'bl' || A === 'br' || A === 'b') ? 'bottom' : 'center';
-    _hSide = (ox === 'right') ? 'l' : 'r';   // serbest yatay kenar (çıpanın tersi)
-    _vSide = (oy === 'top') ? 'b' : 't';     // serbest dikey kenar
-    // arama: alt-resize sonuç listesini büyütür; oynatıcı: tüm widget ÖLÇEKLENİR (çapraz)
-    w.style.setProperty('--np-resh', _resH + 'px');
-    const scale = (_minimized || isSearch) ? 1 : Math.max(0.85, Math.min(1.55, 1 + (_resH - 230) / 760));
-    w.style.setProperty('--np-scale', scale);
-    w.style.transformOrigin = ox + ' ' + oy;
-    // tutamaç kenarlarını çıpaya göre yerleştir (serbest kenarlar)
-    w.classList.toggle('np-h-l', _hSide === 'l'); w.classList.toggle('np-h-r', _hSide === 'r');
-    w.classList.toggle('np-v-t', _vSide === 't'); w.classList.toggle('np-v-b', _vSide === 'b');
+    w.style.setProperty('--np-resh', _resH + 'px');   // arama: sonuç listesi yüksekliği
+    w.style.setProperty('--np-scale', npScale());     // oynatıcı: tüm widget ölçeği
+    w.style.transformOrigin = '0 0';
     w.style.width = _minimized ? '' : (_width + 'px');
-    const rect = w.getBoundingClientRect();
-    const uw = _minimized ? SQ : _width;                 // ölçeklenmemiş genişlik (CSS)
-    const uh = _minimized ? SQ : (rect.height / scale);  // ölçeklenmemiş yükseklik
-    const W = window.innerWidth, H = window.innerHeight;
-    const left = (ox === 'left') ? M : (ox === 'right') ? (W - M - uw) : (W - uw) / 2;
-    const top = (oy === 'top') ? TOPY : (oy === 'bottom') ? (H - M - uh) : (H - uh) / 2;
-    w.style.left = Math.round(Math.max(6, left)) + 'px';
-    w.style.top = Math.round(Math.max(6, top)) + 'px';
+    const rect = w.getBoundingClientRect();            // ölçek+genişlik uygulanmış gerçek boyut
+    const wd = _minimized ? SQ : (rect.width || _width);
+    const ht = _minimized ? SQ : (rect.height || 96);
+    const p = anchorPos(_anchor, wd, ht);
+    w.style.left = Math.round(Math.max(6, p[0])) + 'px';
+    w.style.top = Math.round(Math.max(6, p[1])) + 'px';
     w.style.right = 'auto'; w.style.bottom = 'auto';
   }
   function nearestAnchor(cx, cy, wd, ht) {
@@ -152,18 +139,32 @@
     });
   }
   function wireResize(w) {
-    const wire = (sel, axis) => {  // axis: 'h'=yatay 'v'=dikey 'c'=köşe(çapraz)
+    const wire = (sel, axis) => {  // 'h'=sağ kenar(genişlik) 'v'=alt kenar(yükseklik/ölçek) 'c'=köşe(çapraz)
       const h = w.querySelector(sel); if (!h) return;
       h.addEventListener('pointerdown', (e) => {
         e.stopPropagation();
         const sx = e.clientX, sy = e.clientY, sw = _width, sh = _resH;
-        w.style.transition = 'none';
+        const r0 = w.getBoundingClientRect(); const sl = r0.left, st = r0.top; // sürükleme boyunca üst-sol sabit
+        w.style.transition = 'none'; w.style.transformOrigin = '0 0';
         beginDrag(h, e, (ev) => {
-          // sağ/sol kenar = YALNIZ genişlik (yana); üst/alt kenar + KÖŞE = yükseklik/ölçek (çapraz, yukarı büyür)
-          if (axis === 'h') { const sg = (_hSide === 'l') ? -1 : 1; _width = clampW(sw + sg * (ev.clientX - sx)); }
-          else { const sg = (_vSide === 't') ? -1 : 1; _resH = clampH(sh + sg * (ev.clientY - sy)); }
-          applyLayout();
-        }, () => saveLayout());
+          if (axis !== 'v') _width = clampW(sw + (ev.clientX - sx)); // sağ/köşe → genişlik (aşağı-sağa büyür)
+          if (axis !== 'h') _resH = clampH(sh + (ev.clientY - sy));  // alt/köşe → yükseklik (arama) / ölçek (oynatıcı)
+          w.style.setProperty('--np-resh', _resH + 'px');
+          w.style.setProperty('--np-scale', npScale());
+          w.style.width = _width + 'px';
+          // üst-sol sabit, boyut uygulandı → ekran dışına taşarsa içeri (yukarı/sola) kaydır
+          const r = w.getBoundingClientRect();
+          let left = sl, top = st;
+          if (left + r.width > window.innerWidth - 6) left = window.innerWidth - 6 - r.width;
+          if (top + r.height > window.innerHeight - 6) top = window.innerHeight - 6 - r.height;
+          w.style.left = Math.max(6, left) + 'px'; w.style.top = Math.max(6, top) + 'px';
+          w.style.right = 'auto'; w.style.bottom = 'auto';
+        }, () => {
+          const r = w.getBoundingClientRect(); // bırakınca en yakın çıpaya snap
+          _anchor = nearestAnchor(r.left + r.width / 2, r.top + r.height / 2, r.width, r.height);
+          w.style.transition = 'left .16s ease, top .16s ease';
+          applyLayout(); saveLayout();
+        });
       });
     };
     wire('.np-edge-r', 'h'); wire('.np-edge-b', 'v'); wire('.np-edge-c', 'c');
@@ -266,17 +267,11 @@
 
       #${WIDGET_ID}.np-dragging{cursor:grabbing;user-select:none;}
       #${WIDGET_ID}.np-dragging *{user-select:none;}
-      /* Görünmez kenar bölgeleri — pencere gibi kenardan resize (çıpaya göre serbest kenarlarda) */
+      /* Görünmez kenar bölgeleri — pencere gibi kenardan resize (sağ kenar + alt kenar + alt-sağ köşe) */
       .np-edge{position:absolute;z-index:6;touch-action:none;}
-      .np-edge-r{top:12px;bottom:12px;width:12px;cursor:ew-resize;}
-      #${WIDGET_ID}.np-h-r .np-edge-r{right:-3px;} #${WIDGET_ID}.np-h-l .np-edge-r{left:-3px;}
-      .np-edge-b{left:12px;right:12px;height:12px;cursor:ns-resize;}
-      #${WIDGET_ID}.np-v-b .np-edge-b{bottom:-3px;} #${WIDGET_ID}.np-v-t .np-edge-b{top:-3px;}
-      .np-edge-c{width:22px;height:22px;z-index:7;}
-      #${WIDGET_ID}.np-h-r .np-edge-c{right:-3px;} #${WIDGET_ID}.np-h-l .np-edge-c{left:-3px;}
-      #${WIDGET_ID}.np-v-b .np-edge-c{bottom:-3px;} #${WIDGET_ID}.np-v-t .np-edge-c{top:-3px;}
-      #${WIDGET_ID}.np-h-r.np-v-b .np-edge-c,#${WIDGET_ID}.np-h-l.np-v-t .np-edge-c{cursor:nwse-resize;}
-      #${WIDGET_ID}.np-h-r.np-v-t .np-edge-c,#${WIDGET_ID}.np-h-l.np-v-b .np-edge-c{cursor:nesw-resize;}
+      .np-edge-r{top:12px;bottom:12px;right:-3px;width:12px;cursor:ew-resize;}
+      .np-edge-b{left:12px;right:12px;bottom:-3px;height:12px;cursor:ns-resize;}
+      .np-edge-c{right:-3px;bottom:-3px;width:22px;height:22px;z-index:7;cursor:nwse-resize;}
       #${WIDGET_ID}.np-min .np-edge{display:none;}
       /* sürükleme/resize sırasında sayfada (Roblox dahil) seçim/sürükleme olmasın */
       .np-dragging-global, .np-dragging-global *{user-select:none !important;-webkit-user-select:none !important;}
