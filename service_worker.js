@@ -2911,7 +2911,16 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           }
           sendResponse(r || { ok: false }); return;
         }
-        if (source === 'spotify') { sendResponse(await npSpHeadless(q)); return; }
+        if (source === 'spotify') {
+          // Anonim get_access_token 403 (bot koruması) → oturum jetonu denenir; olmazsa gizli arka plan
+          // Spotify sekmesinde sayfa-context ara (jeton orada geçerli; Spotify zaten çalmak için gerekli).
+          let r = await npSpHeadless(q);
+          if (!r || !r.ok || !(r.results || []).length) {
+            const wt = await npGetWorker('spotify');
+            if (wt) r = await npSearchInTab(wt, 'spotify', q);
+          }
+          sendResponse(r || { ok: false }); return;
+        }
         sendResponse({ ok: false });
       } catch (e) { sendResponse({ ok: false, error: e.message }); }
     })();
