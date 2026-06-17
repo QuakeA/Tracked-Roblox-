@@ -2664,20 +2664,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === "mediaGetNowPlaying") {
     (async () => {
       try {
-        // Offscreen oynatıcı aktifse onun durumunu döndür (gizli iframe — sekme taraması yapma)
-        if (self._offActive) {
-          const r = await chrome.runtime.sendMessage({ off: 'state' }).catch(() => null);
-          const st = r && r.state;
-          if (st && (st.title || st.videoId)) {
-            sendResponse({ ok: true, media: {
-              title: st.title || '', artist: (st.author || '').replace(/\s*-\s*Topic\s*$/i, ''), album: '',
-              artwork: st.videoId ? `https://i.ytimg.com/vi/${st.videoId}/mqdefault.jpg` : '',
-              playing: !!st.playing, position: st.position || 0, duration: st.duration || 0,
-              host: 'www.youtube.com', volume: st.volume != null ? st.volume : 100, muted: !!st.muted, tabId: -1
-            } });
-            return;
-          }
-        }
         const PATTERNS = ['*://open.spotify.com/*', '*://music.youtube.com/*', '*://*.youtube.com/*'];
         const isMedia = (t) => t && t.url && /(open\.spotify\.com|music\.youtube\.com|youtube\.com)/.test(t.url);
         const [audible, all] = await Promise.all([
@@ -2748,8 +2734,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     const { cmd, value, tabId } = request;
     (async () => {
       try {
-        // Offscreen oynatıcı aktifse komutu ona yönlendir (gizli iframe)
-        if (self._offActive) { try { await chrome.runtime.sendMessage({ off: 'cmd', cmd, value }); } catch (_) {} sendResponse({ ok: true, offscreen: true }); return; }
         const tid = tabId || self._mediaLastTabId;
         if (!tid) { sendResponse({ ok: false, reason: 'no-tab' }); return; }
         // allFrames: YouTube oynatıcısı bazen alt frame'de (örn. gömülü/eski düzen) → tüm frame'lere uygula
@@ -2935,7 +2919,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       if (!id) { sendResponse({ ok: false }); return; }
       const ytm = request.target === 'ytmusic';
       try {
-        self._offActive = false;
         // Mevcut çalma sekmesi YouTube/YT Music'teyse: sayfayı yenilemeden player API ile yeni videoyu yükle → flash YOK
         let tab = self._mediaPlayTab != null ? await chrome.tabs.get(self._mediaPlayTab).catch(() => null) : null;
         if (tab) {
@@ -2962,7 +2945,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     (async () => {
       const url = String(request.url || '');
       if (!/^https:\/\/open\.spotify\.com\//.test(url)) { sendResponse({ ok: false }); return; }
-      self._offActive = false; try { chrome.runtime.sendMessage({ off: 'stop' }).catch(() => {}); } catch (_) {} // Spotify'a geçiş → offscreen YouTube'u durdur
       try {
         const tabs = await chrome.tabs.query({}).catch(() => []);
         let tab = tabs.find(t => /open\.spotify\.com/.test(t.url || ''));
@@ -5401,18 +5383,9 @@ async function npSpHeadless(q) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Offscreen gizli oynatıcı (varsayılan) + pencere yedeği (gömülemeyen videolar)
+// Müzik çalma — NORMAL sekmede (popup/offscreen değil)
 // ─────────────────────────────────────────────────────────────────────────────
-async function ensureOffscreen() {
-  if (!chrome.offscreen) return false; // eski tarayıcı → pencereye düş
-  try { if (await chrome.offscreen.hasDocument()) return true; } catch (_) {}
-  try {
-    await chrome.offscreen.createDocument({ url: 'offscreen.html', reasons: ['AUDIO_PLAYBACK'], justification: 'Şu An Çalıyor: arka planda gizli müzik çalma' });
-    return true;
-  } catch (e) { return /already|single/i.test(String((e && e.message) || e)); } // zaten varsa OK say
-}
-
-// NORMAL sekmede çal (popup pencere DEĞİL). Arka plan sekmesi gizli sayıldığı için YouTube başlatmaz →
+// Arka plan sekmesi gizli sayıldığı için YouTube başlatmaz →
 // sekmeyi KISA SÜRE öne al, çalmaya başlat, sonra kullanıcının sekmesine geri dön. Tek sekme, yeniden kullanılır.
 async function npPlayInWindow(url, id) {
   try {
@@ -5441,21 +5414,6 @@ async function npPlayInWindow(url, id) {
     if (self._mediaPlayReq === playId && cur && cur.id && cur.id !== tab.id) { try { await chrome.tabs.update(cur.id, { active: true }); } catch (_) {} }
   } catch (_) {}
 }
-
-// Offscreen çalmadı/gömülemedi → o video için PENCERE yedeğine düş (şarkı her zaman çalsın)
-function npFallbackToWindow(videoId, target) {
-  if (!videoId || self._offFellBack) return;
-  self._offFellBack = true; self._offActive = false;
-  try { chrome.runtime.sendMessage({ off: 'stop' }).catch(() => {}); } catch (_) {}
-  const url = ((target || self._offTarget) === 'ytmusic' ? `https://music.youtube.com/watch?v=${videoId}` : `https://www.youtube.com/watch?v=${videoId}`) + '&autoplay=1';
-  npPlayInWindow(url, videoId);
-}
-chrome.runtime.onMessage.addListener((msg) => {
-  if (msg && msg.off === 'error') {
-    console.warn('[Tracked NP] offscreen onError code=', msg.code, 'video=', msg.videoId);
-    if (msg.videoId && msg.videoId === self._offVideoId) npFallbackToWindow(msg.videoId);
-  }
-});
 
 // ─────────────────────────────────────────────────────────────────────────────
 // OYUN KODLARI — DÜRÜST kaynaklar: küratörlü repo (varsa gerçek) + oyun açıklaması +
