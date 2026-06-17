@@ -27,8 +27,8 @@
   const ICON_BACK = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>';
   const ICON_VOL = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 6a8 8 0 0 1 0 12"/></svg>';
   const ICON_MUTE = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"/><line x1="22" y1="9" x2="16" y2="15"/><line x1="16" y1="9" x2="22" y2="15"/></svg>';
-  // Görünmez kenar bölgeleri (pencere gibi kenardan resize): sağ=genişlik, alt=yükseklik/ölçek, köşe=çapraz
-  const RESIZE_HTML = '<div class="np-edge np-edge-r"></div><div class="np-edge np-edge-b"></div><div class="np-edge np-edge-c"></div>';
+  // Görünmez kenar bölgeleri — yalnız SAĞ ve SOL kenardan genişlik resize
+  const RESIZE_HTML = '<div class="np-edge np-edge-r"></div><div class="np-edge np-edge-l"></div>';
   const SRC_SPOTIFY = '<svg viewBox="0 0 24 24" width="14" height="14"><circle cx="12" cy="12" r="11" fill="#1DB954"/><path fill="#fff" d="M17.2 16.4a.66.66 0 0 1-.9.22c-2.46-1.5-5.56-1.84-9.2-1a.66.66 0 1 1-.3-1.28c3.98-.91 7.4-.52 10.16 1.16.31.2.41.6.24.9zm1.3-2.9a.82.82 0 0 1-1.13.27c-2.82-1.73-7.12-2.23-10.45-1.22a.82.82 0 1 1-.48-1.57c3.81-1.16 8.55-.6 11.79 1.39.39.24.5.74.27 1.13zm.11-3.02C16.54 8.5 10.94 8.32 7.8 9.28a.98.98 0 1 1-.57-1.88c3.6-1.1 9.79-.88 13.66 1.42a.98.98 0 1 1-1 1.68z"/></svg>';
   const SRC_YTMUSIC = '<svg viewBox="0 0 24 24" width="14" height="14"><circle cx="12" cy="12" r="11" fill="#FF0000"/><path fill="#fff" d="M10 8.2v7.6l6.2-3.8z"/></svg>';
   const SRC_YOUTUBE = '<svg viewBox="0 0 24 24" width="15" height="15"><path fill="#FF0000" d="M23 12s0-3.2-.41-4.73a2.46 2.46 0 0 0-1.73-1.74C19.32 5.12 12 5.12 12 5.12s-7.32 0-8.86.41A2.46 2.46 0 0 0 1.41 7.27C1 8.8 1 12 1 12s0 3.2.41 4.73a2.46 2.46 0 0 0 1.73 1.74c1.54.41 8.86.41 8.86.41s7.32 0 8.86-.41a2.46 2.46 0 0 0 1.73-1.74C23 15.2 23 12 23 12z"/><path fill="#fff" d="M9.75 15.27V8.73L15.5 12z"/></svg>';
@@ -89,14 +89,10 @@
     return m[key] || m.bl;
   }
   const SQ = 56; // küçültülmüş kare boyutu
-  const npScale = () => ((_minimized || _mode === 'idle' || _mode === 'search') ? 1 : Math.max(0.85, Math.min(1.6, 1 + (_resH - 230) / 600)));
   function applyLayout() {
     const w = document.getElementById(WIDGET_ID); if (!w) return;
-    w.style.setProperty('--np-resh', _resH + 'px');   // arama: sonuç listesi yüksekliği
-    w.style.setProperty('--np-scale', npScale());     // oynatıcı: tüm widget ölçeği
-    w.style.transformOrigin = '0 0';
     w.style.width = _minimized ? '' : (_width + 'px');
-    const rect = w.getBoundingClientRect();            // ölçek+genişlik uygulanmış gerçek boyut
+    const rect = w.getBoundingClientRect();
     const wd = _minimized ? SQ : (rect.width || _width);
     const ht = _minimized ? SQ : (rect.height || 96);
     const p = anchorPos(_anchor, wd, ht);
@@ -139,35 +135,21 @@
     });
   }
   function wireResize(w) {
-    const wire = (sel, axis) => {  // 'h'=sağ kenar(genişlik) 'v'=alt kenar(yükseklik/ölçek) 'c'=köşe(çapraz)
-      const h = w.querySelector(sel); if (!h) return;
-      h.addEventListener('pointerdown', (e) => {
-        e.stopPropagation();
-        const sx = e.clientX, sy = e.clientY, sw = _width, sh = _resH;
-        const r0 = w.getBoundingClientRect(); const sl = r0.left, st = r0.top; // sürükleme boyunca üst-sol sabit
-        w.style.transition = 'none'; w.style.transformOrigin = '0 0';
-        beginDrag(h, e, (ev) => {
-          if (axis !== 'v') _width = clampW(sw + (ev.clientX - sx)); // sağ/köşe → genişlik (aşağı-sağa büyür)
-          if (axis !== 'h') _resH = clampH(sh + (ev.clientY - sy));  // alt/köşe → yükseklik (arama) / ölçek (oynatıcı)
-          w.style.setProperty('--np-resh', _resH + 'px');
-          w.style.setProperty('--np-scale', npScale());
-          w.style.width = _width + 'px';
-          // üst-sol sabit, boyut uygulandı → ekran dışına taşarsa içeri (yukarı/sola) kaydır
-          const r = w.getBoundingClientRect();
-          let left = sl, top = st;
-          if (left + r.width > window.innerWidth - 6) left = window.innerWidth - 6 - r.width;
-          if (top + r.height > window.innerHeight - 6) top = window.innerHeight - 6 - r.height;
-          w.style.left = Math.max(6, left) + 'px'; w.style.top = Math.max(6, top) + 'px';
-          w.style.right = 'auto'; w.style.bottom = 'auto';
-        }, () => {
-          const r = w.getBoundingClientRect(); // bırakınca en yakın çıpaya snap
-          _anchor = nearestAnchor(r.left + r.width / 2, r.top + r.height / 2, r.width, r.height);
-          w.style.transition = 'left .16s ease, top .16s ease';
-          applyLayout(); saveLayout();
-        });
-      });
-    };
-    wire('.np-edge-r', 'h'); wire('.np-edge-b', 'v'); wire('.np-edge-c', 'c');
+    const snap = () => { const r = w.getBoundingClientRect(); _anchor = nearestAnchor(r.left + r.width / 2, r.top + r.height / 2, r.width, r.height); w.style.transition = 'left .16s ease, top .16s ease'; applyLayout(); saveLayout(); };
+    const r = w.querySelector('.np-edge-r');  // sağ kenar: SOL sabit, genişlik sağa büyür
+    if (r) r.addEventListener('pointerdown', (e) => {
+      e.stopPropagation();
+      const sx = e.clientX, sw = _width, sl = w.getBoundingClientRect().left;
+      w.style.transition = 'none';
+      beginDrag(r, e, (ev) => { _width = clampW(sw + (ev.clientX - sx)); w.style.width = _width + 'px'; w.style.left = sl + 'px'; w.style.right = 'auto'; }, snap);
+    });
+    const l = w.querySelector('.np-edge-l');  // sol kenar: SAĞ sabit, genişlik sola büyür
+    if (l) l.addEventListener('pointerdown', (e) => {
+      e.stopPropagation();
+      const sx = e.clientX, sw = _width, sr = w.getBoundingClientRect().right;
+      w.style.transition = 'none';
+      beginDrag(l, e, (ev) => { _width = clampW(sw - (ev.clientX - sx)); w.style.width = _width + 'px'; w.style.left = Math.max(6, sr - w.getBoundingClientRect().width) + 'px'; w.style.right = 'auto'; }, snap);
+    });
   }
 
   // ── Stiller ──
@@ -183,7 +165,6 @@
         box-shadow:0 12px 44px rgba(0,0,0,.58),inset 0 1px 0 rgba(255,255,255,.06);
         color:rgba(255,255,255,.9);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
         padding:11px 13px 12px;overflow:hidden;
-        transform:scale(var(--np-scale,1));transform-origin:0 0;
         animation:np-in .42s cubic-bezier(.2,.85,.25,1) both;
         transition:width .24s cubic-bezier(.2,.85,.25,1),height .24s cubic-bezier(.2,.85,.25,1),border-radius .24s,box-shadow .3s;}
       /* üstte kapaktan gelen yumuşak accent ışıması */
@@ -267,11 +248,10 @@
 
       #${WIDGET_ID}.np-dragging{cursor:grabbing;user-select:none;}
       #${WIDGET_ID}.np-dragging *{user-select:none;}
-      /* Görünmez kenar bölgeleri — pencere gibi kenardan resize (sağ kenar + alt kenar + alt-sağ köşe) */
-      .np-edge{position:absolute;z-index:6;touch-action:none;}
-      .np-edge-r{top:12px;bottom:12px;right:-3px;width:12px;cursor:ew-resize;}
-      .np-edge-b{left:12px;right:12px;bottom:-3px;height:12px;cursor:ns-resize;}
-      .np-edge-c{right:-3px;bottom:-3px;width:22px;height:22px;z-index:7;cursor:nwse-resize;}
+      /* Görünmez kenar bölgeleri — yalnız sağ/sol kenardan genişlik */
+      .np-edge{position:absolute;top:0;bottom:0;width:12px;z-index:6;cursor:ew-resize;touch-action:none;}
+      .np-edge-r{right:-3px;}
+      .np-edge-l{left:-3px;}
       #${WIDGET_ID}.np-min .np-edge{display:none;}
       /* sürükleme/resize sırasında sayfada (Roblox dahil) seçim/sürükleme olmasın */
       .np-dragging-global, .np-dragging-global *{user-select:none !important;-webkit-user-select:none !important;}
