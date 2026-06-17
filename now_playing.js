@@ -159,8 +159,9 @@
         const sx = e.clientX, sy = e.clientY, sw = _width, sh = _resH;
         w.style.transition = 'none';
         beginDrag(h, e, (ev) => {
-          if (axis !== 'v') { const sg = (_hSide === 'l') ? -1 : 1; _width = clampW(sw + sg * (ev.clientX - sx)); }
-          if (axis !== 'h') { const sg = (_vSide === 't') ? -1 : 1; _resH = clampH(sh + sg * (ev.clientY - sy)); }
+          // sağ/sol kenar = YALNIZ genişlik (yana); üst/alt kenar + KÖŞE = yükseklik/ölçek (çapraz, yukarı büyür)
+          if (axis === 'h') { const sg = (_hSide === 'l') ? -1 : 1; _width = clampW(sw + sg * (ev.clientX - sx)); }
+          else { const sg = (_vSide === 't') ? -1 : 1; _resH = clampH(sh + sg * (ev.clientY - sy)); }
           applyLayout();
         }, () => saveLayout());
       });
