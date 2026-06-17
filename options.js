@@ -934,35 +934,6 @@ const CHANGELOG = [
             { icon: '▸', text: 'Çubuk opaklığı Roblox arayüz güncellemelerine dayanıklı; performans iyileştirmeleri + ölü kod temizliği' },
         ]
     },
-    {
-        version: 'v1.9.0',
-        date: '26 Mayıs 2026',
-        isNew: false,
-        entries: [
-            { icon: '🧹', text: 'A+B Kombo ve C+D Cerrahi kaldırıldı — çalışmıyordu, ~1200 satır dead code temizlendi' },
-            { icon: '🎯', text: 'Oto-Pilot v4.1 Hibrit: Önce Roblox\'un kendi region-aware matchmaker\'ı denenir, fail olursa public scan fallback' },
-            { icon: '🧠', text: 'Akıllı ping algoritması: server.ping ↔ kullanıcının ölçtüğü best regional ping göreceli karşılaştırılır' },
-            { icon: '⚠️', text: 'Bad-server blocklist: Oto-Pilot sonrası floating panel ile "Sıradaki sunucu" — kötü server\'lar 24h boyunca exclude edilir' },
-            { icon: '🌍', text: 'Bölge Şablonu: Probe regions Avrupa/NA/Asya/SA/AU/Global preset seçimi' },
-            { icon: '✨', text: 'Popup UI tam yenilendi: warm gold brand kimliği, modern dark palette, Apple-style hover\'lar' },
-            { icon: '🔧', text: 'Free Items: Tek özet bildirim (eski 5 ayrı bildirim spam\'i giderildi)' },
-            { icon: '⚡', text: 'Friends modülü stale-while-revalidate cache: anlık görünüm, arka planda taze veri' },
-        ]
-    },
-    {
-        version: 'v1.8.0',
-        date: '15 Mayıs 2026',
-        isNew: false,
-        entries: [
-            { icon: '🔄', text: 'Auto-Reconnect: Oyun kapanınca aynı server\'a tek tıkla geri dön' },
-            { icon: '💾', text: 'Kaydedilen Serverlar: Server\'ları sakla, dilediğinde geri katıl' },
-            { icon: '🔍', text: 'Kapalı server tespiti: Kapanan serverlar listeden otomatik siliniyor' },
-            { icon: '🛡️', text: 'Oto-Pilot iyileştirmesi: Rate limit sorunu giderildi, 25sn akıllı retry' },
-            { icon: '🖥️', text: 'Overlay yenilendi: Server ID kopyala + kaydet butonları eklendi' },
-            { icon: '⚙️', text: 'Ayarlar navigasyonu düzeltildi (scroll spy tam çalışıyor)' },
-            { icon: '🔒', text: 'Manifest\'e "tabs" izni eklendi — overlay her zaman gösterilecek' },
-        ]
-    }
 ];
 
 function renderChangelog() {
