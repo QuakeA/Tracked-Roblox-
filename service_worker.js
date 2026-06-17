@@ -2901,7 +2901,16 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         }
         // 2) Açık sekme yoksa/başarısızsa → HEADLESS (hiç sekme AÇMADAN)
         if (source === 'youtube') { sendResponse(await npYoutubeHeadless(q)); return; }
-        if (source === 'ytmusic') { sendResponse(await npYtmHeadless(q)); return; }
+        if (source === 'ytmusic') {
+          // music.youtube.com SW fetch'i "eski tarayıcı" sayfası döndürüyor (UA) → headless YTM güvenilmez.
+          // Güvenilir yedek: YouTube araması (gerçek müzik sonuçları), ama YT Music'te çal (target=ytmusic).
+          let r = await npYtmHeadless(q);
+          if (!r || !r.ok || !(r.results || []).length) {
+            const yt = await npYoutubeHeadless(q);
+            if (yt && yt.ok && (yt.results || []).length) { yt.results.forEach(c => { c.target = 'ytmusic'; }); r = yt; }
+          }
+          sendResponse(r || { ok: false }); return;
+        }
         if (source === 'spotify') { sendResponse(await npSpHeadless(q)); return; }
         sendResponse({ ok: false });
       } catch (e) { sendResponse({ ok: false, error: e.message }); }
