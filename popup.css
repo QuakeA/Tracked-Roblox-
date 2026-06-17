@@ -2318,3 +2318,9 @@ body.reduced-motion *::after {
   transition-duration: 0.01ms !important;
   scroll-behavior: auto !important;
 }
+
+/* ── Tracked Plus kilit rozeti (kütüphane Pro butonları: Tara/Etkinlik) ── */
+.lib-item .tk-pro { position: relative; overflow: visible; }
+.tk-lock { position: absolute; top: -5px; right: -5px; display: inline-flex; align-items: center; justify-content: center; width: 14px; height: 14px; border-radius: 50%; background: linear-gradient(150deg, #7b4cff, #4c8bf5); color: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.45); pointer-events: none; z-index: 3; }
+.tk-lock svg { width: 8px; height: 8px; display: block; }
+#library-list.tk-plus .tk-lock { display: none !important; }

@@ -1550,6 +1550,15 @@ function renderLibrary() {
         deleteGame(placeId, itemEl);
     }));
 
+    // Pro butonlara (Tara/Etkinlik) kilit rozeti + Plus'a göre gizle
+    const LOCK_SVG = '<span class="tk-lock"><svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><path d="M12 1a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2h-1V6a5 5 0 0 0-5-5zm3 8H9V6a3 3 0 0 1 6 0v3z"/></svg></span>';
+    popupIsPlus().then(p => {
+        ui.libraryList.querySelectorAll('.scan, .analyze').forEach(b => {
+            if (!b.querySelector('.tk-lock')) { b.classList.add('tk-pro'); b.insertAdjacentHTML('beforeend', LOCK_SVG); }
+        });
+        ui.libraryList.classList.toggle('tk-plus', p);
+    });
+
     loadLibraryThumbnails(displayList);
 }
 
