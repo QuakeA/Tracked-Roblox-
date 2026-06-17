@@ -2658,6 +2658,336 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true;
   }
 
+  // ── ŞU AN ÇALIYOR (medya widget) — youtube/yt-music/spotify sekmelerinden now-playing + kontrol ──
+  // Opt-in: SW yalnız content script istek atınca (özellik açıkken) medya sekmelerine dokunur.
+  // Performans: audible ön-filtre + son çalan sekme önbelleği (self._mediaLastTabId) → her seferde tüm tarama yok.
+  if (request.action === "mediaGetNowPlaying") {
+    (async () => {
+      try {
+        // Offscreen oynatıcı aktifse onun durumunu döndür (gizli iframe — sekme taraması yapma)
+        if (self._offActive) {
+          const r = await chrome.runtime.sendMessage({ off: 'state' }).catch(() => null);
+          const st = r && r.state;
+          if (st && (st.title || st.videoId)) {
+            sendResponse({ ok: true, media: {
+              title: st.title || '', artist: (st.author || '').replace(/\s*-\s*Topic\s*$/i, ''), album: '',
+              artwork: st.videoId ? `https://i.ytimg.com/vi/${st.videoId}/mqdefault.jpg` : '',
+              playing: !!st.playing, position: st.position || 0, duration: st.duration || 0,
+              host: 'www.youtube.com', volume: st.volume != null ? st.volume : 100, muted: !!st.muted, tabId: -1
+            } });
+            return;
+          }
+        }
+        const PATTERNS = ['*://open.spotify.com/*', '*://music.youtube.com/*', '*://*.youtube.com/*'];
+        const isMedia = (t) => t && t.url && /(open\.spotify\.com|music\.youtube\.com|youtube\.com)/.test(t.url);
+        const [audible, all] = await Promise.all([
+          chrome.tabs.query({ audible: true }).catch(() => []),
+          chrome.tabs.query({ url: PATTERNS }).catch(() => [])
+        ]);
+        const seen = new Set(); const cand = [];
+        const add = (t) => { if (isMedia(t) && !seen.has(t.id)) { seen.add(t.id); cand.push(t); } };
+        audible.forEach(add);                                   // ses çıkaranlar önce
+        if (self._mediaLastTabId) add(all.find(t => t.id === self._mediaLastTabId)); // sonra önbellek
+        all.forEach(add);                                       // sonra diğer medya sekmeleri
+        if (!cand.length) { self._mediaLastTabId = null; sendResponse({ ok: true, media: null }); return; }
+
+        const readFn = () => {
+          try {
+            const h = location.hostname;
+            // PATH KAPISI: youtube.com'da yalnız gerçek izleme sayfaları — ana sayfa/arama/önizleme/masthead reklamı DEĞİL
+            if (h.indexOf('youtube') >= 0 && h.indexOf('music.youtube') < 0) {
+              if (!/^\/(watch|shorts|embed)/.test(location.pathname)) return null;
+            }
+            const ms = navigator.mediaSession, md = ms && ms.metadata;
+            // GERÇEK now-playing sinyali: mediaSession.metadata + başlık ZORUNLU.
+            // Bu, tarayıcının OS medya kutusunu besleyen resmî sinyali — siteler bunu yalnız kullanıcının
+            // SEÇTİĞİ gerçek oynatma için doldurur; ana sayfa önizlemeleri ve reklamların çoğu doldurmaz.
+            if (!md || !md.title) return null;
+            // Ana oynatıcıyı seç (önizleme/reklam videolarını değil)
+            const el = (h.indexOf('youtube') >= 0)
+              ? (document.querySelector('.html5-main-video') || document.querySelector('video.video-stream') || document.querySelector('video'))
+              : document.querySelector('video, audio');
+            let art = '';
+            if (md.artwork && md.artwork.length) {
+              let best = md.artwork[0];
+              for (const a of md.artwork) {
+                const s = parseInt((a.sizes || '0').split('x')[0], 10) || 0;
+                const bs = parseInt((best.sizes || '0').split('x')[0], 10) || 0;
+                if (s > bs) best = a;
+              }
+              art = best.src || '';
+            }
+            const playing = el ? !el.paused : (ms.playbackState === 'playing');
+            return {
+              title: String(md.title || '').trim(), artist: String(md.artist || '').trim(),
+              album: md.album || '', artwork: art, playing: !!playing,
+              position: el && isFinite(el.currentTime) ? el.currentTime : null,
+              duration: el && isFinite(el.duration) ? el.duration : null, host: h,
+              volume: el ? Math.round((el.volume != null ? el.volume : 1) * 100) : null,
+              muted: el ? !!el.muted : false
+            };
+          } catch (e) { return null; }
+        };
+
+        let pausedFallback = null, chosen = null;
+        for (const t of cand) {
+          let r = null;
+          try { const out = await chrome.scripting.executeScript({ target: { tabId: t.id }, world: 'MAIN', func: readFn }); r = out && out[0] && out[0].result; }
+          catch (_) {}
+          if (r) { r.tabId = t.id; if (r.playing) { chosen = r; break; } if (!pausedFallback) pausedFallback = r; }
+        }
+        chosen = chosen || pausedFallback;
+        self._mediaLastTabId = chosen ? chosen.tabId : null;
+        sendResponse({ ok: true, media: chosen || null });
+      } catch (e) { sendResponse({ ok: false, error: e.message }); }
+    })();
+    return true;
+  }
+
+  if (request.action === "mediaControl") {
+    const { cmd, value, tabId } = request;
+    (async () => {
+      try {
+        // Offscreen oynatıcı aktifse komutu ona yönlendir (gizli iframe)
+        if (self._offActive) { try { await chrome.runtime.sendMessage({ off: 'cmd', cmd, value }); } catch (_) {} sendResponse({ ok: true, offscreen: true }); return; }
+        const tid = tabId || self._mediaLastTabId;
+        if (!tid) { sendResponse({ ok: false, reason: 'no-tab' }); return; }
+        // allFrames: YouTube oynatıcısı bazen alt frame'de (örn. gömülü/eski düzen) → tüm frame'lere uygula
+        const res = await chrome.scripting.executeScript({
+          // value undefined ise null gönder — undefined args'ta serileştirilemez (tüm çağrı patlar)
+          target: { tabId: tid, allFrames: true }, world: 'MAIN', args: [cmd, value === undefined ? null : value],
+          func: (cmd, value) => {
+            const info = { cmd, host: location.hostname, top: window.top === window, did: null };
+            try {
+              const h = location.hostname;
+              const isYT = h.indexOf('youtube') >= 0;
+              const el = isYT
+                ? (document.querySelector('.html5-main-video') || document.querySelector('video.video-stream') || document.querySelector('video'))
+                : document.querySelector('video, audio');
+              // Oynatıcı API'si: #movie_player (yt/yt-music) ya da .html5-video-player
+              const mp = document.querySelector('#movie_player') || document.querySelector('.html5-video-player');
+              const mpApi = !!(mp && typeof mp.playVideo === 'function');
+              info.hasEl = !!el; info.hasMP = !!mp; info.mpApi = mpApi; info.elPaused = el ? el.paused : null;
+              // Yalnız GERÇEK oynatıcı frame'inde aksiyon al: oynatıcı API'si olan ya da üst frame + video.
+              // Böylece reklam/gömülü alt-frame'ler komuta tepki verip çift-toggle yapmaz.
+              const mayAct = mpApi || (window.top === window && !!el);
+              if (!mayAct) { info.did = 'skip'; return info; }
+              const click = (sel) => { const b = document.querySelector(sel); if (b) { b.click(); return sel; } return null; };
+              const SEL = h.indexOf('spotify') >= 0
+                ? { toggle: '[data-testid="control-button-playpause"]', next: '[data-testid="control-button-skip-forward"]', prev: '[data-testid="control-button-skip-back"]' }
+                : (h.indexOf('music.youtube') >= 0
+                  ? { toggle: '#play-pause-button', next: 'tp-yt-paper-icon-button.next-button', prev: 'tp-yt-paper-icon-button.previous-button' }
+                  : { toggle: '.ytp-play-button', next: '.ytp-next-button', prev: '.ytp-prev-button' });
+
+              if (cmd === 'play' || cmd === 'pause') {
+                const want = (cmd === 'play');
+                if (mpApi) { want ? mp.playVideo() : mp.pauseVideo(); info.did = 'mpApi'; }
+                else if (el) {
+                  try { want ? el.play() : el.pause(); info.did = 'el'; } catch (_) {}
+                  if (want ? el.paused : !el.paused) { const c = click(SEL.toggle); if (c) info.did = 'el+btn'; } // hâlâ yanlışsa buton
+                } else { const c = click(SEL.toggle); info.did = c ? 'btn' : 'none'; }
+              }
+              else if (cmd === 'next') {
+                if (mpApi && typeof mp.nextVideo === 'function') { mp.nextVideo(); info.did = 'mp.next'; }
+                else { const c = click(SEL.next); info.did = c ? 'btn.next' : 'no-next'; }
+              }
+              else if (cmd === 'prev') {
+                // Standart oynatıcı davranışı: 3sn'den ileriyse mevcut şarkıyı başa sar; başındaysa önceki şarkı.
+                const atStart = !el || !isFinite(el.currentTime) || el.currentTime <= 3;
+                if (mpApi) {
+                  if (!atStart && typeof mp.seekTo === 'function') { mp.seekTo(0, true); info.did = 'mp.restart'; }
+                  else if (typeof mp.previousVideo === 'function') { mp.previousVideo(); info.did = 'mp.prev'; }
+                  else if (el) { el.currentTime = 0; info.did = 'el.restart'; }
+                } else {
+                  // Spotify/diğer: site butonu zaten restart-veya-önceki mantığını uygular
+                  const c = click(SEL.prev); info.did = c ? 'btn.prev' : (el ? (el.currentTime = 0, 'el.restart') : 'no-prev');
+                }
+              }
+              else if (cmd === 'seek' && isFinite(value)) {
+                if (mpApi && typeof mp.seekTo === 'function') { mp.seekTo(value, true); info.did = 'mp.seek'; }
+                else if (el) { el.currentTime = value; info.did = 'el.seek'; }
+              }
+              else if (cmd === 'volume' && isFinite(value)) {
+                const v = Math.max(0, Math.min(100, value));
+                let done = false;
+                // YouTube / YT Music: oynatıcı API
+                if (mpApi && typeof mp.setVolume === 'function') { try { mp.setVolume(v); if (v > 0 && mp.unMute) mp.unMute(); done = true; } catch (_) {} }
+                // YT Music: ses paper-slider'ı
+                const ps = document.querySelector('tp-yt-paper-slider#volume-slider, #volume-slider');
+                if (ps) { try { ps.value = v; ps.dispatchEvent(new CustomEvent('immediate-value-change', { bubbles: true })); ps.dispatchEvent(new CustomEvent('value-change', { bubbles: true })); done = true; } catch (_) {} }
+                // Spotify: gizli range input (React kontrollü → native setter + input event)
+                const sp = document.querySelector('[data-testid="volume-bar"] input[type="range"]');
+                if (sp) { try { const set = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set; set.call(sp, String(v / 100)); sp.dispatchEvent(new Event('input', { bubbles: true })); sp.dispatchEvent(new Event('change', { bubbles: true })); done = true; } catch (_) {} }
+                // Genel medya elementi (yedek)
+                if (el) { try { el.volume = v / 100; if (v > 0) el.muted = false; } catch (_) {} }
+                info.did = done ? 'vol' : 'vol.el';
+              }
+              else if (cmd === 'mute') {
+                if (h.indexOf('spotify') >= 0) { const mb = document.querySelector('[data-testid="volume-bar-toggle-mute-button"], button[aria-label="Mute"], button[aria-label="Sessize al"], button[aria-label="Unmute"]'); if (mb) { mb.click(); info.did = 'sp.mute'; } else if (el) { el.muted = !el.muted; info.did = 'mute'; } }
+                else if (mpApi && typeof mp.isMuted === 'function') { mp.isMuted() ? mp.unMute() : mp.mute(); info.did = 'mp.mute'; }
+                else if (el) { el.muted = !el.muted; info.did = 'mute'; }
+              }
+            } catch (e) { info.err = String((e && e.message) || e); }
+            return info;
+          }
+        });
+        // Oynatıcıyı bulan frame'i öne al (reklam/alt-frame'leri ele)
+        const frames = (res || []).map(r => r && r.result).filter(Boolean);
+        const acted = frames.find(f => f.did && f.did !== 'none' && f.did !== 'no-next' && f.did !== 'no-prev' && f.did !== 'skip');
+        sendResponse({ ok: true, info: acted || frames[0] || null });
+      } catch (e) { sendResponse({ ok: false, error: e.message }); }
+    })();
+    return true;
+  }
+
+  if (request.action === "mediaFocusTab") {
+    (async () => {
+      try {
+        const tid = request.tabId || self._mediaLastTabId;
+        if (!tid) { sendResponse({ ok: false }); return; }
+        const tab = await chrome.tabs.get(tid).catch(() => null);
+        if (tab) { await chrome.tabs.update(tid, { active: true }); if (tab.windowId != null) await chrome.windows.update(tab.windowId, { focused: true, state: 'normal' }).catch(() => {}); } // gizli pencereyi geri aç
+        sendResponse({ ok: true });
+      } catch (e) { sendResponse({ ok: false }); }
+    })();
+    return true;
+  }
+
+  // ── Hızlı açma: YouTube / YT Music / Spotify'ı ARKA PLANDA sekmede aç (varsa yeniden kullan, çoğaltma) ──
+  if (request.action === "mediaOpenSite") {
+    (async () => {
+      try {
+        const URLS = { youtube: 'https://www.youtube.com/', ytmusic: 'https://music.youtube.com/', spotify: 'https://open.spotify.com/' };
+        const url = URLS[request.site];
+        if (!url) { sendResponse({ ok: false }); return; }
+        const tabs = await chrome.tabs.query({}).catch(() => []);
+        const match = (u) => {
+          if (!u) return false;
+          if (request.site === 'ytmusic') return /music\.youtube\.com/.test(u);
+          if (request.site === 'youtube') return /(^|\.)youtube\.com/.test(u) && !/music\.youtube\.com/.test(u);
+          return /open\.spotify\.com/.test(u);
+        };
+        const ex = tabs.find(t => match(t.url));
+        if (ex) { sendResponse({ ok: true, reused: true, tabId: ex.id }); } // arka planda — zaten açık, odak çalmadan bırak
+        else { const t = await chrome.tabs.create({ url, active: false }); sendResponse({ ok: true, created: true, tabId: t.id }); }
+      } catch (e) { sendResponse({ ok: false, error: e.message }); }
+    })();
+    return true;
+  }
+
+  // ── Widget-içi arama. Strateji: AÇIK sekme varsa onun SAYFA CONTEXT'inde ara (yeni sekme yok, güvenilir);
+  //    yoksa YouTube=headless (sekme açmaz), YTM/Spotify=tek seferlik gizli arka plan işçi sekme. "_site"=sitede aç. ──
+  if (request.action === "mediaSearch") {
+    (async () => {
+      const q = String(request.query || '').trim();
+      const source = request.source || 'youtube';
+      if (!q) { sendResponse({ ok: false }); return; }
+      try {
+        if (source.endsWith('_site')) {
+          const base = source.replace('_site', '');
+          const url = base === 'ytmusic' ? `https://music.youtube.com/search?q=${encodeURIComponent(q)}`
+            : base === 'spotify' ? `https://open.spotify.com/search/${encodeURIComponent(q)}`
+            : `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}`;
+          const ex = await npFindSiteTab(base);
+          if (ex) await chrome.tabs.update(ex.id, { url, active: true }); else await chrome.tabs.create({ url, active: true });
+          sendResponse({ ok: true, opened: true });
+          return;
+        }
+        // 1) Zaten açık sekme varsa onun sayfa context'inde ara (en güvenilir, sekme açmaz)
+        const open = await npFindSiteTab(source);
+        if (open) {
+          const r = await npSearchInTab(open.id, source, q);
+          if (r && r.ok && (r.results || []).length) { sendResponse(r); return; }
+        }
+        // 2) Açık sekme yoksa/başarısızsa → HEADLESS (hiç sekme AÇMADAN)
+        if (source === 'youtube') { sendResponse(await npYoutubeHeadless(q)); return; }
+        if (source === 'ytmusic') { sendResponse(await npYtmHeadless(q)); return; }
+        if (source === 'spotify') { sendResponse(await npSpHeadless(q)); return; }
+        sendResponse({ ok: false });
+      } catch (e) { sendResponse({ ok: false, error: e.message }); }
+    })();
+    return true;
+  }
+
+  // ── Widget'tan seçilen videoyu çal: çalma sekmesi zaten varsa player API ile ARKA PLANDA yükle (flash YOK);
+  //    yoksa ilk kez foreground'da başlat (tek seferlik kısa flash). Garanti çalar (tam izleme sayfası). ──
+  if (request.action === "mediaPlayYouTube") {
+    (async () => {
+      const id = String(request.videoId || '').replace(/[^\w-]/g, '');
+      if (!id) { sendResponse({ ok: false }); return; }
+      const ytm = request.target === 'ytmusic';
+      try {
+        self._offActive = false;
+        // Mevcut çalma sekmesi YouTube/YT Music'teyse: sayfayı yenilemeden player API ile yeni videoyu yükle → flash YOK
+        let tab = self._mediaPlayTab != null ? await chrome.tabs.get(self._mediaPlayTab).catch(() => null) : null;
+        if (tab) {
+          const sameSite = ytm ? /music\.youtube\.com/.test(tab.url || '') : (/(^|\.)youtube\.com/.test(tab.url || '') && !/music\.youtube\.com/.test(tab.url || ''));
+          if (sameSite) {
+            const res = await chrome.scripting.executeScript({
+              target: { tabId: tab.id }, world: 'MAIN', args: [id],
+              func: (vid) => { try { const mp = document.querySelector('#movie_player'); if (mp && mp.loadVideoById) { mp.loadVideoById(vid); try { if (mp.isMuted && mp.isMuted()) mp.unMute(); } catch (_) {} return true; } return false; } catch (_) { return false; } }
+            }).catch(() => null);
+            if (res && res[0] && res[0].result) { self._mediaLastTabId = tab.id; sendResponse({ ok: true, mode: 'bg-api' }); return; }
+          }
+        }
+        // İlk kez / player yok → foreground'da başlat (tek seferlik kısa flash)
+        const url = (ytm ? `https://music.youtube.com/watch?v=${id}` : `https://www.youtube.com/watch?v=${id}`) + '&autoplay=1';
+        npPlayInWindow(url, id);
+        sendResponse({ ok: true, mode: 'fg' });
+      } catch (e) { sendResponse({ ok: false, error: e.message }); }
+    })();
+    return true;
+  }
+
+  // ── Spotify parçası: DRM yüzünden arka planda çaldıramayız → parçayı aç + ÖNE getir (kullanıcı orada oynatır) ──
+  if (request.action === "mediaOpenTrack") {
+    (async () => {
+      const url = String(request.url || '');
+      if (!/^https:\/\/open\.spotify\.com\//.test(url)) { sendResponse({ ok: false }); return; }
+      self._offActive = false; try { chrome.runtime.sendMessage({ off: 'stop' }).catch(() => {}); } catch (_) {} // Spotify'a geçiş → offscreen YouTube'u durdur
+      try {
+        const tabs = await chrome.tabs.query({}).catch(() => []);
+        let tab = tabs.find(t => /open\.spotify\.com/.test(t.url || ''));
+        if (tab) { await chrome.tabs.update(tab.id, { url, active: true }); if (tab.windowId != null) await chrome.windows.update(tab.windowId, { focused: true }).catch(() => {}); }
+        else { tab = await chrome.tabs.create({ url, active: true }); }
+        self._mediaLastTabId = tab.id;
+        sendResponse({ ok: true, tabId: tab.id });
+      } catch (e) { sendResponse({ ok: false, error: e.message }); }
+    })();
+    return true;
+  }
+
+  // ── OYUN KODLARI — dürüst kaynaklar (küratörlü repo + açıklama + resmi sosyal linkler + web araması) ──
+  if (request.action === "getGameCodes") {
+    (async () => {
+      try {
+        const placeId = String(request.placeId || '').replace(/\D/g, '');
+        if (!placeId) { sendResponse({ ok: false }); return; }
+        const universeId = await gcGetUniverse(placeId);
+        const details = universeId ? await gcGetDetails(universeId) : null;
+        const name = (details && details.name) || request.name || '';
+        const [socials, repo] = await Promise.all([
+          universeId ? gcGetSocials(universeId) : Promise.resolve([]),
+          gcGetRepoCodes(name)
+        ]);
+        const descCodes = gcScanDescription(details && details.description);
+        const map = new Map();
+        const add = (c) => { const k = c.code.toUpperCase(); if (!map.has(k)) map.set(k, c); };
+        if (repo) repo.codes.forEach(add);
+        descCodes.forEach(add);
+        const yr = new Date().getFullYear();
+        sendResponse({
+          ok: true, name, universeId,
+          codes: Array.from(map.values()),
+          repoUrl: repo ? `https://github.com/Progameguides/Roblox-Games-Codes/blob/main/codes/${repo.file}` : null,
+          socials: (socials || []).map(s => ({ type: s.type, url: s.url, title: s.title })),
+          searchUrl: `https://www.google.com/search?q=${encodeURIComponent(name + ' roblox codes ' + yr)}`
+        });
+      } catch (e) { sendResponse({ ok: false, error: e.message }); }
+    })();
+    return true;
+  }
+
   // ── SUNUCU BEKÇİSİ (Server Watch): TEK oyun — aynı anda yalnızca bir oyun izlenir ──
   if (request.action === "startServerWatch") {
     (async () => {
@@ -4839,4 +5169,333 @@ chrome.notifications.onClicked.addListener(async (notifId) => {
     chrome.alarms.clear(`fi_autoclear_${itemId}`);
   } catch (e) { console.error('[FreeItems] click handler:', e); }
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Medya araması — yardımcılar (gizli işçi sekme + sayfa-context arama)
+// ─────────────────────────────────────────────────────────────────────────────
+async function npFindSiteTab(source) {
+  const tabs = await chrome.tabs.query({}).catch(() => []);
+  const m = (u) => source === 'ytmusic' ? /music\.youtube\.com/.test(u || '')
+    : source === 'spotify' ? /open\.spotify\.com/.test(u || '')
+    : (/(^|\.)youtube\.com/.test(u || '') && !/music\.youtube\.com/.test(u || ''));
+  return tabs.find(t => m(t.url)) || null;
+}
+function npWaitTabComplete(tabId, timeout) {
+  return new Promise((resolve) => {
+    let done = false;
+    const finish = () => { if (done) return; done = true; try { chrome.tabs.onUpdated.removeListener(l); } catch (_) {} resolve(); };
+    const l = (id, info) => { if (id === tabId && info.status === 'complete') finish(); };
+    chrome.tabs.onUpdated.addListener(l);
+    chrome.tabs.get(tabId).then(t => { if (t && t.status === 'complete') finish(); }).catch(() => {});
+    setTimeout(finish, timeout || 9000);
+  });
+}
+async function npGetWorker(source) {
+  const existing = await npFindSiteTab(source);
+  if (existing) return existing.id;
+  self._npWorker = self._npWorker || {};
+  const prev = self._npWorker[source];
+  if (prev != null) { const t = await chrome.tabs.get(prev).catch(() => null); if (t) return prev; }
+  const url = source === 'ytmusic' ? 'https://music.youtube.com/' : 'https://open.spotify.com/';
+  const tab = await chrome.tabs.create({ url, active: false }).catch(() => null); // gizli arka plan işçi (odaksız)
+  if (!tab) return null;
+  self._npWorker[source] = tab.id;
+  await npWaitTabComplete(tab.id, 12000);
+  await new Promise(r => setTimeout(r, 800)); // SPA cfg/jeton oturması için ek pay
+  return tab.id;
+}
+async function npSearchInTab(tabId, source, q) {
+  const fn = source === 'ytmusic' ? npYtmSearchInPage : source === 'spotify' ? npSpSearchInPage : npYtSearchInPage;
+  for (let i = 0; i < 7; i++) {
+    try {
+      const res = await chrome.scripting.executeScript({ target: { tabId }, world: 'MAIN', args: [q], func: fn });
+      const r = res && res[0] && res[0].result;
+      if (r && r.ok) return r;
+    } catch (_) {}
+    await new Promise(r => setTimeout(r, 700));
+  }
+  return { ok: false, error: 'page' };
+}
+
+// YouTube headless (sekme yokken) — sonuç sayfası HTML'i + ytInitialData + gerçek context ile continuation (33'e kadar)
+async function npYoutubeHeadless(q) {
+  try {
+    const html = await fetch(`https://www.youtube.com/results?search_query=${encodeURIComponent(q)}&hl=tr`, { credentials: 'include' }).then(r => r.text());
+    const raw = npBraceMatch(html, 'ytInitialData = ') || npBraceMatch(html, 'ytInitialData"]');
+    if (!raw) return { ok: false, error: 'parse' };
+    let data; try { data = JSON.parse(raw); } catch (_) { return { ok: false, error: 'json' }; }
+    const out = []; let cont = null;
+    const walk = (o) => {
+      if (!o || typeof o !== 'object' || out.length >= 33) return;
+      if (Array.isArray(o)) { for (const x of o) walk(x); return; }
+      const vr = o.videoRenderer;
+      if (vr && vr.videoId && vr.title && vr.title.runs && vr.title.runs[0]) {
+        const th = (vr.thumbnail && vr.thumbnail.thumbnails) || [];
+        out.push({ id: vr.videoId, target: 'youtube', title: vr.title.runs[0].text || '', channel: (vr.ownerText && vr.ownerText.runs && vr.ownerText.runs[0] && vr.ownerText.runs[0].text) || (vr.longBylineText && vr.longBylineText.runs && vr.longBylineText.runs[0] && vr.longBylineText.runs[0].text) || '', duration: (vr.lengthText && vr.lengthText.simpleText) || '', thumb: th.length ? th[0].url : '' });
+      }
+      if (o.continuationItemRenderer) { try { const tk = o.continuationItemRenderer.continuationEndpoint.continuationCommand.token; if (tk) cont = tk; } catch (_) {} }
+      for (const k in o) walk(o[k]);
+    };
+    walk(data);
+    // Devam (gerçek INNERTUBE_CONTEXT ile → güvenilir; host izniyle CORS aşılır) — 33'e kadar döngü
+    const key = (html.match(/"INNERTUBE_API_KEY":"(.*?)"/) || [])[1];
+    const ctxRaw = npBraceMatch(html, '"INNERTUBE_CONTEXT":');
+    let context = null; try { context = ctxRaw ? JSON.parse(ctxRaw) : null; } catch (_) {}
+    let guard = 0;
+    while (out.length < 33 && cont && key && context && guard++ < 4) {
+      const c = cont; cont = null;
+      try {
+        const d2 = await fetch('https://www.youtube.com/youtubei/v1/search?key=' + key + '&prettyPrint=false', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ context, continuation: c }) }).then(r => r.json());
+        walk(d2);
+      } catch (_) { break; }
+    }
+    return { ok: true, results: out };
+  } catch (e) { return { ok: false, error: e.message }; }
+}
+
+// Aşağıdakiler MAIN world'de (sitenin SAYFA CONTEXT'inde) çalışır → key/çerez/jeton/sürüm hep geçerli
+async function npYtSearchInPage(query) {
+  try {
+    const cfg = (window.ytcfg && ytcfg.get) ? ytcfg : null;
+    const key = cfg ? cfg.get('INNERTUBE_API_KEY') : (window.yt && yt.config_ && yt.config_.INNERTUBE_API_KEY);
+    const ctx = cfg ? cfg.get('INNERTUBE_CONTEXT') : (window.yt && yt.config_ && yt.config_.INNERTUBE_CONTEXT);
+    if (!key || !ctx) return { ok: false, error: 'cfg' };
+    const post = (extra) => fetch('/youtubei/v1/search?key=' + key + '&prettyPrint=false', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(Object.assign({ context: ctx }, extra)) }).then(r => r.json());
+    const out = []; let cont = null;
+    const walk = (o) => {
+      if (!o || typeof o !== 'object' || out.length >= 33) return;
+      if (Array.isArray(o)) { for (const x of o) walk(x); return; }
+      const vr = o.videoRenderer;
+      if (vr && vr.videoId && vr.title && vr.title.runs && vr.title.runs[0]) {
+        const th = (vr.thumbnail && vr.thumbnail.thumbnails) || [];
+        out.push({ id: vr.videoId, target: 'youtube', title: vr.title.runs[0].text || '', channel: (vr.ownerText && vr.ownerText.runs && vr.ownerText.runs[0] && vr.ownerText.runs[0].text) || (vr.longBylineText && vr.longBylineText.runs && vr.longBylineText.runs[0] && vr.longBylineText.runs[0].text) || '', duration: (vr.lengthText && vr.lengthText.simpleText) || '', thumb: th.length ? th[0].url : '' });
+      }
+      if (o.continuationItemRenderer) { try { const tk = o.continuationItemRenderer.continuationEndpoint.continuationCommand.token; if (tk) cont = tk; } catch (_) {} }
+      for (const k in o) walk(o[k]);
+    };
+    walk(await post({ query }));
+    let guard = 0;
+    while (out.length < 33 && cont && guard++ < 4) { const c = cont; cont = null; try { walk(await post({ continuation: c })); } catch (_) { break; } }
+    return { ok: true, results: out };
+  } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
+}
+async function npYtmSearchInPage(query) {
+  try {
+    const cfg = (window.ytcfg && ytcfg.get) ? ytcfg : null;
+    const key = cfg ? cfg.get('INNERTUBE_API_KEY') : null;
+    const ctx = cfg ? cfg.get('INNERTUBE_CONTEXT') : null;
+    if (!key || !ctx) return { ok: false, error: 'cfg' };
+    const r = await fetch('/youtubei/v1/search?key=' + key + '&prettyPrint=false', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ context: ctx, query }) }).then(x => x.json());
+    const out = [];
+    const walk = (o) => {
+      if (!o || typeof o !== 'object' || out.length >= 33) return;
+      if (Array.isArray(o)) { for (const x of o) walk(x); return; }
+      const it = o.musicResponsiveListItemRenderer;
+      if (it) {
+        let vid = '';
+        try { vid = it.playlistItemData && it.playlistItemData.videoId; } catch (_) {}
+        if (!vid) { try { vid = it.overlay.musicItemThumbnailOverlayRenderer.content.musicPlayButtonRenderer.playNavigationEndpoint.watchEndpoint.videoId; } catch (_) {} }
+        const cols = it.flexColumns || [];
+        const colText = (i) => { try { return cols[i].musicResponsiveListItemFlexColumnRenderer.text.runs.map(x => x.text).join(''); } catch (_) { return ''; } };
+        const title = colText(0), sub = colText(1);
+        let thumb = '';
+        try { const tt = it.thumbnail.musicThumbnailRenderer.thumbnail.thumbnails; thumb = tt.length ? tt[0].url : ''; } catch (_) {}
+        if (vid && title) out.push({ id: vid, target: 'ytmusic', title, channel: sub, duration: '', thumb });
+      }
+      for (const k in o) walk(o[k]);
+    };
+    walk(r);
+    return { ok: true, results: out };
+  } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
+}
+async function npSpSearchInPage(query) {
+  try {
+    const tk = await fetch('/get_access_token?reason=transport&productType=web_player', { credentials: 'include' }).then(r => r.json()).catch(() => null);
+    const at = tk && tk.accessToken;
+    if (!at) return { ok: false, error: 'token' };
+    const data = await fetch('https://api.spotify.com/v1/search?type=track&limit=33&q=' + encodeURIComponent(query), { headers: { Authorization: 'Bearer ' + at } }).then(r => r.json()).catch(() => null);
+    const items = (data && data.tracks && data.tracks.items) || [];
+    const fmt = (ms) => { const s = Math.round((ms || 0) / 1000); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
+    const out = items.map(t => ({ id: t.id, target: 'spotify', url: (t.external_urls && t.external_urls.spotify) || ('https://open.spotify.com/track/' + t.id), title: t.name || '', channel: (t.artists || []).map(a => a.name).join(', '), duration: fmt(t.duration_ms), thumb: (t.album && t.album.images && t.album.images.length) ? t.album.images[t.album.images.length - 1].url : '' }));
+    return { ok: true, results: out };
+  } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
+}
+
+// Parantez-eşleştirmeli JSON çıkarıcı (string/escape duyarlı)
+function npBraceMatch(s, marker) {
+  const i = s.indexOf(marker); if (i < 0) return null;
+  let st = s.indexOf('{', i); if (st < 0) return null;
+  let depth = 0, inStr = false, esc = false;
+  for (let j = st; j < s.length; j++) {
+    const ch = s[j];
+    if (inStr) { if (esc) esc = false; else if (ch === '\\') esc = true; else if (ch === '"') inStr = false; }
+    else if (ch === '"') inStr = true; else if (ch === '{') depth++; else if (ch === '}') { if (--depth === 0) return s.slice(st, j + 1); }
+  }
+  return null;
+}
+function npWalkYtm(data, out) {
+  const walk = (o) => {
+    if (!o || typeof o !== 'object' || out.length >= 33) return;
+    if (Array.isArray(o)) { for (const x of o) walk(x); return; }
+    const it = o.musicResponsiveListItemRenderer;
+    if (it) {
+      let vid = '';
+      try { vid = it.playlistItemData && it.playlistItemData.videoId; } catch (_) {}
+      if (!vid) { try { vid = it.overlay.musicItemThumbnailOverlayRenderer.content.musicPlayButtonRenderer.playNavigationEndpoint.watchEndpoint.videoId; } catch (_) {} }
+      const cols = it.flexColumns || [];
+      const colText = (i) => { try { return cols[i].musicResponsiveListItemFlexColumnRenderer.text.runs.map(x => x.text).join(''); } catch (_) { return ''; } };
+      const title = colText(0), sub = colText(1);
+      let thumb = '';
+      try { const tt = it.thumbnail.musicThumbnailRenderer.thumbnail.thumbnails; thumb = tt.length ? tt[0].url : ''; } catch (_) {}
+      if (vid && title) out.push({ id: vid, target: 'ytmusic', title, channel: sub, duration: '', thumb });
+    }
+    for (const k in o) walk(o[k]);
+  };
+  walk(data);
+}
+// Headless YT Music — sayfanın gerçek INNERTUBE_CONTEXT'ini HTML'den çıkar, InnerTube POST (sekme açmaz)
+async function npYtmHeadless(q) {
+  try {
+    const html = await fetch('https://music.youtube.com/', { credentials: 'include' }).then(r => r.text());
+    const key = (html.match(/"INNERTUBE_API_KEY":"(.*?)"/) || [])[1];
+    const ctxRaw = npBraceMatch(html, '"INNERTUBE_CONTEXT":');
+    if (!key || !ctxRaw) return { ok: false, error: 'cfg' };
+    let context; try { context = JSON.parse(ctxRaw); } catch (_) { return { ok: false, error: 'ctx' }; }
+    const data = await fetch('https://music.youtube.com/youtubei/v1/search?key=' + key + '&prettyPrint=false', {
+      method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ context, query: q })
+    }).then(r => r.json());
+    const out = []; npWalkYtm(data, out);
+    return { ok: true, results: out };
+  } catch (e) { return { ok: false, error: e.message }; }
+}
+// Headless Spotify — oturum/anonim jeton (sekme açmaz)
+async function npSpHeadless(q) {
+  try {
+    const tok = await fetch('https://open.spotify.com/get_access_token?reason=transport&productType=web_player', { credentials: 'include' }).then(r => r.json()).catch(() => null);
+    const at = tok && tok.accessToken;
+    if (!at) return { ok: false, error: 'token' };
+    const data = await fetch('https://api.spotify.com/v1/search?type=track&limit=33&q=' + encodeURIComponent(q), { headers: { Authorization: 'Bearer ' + at } }).then(r => r.json()).catch(() => null);
+    const items = (data && data.tracks && data.tracks.items) || [];
+    const fmt = (ms) => { const s = Math.round((ms || 0) / 1000); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
+    const out = items.map(t => ({ id: t.id, target: 'spotify', url: (t.external_urls && t.external_urls.spotify) || ('https://open.spotify.com/track/' + t.id), title: t.name || '', channel: (t.artists || []).map(a => a.name).join(', '), duration: fmt(t.duration_ms), thumb: (t.album && t.album.images && t.album.images.length) ? t.album.images[t.album.images.length - 1].url : '' }));
+    return { ok: true, results: out };
+  } catch (e) { return { ok: false, error: e.message }; }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Offscreen gizli oynatıcı (varsayılan) + pencere yedeği (gömülemeyen videolar)
+// ─────────────────────────────────────────────────────────────────────────────
+async function ensureOffscreen() {
+  if (!chrome.offscreen) return false; // eski tarayıcı → pencereye düş
+  try { if (await chrome.offscreen.hasDocument()) return true; } catch (_) {}
+  try {
+    await chrome.offscreen.createDocument({ url: 'offscreen.html', reasons: ['AUDIO_PLAYBACK'], justification: 'Şu An Çalıyor: arka planda gizli müzik çalma' });
+    return true;
+  } catch (e) { return /already|single/i.test(String((e && e.message) || e)); } // zaten varsa OK say
+}
+
+// NORMAL sekmede çal (popup pencere DEĞİL). Arka plan sekmesi gizli sayıldığı için YouTube başlatmaz →
+// sekmeyi KISA SÜRE öne al, çalmaya başlat, sonra kullanıcının sekmesine geri dön. Tek sekme, yeniden kullanılır.
+async function npPlayInWindow(url, id) {
+  try {
+    const qa = await chrome.tabs.query({ active: true, currentWindow: true }).catch(() => []);
+    const cur = qa && qa[0]; // geri dönülecek (Roblox) sekme
+    let tab = self._mediaPlayTab != null ? await chrome.tabs.get(self._mediaPlayTab).catch(() => null) : null;
+    if (tab) { await chrome.tabs.update(tab.id, { url, active: true }); }
+    else { tab = await chrome.tabs.create({ url, active: true }); self._mediaPlayTab = tab.id; }
+    self._mediaLastTabId = tab.id;
+    const playId = id; self._mediaPlayReq = playId;
+    // Öndeyken çalmaya başlat (foreground → autoplay çalışır)
+    for (let i = 0; i < 10; i++) {
+      if (self._mediaPlayReq !== playId) return;
+      let playing = false;
+      try {
+        const res = await chrome.scripting.executeScript({
+          target: { tabId: tab.id }, world: 'MAIN',
+          func: () => { try { const mp = document.querySelector('#movie_player'); if (!mp || !mp.playVideo) return false; if (mp.getPlayerState && mp.getPlayerState() === 1) return true; try { if (mp.isMuted && mp.isMuted()) mp.unMute(); } catch (_) {} mp.playVideo(); return false; } catch (_) { return false; } }
+        });
+        playing = !!(res && res[0] && res[0].result);
+      } catch (_) {}
+      if (playing) break;
+      await new Promise(r => setTimeout(r, 400));
+    }
+    // çalmaya başladı → kullanıcının (Roblox) sekmesine geri dön (YouTube arka planda çalmaya devam eder)
+    if (self._mediaPlayReq === playId && cur && cur.id && cur.id !== tab.id) { try { await chrome.tabs.update(cur.id, { active: true }); } catch (_) {} }
+  } catch (_) {}
+}
+
+// Offscreen çalmadı/gömülemedi → o video için PENCERE yedeğine düş (şarkı her zaman çalsın)
+function npFallbackToWindow(videoId, target) {
+  if (!videoId || self._offFellBack) return;
+  self._offFellBack = true; self._offActive = false;
+  try { chrome.runtime.sendMessage({ off: 'stop' }).catch(() => {}); } catch (_) {}
+  const url = ((target || self._offTarget) === 'ytmusic' ? `https://music.youtube.com/watch?v=${videoId}` : `https://www.youtube.com/watch?v=${videoId}`) + '&autoplay=1';
+  npPlayInWindow(url, videoId);
+}
+chrome.runtime.onMessage.addListener((msg) => {
+  if (msg && msg.off === 'error') {
+    console.warn('[Tracked NP] offscreen onError code=', msg.code, 'video=', msg.videoId);
+    if (msg.videoId && msg.videoId === self._offVideoId) npFallbackToWindow(msg.videoId);
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// OYUN KODLARI — DÜRÜST kaynaklar: küratörlü repo (varsa gerçek) + oyun açıklaması +
+// oyunun RESMİ sosyal linkleri (kodlar gerçekten orada duyurulur) + web araması.
+// Resmi/yapısal Roblox kod API'si YOK → uydurma yok; her şey kaynak + "doğrulanmamış" etiketli.
+// ─────────────────────────────────────────────────────────────────────────────
+async function gcGetUniverse(placeId) {
+  try { const r = await fetch(`https://apis.roblox.com/universes/v1/places/${placeId}/universe`).then(r => r.json()); return r && r.universeId; } catch (_) { return null; }
+}
+async function gcGetDetails(universeId) {
+  try { const r = await fetch(`https://games.roblox.com/v1/games?universeIds=${universeId}`, { credentials: 'include' }).then(r => r.json()); return (r && r.data && r.data[0]) || null; } catch (_) { return null; }
+}
+async function gcGetSocials(universeId) {
+  try { const r = await fetch(`https://games.roblox.com/v1/games/${universeId}/social-links/list`, { credentials: 'include' }).then(r => r.json()); return (r && r.data) || []; } catch (_) { return []; }
+}
+function gcScanDescription(desc) {
+  if (!desc) return [];
+  const out = [], seen = new Set();
+  const bad = new Set(['CODE', 'CODES', 'KOD', 'KODLAR', 'HERE', 'FREE', 'NEW', 'GAME', 'PLAY', 'USE', 'THE', 'FOR', 'AND', 'GET', 'YOUR', 'THIS', 'UPDATE', 'SHUTDOWN', 'VISIT', 'LIKE', 'JOIN', 'GROUP', 'NOW', 'OUT', 'WIP', 'BETA', 'SOON', 'TWITTER', 'DISCORD', 'YOUTUBE', 'REDEEM']);
+  const re = /(?:code[s]?|kod[lar]*|redeem|use)\s*[:\-—]?\s*["“'`]?([A-Za-z0-9][A-Za-z0-9_]{2,23})/gi;
+  let m;
+  while ((m = re.exec(desc)) && out.length < 25) {
+    const t = m[1], up = t.toUpperCase();
+    if (seen.has(up) || bad.has(up)) continue;
+    const codeLike = /\d/.test(t) || (t === up && t.length >= 4) || (/[A-Z]/.test(t) && /[a-z]/.test(t) && t.length >= 5);
+    if (!codeLike) continue;
+    seen.add(up); out.push({ code: t, reward: '', source: 'desc' });
+  }
+  return out;
+}
+async function gcGetRepoCodes(name) {
+  try {
+    if (!self._gcRepoList || Date.now() - self._gcRepoList.t > 6 * 3600e3) {
+      const list = await fetch('https://api.github.com/repos/Progameguides/Roblox-Games-Codes/contents/codes').then(r => r.json());
+      self._gcRepoList = { files: Array.isArray(list) ? list.map(f => f.name) : [], t: Date.now() };
+    }
+    const clean = String(name || '').toLowerCase().replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim();
+    if (!clean) return null;
+    const fullSlug = clean.replace(/ /g, '-');
+    // jenerik kelimeleri ele (yanlış eşleşme olmasın), ayırt edici kelimelerle eşle
+    const generic = new Set(['game', 'games', 'update', 'codes', 'code', 'beta', 'live', 'event', 'replays', 'chapter', 'new', 'simulator', 'tycoon', 'pets', 'pet', 'rpg', 'the', 'and', 'with', 'roblox', 'obby', 'story', 'world', 'battle', 'battlegrounds', 'defense', 'legacy', 'remastered']);
+    // tam slug eşleşmesi önce; sonra YALNIZ ayırt edici (6+ harf) kelimeyle gevşek eşleşme (yanlış eşleşmeyi önler)
+    const words = clean.split(' ').filter(w => w.length >= 6 && !generic.has(w));
+    const file = self._gcRepoList.files.find(f => f === fullSlug + '-codes.md') ||
+      self._gcRepoList.files.find(f => words.some(w => f.includes(w)));
+    if (!file) return null;
+    const md = await fetch(`https://raw.githubusercontent.com/Progameguides/Roblox-Games-Codes/main/codes/${file}`).then(r => r.text());
+    const cut = md.search(/expired/i);
+    const head = cut > 0 ? md.slice(0, cut) : md;
+    const codes = []; const rowRe = /^\|\s*\*{0,2}([A-Za-z0-9_!#@%&\-]{3,30})\*{0,2}\s*\|\s*([^|]+?)\s*\|/gm;
+    let m;
+    while ((m = rowRe.exec(head)) && codes.length < 30) {
+      const code = m[1].trim(), reward = m[2].replace(/\*/g, '').trim();
+      if (/^code$/i.test(code) || /^-+$/.test(code)) continue;
+      codes.push({ code, reward, source: 'repo' });
+    }
+    return codes.length ? { file, codes } : null;
+  } catch (_) { return null; }
+}
+
 

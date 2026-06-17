@@ -5,6 +5,8 @@ const DEFAULT_SETTINGS = {
     cacheMinutes: 10,
     silentMode: false,
     reducedMotion: false,
+    nowPlaying: false,
+    gameCodes: true,
     language: 'tr',
     // Auto-Reconnect
     autoReconnectEnabled: true,
@@ -26,6 +28,8 @@ const ui = {
     // Appearance
     chkSilent: document.getElementById('chk-silent'),
     chkReducedMotion: document.getElementById('chk-reduced-motion'),
+    chkNowPlaying: document.getElementById('chk-now-playing'),
+    chkGameCodes: document.getElementById('chk-game-codes'),
     // Performance
     // Auto-Reconnect
     chkAutoReconnect: document.getElementById('chk-auto-reconnect'),
@@ -116,7 +120,7 @@ updateOtopilotBlInfo(); // ilk yüklemede count göster
 // Change listeners (everything that affects settings)
 [
     ui.inpTimeout, ui.inpCache,
-    ui.chkSilent, ui.chkReducedMotion, ui.selLanguage,
+    ui.chkSilent, ui.chkReducedMotion, ui.chkNowPlaying, ui.chkGameCodes, ui.selLanguage,
     ui.chkAutoReconnect, ui.chkAutoReconnectNative
 ].forEach(el => {
     if (el) {
@@ -348,6 +352,8 @@ async function loadSettings() {
     if (ui.inpTimeout) ui.inpTimeout.value = settings.timeoutMs;
     if (ui.inpCache) ui.inpCache.value = settings.cacheMinutes;
     if (ui.chkSilent) ui.chkSilent.checked = settings.silentMode === true;
+    if (ui.chkNowPlaying) ui.chkNowPlaying.checked = settings.nowPlaying === true;
+    if (ui.chkGameCodes) ui.chkGameCodes.checked = settings.gameCodes !== false;
     if (ui.chkReducedMotion) {
         ui.chkReducedMotion.checked = settings.reducedMotion === true;
         document.body.classList.toggle('reduced-motion', settings.reducedMotion === true);
@@ -701,6 +707,8 @@ async function saveSettings() {
         cacheMinutes: parseInt(ui.inpCache?.value) || 10,
         silentMode: !!ui.chkSilent?.checked,
         reducedMotion: !!ui.chkReducedMotion?.checked,
+        nowPlaying: !!ui.chkNowPlaying?.checked,
+        gameCodes: ui.chkGameCodes ? !!ui.chkGameCodes.checked : true,
         language: selectedLanguage,
         autoReconnectEnabled: ui.chkAutoReconnect ? !!ui.chkAutoReconnect.checked : true,
         autoReconnectNative: !!ui.chkAutoReconnectNative?.checked,

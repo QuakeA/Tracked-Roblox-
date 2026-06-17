@@ -13,8 +13,12 @@
     "alarms",
     "notifications",
     "sidePanel",
-    "windows"
+    "windows",
+    "offscreen"
   ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'; frame-src https://www.youtube.com https://www.youtube-nocookie.com https://www.google.com;"
+  },
   "declarative_net_request": {
     "rule_resources": [
       {
@@ -120,7 +124,8 @@
       ],
       "js": [
         "reconnect_overlay.js",
-        "themes_content.js"
+        "themes_content.js",
+        "now_playing.js"
       ],
       "run_at": "document_end"
     },
@@ -129,7 +134,9 @@
         "https://www.roblox.com/games/*"
       ],
       "js": [
-        "reconnect_overlay.js"
+        "reconnect_overlay.js",
+        "now_playing.js",
+        "codes_content.js"
       ],
       "run_at": "document_end"
     },

@@ -25,6 +25,7 @@
 | `avatar_cost.js` | `/my/avatar*`, `/users/*/avatar*` | Giyili item'ların toplam Robux değeri |
 | `avatar_sandbox.js` | `/my/avatar*` | Avatar Try-On (Marketplace/Inventory'den dene, 2B/3B render) |
 | `profile_insight.js` (+`i18n.js`) | `/users/*/profile*` | **Oyuncu İçgörü Paneli** — profil sayfasına sağda yüzen kart: künye (yaş/oluşturma/doğrulanmış/eski adlar) + değer (RAP+değer+top item) + sosyal (sayımlar+ortak arkadaş+presence+Katıl) + dürüst güven sinyalleri (§16) |
+| `now_playing.js` | tüm roblox.com (all + games) | **Şu An Çalıyor** — opt-in medya widget'ı; Spotify/YT/YT Music'te çalanı sol-altta animasyonlu kartta gösterir + kontrol (§17) |
 | `popup.js` (`popup.html`) | toolbar popup | Ping ölçümü, VPN tespiti, arkadaşlar, kayıtlı sunucular, ping grafiği |
 | `sidepanel.js` (`sidepanel.html`) | yan panel | Pinlenebilir yan panel |
 | `options.js` (`options.html`) | ayarlar | Tüm ayarlar + changelog |
@@ -311,6 +312,24 @@ Roller:
   - `getUserProfileInsight(userId)`: tek mesajda CORS-bypass batch — user info (`users/v1/users/{id}`) + 3 sayım (`friends/v1/.../count`) + username-history + badges (limit 100 → count/100+) + presence (POST + CSRF challenge). Her alan hata-toleranslı (null → o satır gizlenir).
   - `getMutualFriendCount(userId)`: authenticated user + iki arkadaş listesi kesişimi (örnek 3 isim). Kendi profilin → `self:true`.
 - **Dürüstlük/gizlilik:** private/403 → satır gizlenir (çökme yok). Tüm metin i18n (`pi*` anahtarları, TR+EN). Emoji yok (inline SVG; Robux = gerçek rbxcdn path'i).
+
+---
+
+## 17. Şu An Çalıyor (Medya Widget'ı) (v1.9.4)
+
+**Nerede:** tüm roblox.com → [now_playing.js](../now_playing.js) (all-roblox + games content_scripts) + SW `mediaGetNowPlaying`/`mediaControl`/`mediaFocusTab` + Options "Şu An Çalıyor" toggle.
+
+- **Ne yapar:** Spotify Web / YouTube / YT Music sekmesinde çalan şarkıyı algılar; Roblox sayfasında **sol-altta animasyonlu kart** (`#tracked-now-playing`): kapak + ad/sanatçı (taşmada marquee) + kaynak rozeti (marka SVG) + **canlı ekolayzer** + ◀◀ ⏯ ▶▶ + ilerleme çubuğu (mm:ss). Küçült→54px kare, **kalıcı** (`tracked_np_minimized`).
+- **OPT-IN:** `rota_settings.nowPlaying` (varsayılan **KAPALI**). Kapalıyken now_playing.js hiçbir şey yapmaz, SW medya sekmelerine **dokunmaz**. Options'tan açılır; `storage.onChanged` ile canlı aç/kapa.
+- **İzin:** YENİ izin GEREKMEZ — manifest'te `host_permissions` zaten `https://*/*` içeriyor.
+- **Veri (gerçek):** MAIN-world `executeScript` ile medya sekmesinin `navigator.mediaSession.metadata` + `<video>/<audio>` durumu okunur (DOM fallback: Spotify/YT başlık selektörleri). **Hiçbir şey dışarı gitmez** — sadece o anki şarkı bilgisini Roblox sekmesine taşır.
+- **SW handler'ları:**
+  - `mediaGetNowPlaying`: `tabs.query({audible:true})` ön-filtre + medya sekmesi listesi + **son çalan sekme önbelleği** (`self._mediaLastTabId`) → adaylara MAIN-world `readFn` → çalanı (yoksa metadata'lı duraklatılmışı) döndürür. Performans: her seferde tüm sekme taraması yok.
+  - `mediaControl` {cmd:play/pause/next/prev/seek/mute}: aktif sekmeye MAIN-world kontrol. **Çal/duraklat site TOGGLE butonuyla** (Spotify Widevine-şifreli → `video.play()` güvenilmez): Spotify `[data-testid="control-button-playpause"]`, YT Music `#play-pause-button`, YouTube `.ytp-play-button`. next/prev site butonları. **Seek Spotify'da YOK** (şifreli) → widget'ta progress salt-okunur.
+  - `mediaFocusTab`: kapağa tıkla → o medya sekmesine geç (`tabs.update active` + `windows focus`).
+- **now_playing.js:** yoklama görünürlük-kapılı + backoff (çalıyor 1.5sn / duraklatılmış·küçük 3sn / boş 5sn); ilerleme **yerel interpolasyon** (akıcı, render'sız); kontrolde **optimistic** UI; full render yalnız şarkı/durum değişince (track key). SPA nav'da sürekli (sabit overlay, watchNavigation gerekmez).
+- **Dürüstlük:** ekolayzer GERÇEK spektrum değil → sadece "çalıyor" durum animasyonu (FFT başka sekmeden alınamaz). Metadata `escapeHtml` (XSS). Emoji yok (marka SVG'leri inline). `prefers-reduced-motion` → animasyon durur.
+- **Sınırlar:** yalnız WEB oynatıcılar (Spotify masaüstü uygulaması ALGILANAMAZ); next/prev sıradaki şarkı; buton selektörleri site değişirse güncellenir. `mediaSession` evrensel → 3 sitenin ötesi (SoundCloud vb.) basit play/pause/seek otomatik.
 
 ---
 

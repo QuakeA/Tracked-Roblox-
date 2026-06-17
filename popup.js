@@ -53,6 +53,8 @@ const DEFAULT_SETTINGS = {
     cacheMinutes: 10,
     reducedMotion: false,
     silentMode: false,
+    nowPlaying: false,
+    gameCodes: true,
     // Varsayılan = AVRUPA şablonu (PROBE_PRESETS.eu ile birebir). Diğer bölgeler için kullanıcı
     // ayarlardan "Bölge Şablonu" seçer (NA/Asya/SA/AU/Global) → problar O setle DEĞİŞİR (üstüne eklenmez).
     // NOT: Sunucu listesi ms'i bu sete BAĞLI DEĞİL — SW'nin kendi 20 küresel probe'unu (TK_PING_PROBES) kullanır.
