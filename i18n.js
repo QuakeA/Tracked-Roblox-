@@ -68,6 +68,8 @@ const TrackedI18n = {
             error: 'Hata',
             timeout: 'Hata/Timeout',
             noData: 'Yeterli veri yok.',
+            older: 'eski',
+            now: 'şimdi',
             
             // Library Module
             gameLibrary: 'Oyun Kütüphanesi',
@@ -473,6 +475,8 @@ const TrackedI18n = {
             error: 'Error',
             timeout: 'Error/Timeout',
             noData: 'Not enough data.',
+            older: 'older',
+            now: 'now',
             
             // Library Module
             gameLibrary: 'Game Library',

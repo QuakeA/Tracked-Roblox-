@@ -1180,97 +1180,120 @@ function renderPingList(results) {
     });
 }
 
+// Catmull-Rom benzeri yumuşatma — köşeli polyline yerine akıcı eğri
+function tkSmoothPath(pts) {
+    if (!pts.length) return '';
+    if (pts.length === 1) return `M${pts[0].x},${pts[0].y}`;
+    if (pts.length === 2) return `M${pts[0].x},${pts[0].y} L${pts[1].x},${pts[1].y}`;
+    const t = 0.16;
+    let d = `M${pts[0].x.toFixed(1)},${pts[0].y.toFixed(1)}`;
+    for (let i = 0; i < pts.length - 1; i++) {
+        const p0 = pts[i - 1] || pts[i], p1 = pts[i], p2 = pts[i + 1], p3 = pts[i + 2] || p2;
+        const c1x = p1.x + (p2.x - p0.x) * t, c1y = p1.y + (p2.y - p0.y) * t;
+        const c2x = p2.x - (p3.x - p1.x) * t, c2y = p2.y - (p3.y - p1.y) * t;
+        d += ` C${c1x.toFixed(1)},${c1y.toFixed(1)} ${c2x.toFixed(1)},${c2y.toFixed(1)} ${p2.x.toFixed(1)},${p2.y.toFixed(1)}`;
+    }
+    return d;
+}
+function tkNiceMax(v) {
+    if (v <= 60) return Math.max(20, Math.ceil(v / 10) * 10);
+    if (v <= 200) return Math.ceil(v / 25) * 25;
+    return Math.ceil(v / 50) * 50;
+}
+
 function renderGraph() {
     const history = state.pingHistory;
     const svg = ui.pingChartSvg;
     const legend = ui.graphLegend;
-    
+    const NS = "http://www.w3.org/2000/svg";
+    const mk = (tag, attrs) => { const el = document.createElementNS(NS, tag); for (const k in attrs) el.setAttribute(k, attrs[k]); return el; };
+
     svg.innerHTML = '';
     legend.innerHTML = '';
 
     if (!history || history.length < 2) {
-        svg.innerHTML = `<text x="150" y="60" text-anchor="middle" fill="#888" font-size="12">${TrackedI18n.t('noData')}</text>`;
+        const t = mk('text', { x: '50%', y: '50%', 'text-anchor': 'middle', 'dominant-baseline': 'middle', fill: 'rgba(255,255,255,.4)', 'font-size': 12 });
+        t.textContent = TrackedI18n.t('noData');
+        svg.appendChild(t);
         return;
     }
 
-    // Chart Dimensions
-    const width = 300;
-    const height = 120;
-    const padding = 20;
+    // Gerçek piksel boyutunda çiz → preserveAspectRatio="none" ile 1:1 (nokta/çizgi bozulmaz)
+    const rect = svg.getBoundingClientRect();
+    const W = Math.max(260, Math.round(rect.width) || 320);
+    const H = Math.max(110, Math.round(rect.height) || 140);
+    svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
 
-    // Determine max Y
+    const padL = 34, padR = 16, padT = 14, padB = 18;
+    const plotW = W - padL - padR, plotH = H - padT - padB;
+    const x0 = padL, yB = H - padB, yT = padT;
+
     let maxMs = 0;
-    history.forEach(entry => {
-        entry.results.forEach(r => {
-            if (r.ms < 900 && r.ms > maxMs) maxMs = r.ms;
-        });
-    });
-    if (maxMs === 0) maxMs = 200; // Default if all errors
-    // Add buffer
-    maxMs = Math.ceil(maxMs * 1.2);
+    history.forEach(e => e.results.forEach(r => { if (r.ms < 900 && r.ms > maxMs) maxMs = r.ms; }));
+    maxMs = tkNiceMax((maxMs || 80) * 1.15);
 
-    // Identify unique regions
-    const uniqueRegions = [...new Set(history.flatMap(h => h.results.map(r => r.region)))];
+    const n = history.length;
+    const xAt = (i) => x0 + (n === 1 ? plotW / 2 : i * plotW / (n - 1));
+    const yAt = (ms) => yB - (Math.min(ms, maxMs) / maxMs) * plotH;
 
-    // Draw Grid Lines (Horizontal)
-    for (let i = 0; i <= 4; i++) {
-        const y = height - padding - (i * (height - 2 * padding) / 4);
-        const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
-        line.setAttribute("x1", padding);
-        line.setAttribute("y1", y);
-        line.setAttribute("x2", width - padding);
-        line.setAttribute("y2", y);
-        line.setAttribute("stroke", "rgba(255,255,255,0.1)");
-        line.setAttribute("stroke-dasharray", "4");
-        svg.appendChild(line);
+    // ── Y ekseni: gridlines + ms etiketleri ──
+    const steps = 4;
+    for (let i = 0; i <= steps; i++) {
+        const val = Math.round(maxMs * i / steps);
+        const y = yB - (i / steps) * plotH;
+        svg.appendChild(mk('line', { x1: x0, y1: y, x2: W - padR, y2: y, stroke: 'rgba(255,255,255,0.07)', 'stroke-width': 1 }));
+        const lbl = mk('text', { x: x0 - 6, y: y + 3, 'text-anchor': 'end', fill: 'rgba(255,255,255,.4)', 'font-size': 9 });
+        lbl.textContent = val;
+        svg.appendChild(lbl);
     }
+    const unit = mk('text', { x: x0 - 6, y: yT - 3, 'text-anchor': 'end', fill: 'rgba(255,255,255,.32)', 'font-size': 8 });
+    unit.textContent = TrackedI18n.t('ms'); svg.appendChild(unit);
+    // x ekseni zaman ipucu
+    const e1 = mk('text', { x: x0, y: H - 5, fill: 'rgba(255,255,255,.3)', 'font-size': 8 }); e1.textContent = TrackedI18n.t('older');
+    const e2 = mk('text', { x: W - padR, y: H - 5, 'text-anchor': 'end', fill: 'rgba(255,255,255,.3)', 'font-size': 8 }); e2.textContent = TrackedI18n.t('now');
+    svg.appendChild(e1); svg.appendChild(e2);
 
-    // Draw Lines for each region
-    uniqueRegions.forEach((region, idx) => {
-        const color = GRAPH_COLORS[idx % GRAPH_COLORS.length];
-        
-        // Generate Points
-        let points = "";
-        
-        history.forEach((entry, i) => {
-            const dataPoint = entry.results.find(r => r.region === region);
-            let ms = dataPoint ? dataPoint.ms : 0;
-            if (ms > 900) ms = maxMs; // Cap errors
+    // Bölgeler → sabit renk (ilk görülme sırası)
+    const uniqueRegions = [...new Set(history.flatMap(h => h.results.map(r => r.region)))];
+    const colorOf = {};
+    uniqueRegions.forEach((r, i) => colorOf[r] = GRAPH_COLORS[i % GRAPH_COLORS.length]);
+    const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-            // Normalize coordinates
-            // X: evenly spaced
-            const x = padding + (i * (width - 2 * padding) / (history.length - 1));
-            // Y: inverted (0 at bottom)
-            const y = height - padding - ((ms / maxMs) * (height - 2 * padding));
-            
-            points += `${x},${y} `;
-
-            // Draw Dot
-            const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-            circle.setAttribute("cx", x);
-            circle.setAttribute("cy", y);
-            circle.setAttribute("r", "2");
-            circle.setAttribute("fill", color);
-            svg.appendChild(circle);
+    uniqueRegions.forEach(region => {
+        const color = colorOf[region];
+        const pts = history.map((e, i) => {
+            const dp = e.results.find(r => r.region === region);
+            let ms = dp ? dp.ms : maxMs;
+            if (ms > 900) ms = maxMs;
+            return { x: xAt(i), y: yAt(ms) };
         });
+        const d = tkSmoothPath(pts);
 
-        const polyline = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
-        polyline.setAttribute("points", points.trim());
-        polyline.setAttribute("fill", "none");
-        polyline.setAttribute("stroke", color);
-        polyline.setAttribute("stroke-width", "2");
-        polyline.setAttribute("stroke-linecap", "round");
-        polyline.setAttribute("stroke-linejoin", "round");
-        svg.appendChild(polyline);
+        svg.appendChild(mk('path', { d, fill: 'none', stroke: color, 'stroke-width': 5, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', opacity: 0.15 })); // glow halo
+        const line = mk('path', { d, fill: 'none', stroke: color, 'stroke-width': 2, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' });
+        svg.appendChild(line);
+        if (!reduceMotion) {
+            try {
+                const len = line.getTotalLength();
+                line.style.strokeDasharray = len; line.style.strokeDashoffset = len;
+                requestAnimationFrame(() => { line.style.transition = 'stroke-dashoffset .7s ease'; line.style.strokeDashoffset = '0'; });
+            } catch (_) {}
+        }
+        const last = pts[pts.length - 1];
+        svg.appendChild(mk('circle', { cx: last.x, cy: last.y, r: 5.5, fill: 'none', stroke: color, 'stroke-width': 1, opacity: 0.4 }));
+        svg.appendChild(mk('circle', { cx: last.x, cy: last.y, r: 3.2, fill: color, stroke: 'rgba(0,0,0,.4)', 'stroke-width': 1 }));
+    });
 
-        // Add to Legend
-        const legItem = document.createElement('div');
-        legItem.className = 'legend-item';
-        legItem.innerHTML = `
-            <div class="legend-color" style="background: ${color}"></div>
-            <span>${TrackedI18n.localizeRegionName(region).split(' ')[0]}</span>
-        `;
-        legend.appendChild(legItem);
+    // ── Legend: en yakın (düşük ms) önce + güncel değer ──
+    const latest = history[history.length - 1].results;
+    const msOf = (region) => { const dp = latest.find(r => r.region === region); return dp ? dp.ms : 999; };
+    [...uniqueRegions].sort((a, b) => msOf(a) - msOf(b)).forEach(region => {
+        const ms = msOf(region);
+        const msTxt = ms >= 900 ? TrackedI18n.t('error') : `${ms}${TrackedI18n.t('ms')}`;
+        const item = document.createElement('div');
+        item.className = 'legend-item';
+        item.innerHTML = `<div class="legend-color" style="background:${colorOf[region]};color:${colorOf[region]}"></div><span class="legend-name">${TrackedI18n.localizeRegionName(region).split(' ')[0]}</span><span class="legend-val">${msTxt}</span>`;
+        legend.appendChild(item);
     });
 }
 

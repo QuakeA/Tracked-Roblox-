@@ -581,11 +581,13 @@ body.light-mode .segmented-control.single .segment-btn.active { background: rgba
 .status-dot.red { background: var(--accent-red); }
 
 /* Graph */
-.ping-graph-container { background: rgba(0, 0, 0, 0.2); border-radius: var(--r-item); border: 1px solid var(--stroke); padding: 10px; height: 180px; display: flex; flex-direction: column; }
+.ping-graph-container { background: rgba(0, 0, 0, 0.2); border-radius: var(--r-item); border: 1px solid var(--stroke); padding: 10px; height: 196px; display: flex; flex-direction: column; }
 .ping-chart { width: 100%; flex: 1; overflow: visible; }
-.graph-legend { display: flex; gap: 12px; justify-content: center; margin-top: 8px; flex-wrap: wrap; }
-.legend-item { display: flex; align-items: center; gap: 4px; font-size: 10px; color: var(--text-secondary); }
-.legend-color { width: 8px; height: 8px; border-radius: 50%; }
+.graph-legend { display: flex; gap: 6px; justify-content: center; margin-top: 8px; flex-wrap: wrap; }
+.legend-item { display: flex; align-items: center; gap: 5px; font-size: 10px; padding: 3px 8px; border-radius: 999px; background: rgba(255,255,255,.045); border: 1px solid var(--stroke); }
+.legend-color { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; box-shadow: 0 0 5px currentColor; }
+.legend-name { color: var(--text-secondary); }
+.legend-val { color: var(--text-primary); font-weight: 700; font-variant-numeric: tabular-nums; }
 
 /* Library (Redesigned Cards) */
 .library-viewport { max-height: 240px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding-bottom: 10px; }
