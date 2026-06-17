@@ -10,6 +10,20 @@
   async function getState() { try { const d = await chrome.storage.local.get(KEY); return d[KEY] || null; } catch (_) { return null; } }
   async function setState(s) { try { await chrome.storage.local.set({ [KEY]: s }); } catch (_) {} self._tkLic = s; }
 
+  // ── GELİŞTİRİCİ MODU: eklenti unpacked (paketlenmemiş) yüklüyse sahip otomatik Plus alır.
+  //    Chrome Web Store kurulumlarında installType 'normal' olur → bu bypass TETİKLENMEZ
+  //    (korsanlık riski yok). getSelf() izin gerektirmez. Sonuç önbelleğe alınır. ──
+  let _devMode = null; // null = henüz belirlenmedi
+  function checkDev() {
+    if (_devMode !== null) return Promise.resolve(_devMode);
+    return new Promise(res => {
+      try {
+        if (!chrome.management || !chrome.management.getSelf) { _devMode = false; return res(false); }
+        chrome.management.getSelf(info => { _devMode = !!(info && info.installType === 'development'); res(_devMode); });
+      } catch (_) { _devMode = false; res(false); }
+    });
+  }
+
   // Abonelik aktifse (trial dahil) LS lisans durumu 'active' olur.
   function isPlus(s) {
     if (!s || !s.key) return false;
@@ -72,7 +86,15 @@
   chrome.runtime.onMessage.addListener((req, sender, send) => {
     if (!req || !req.action) return;
     if (req.action === 'licenseGet') {
-      getState().then(s => send({ ok: true, isPlus: isPlus(s), status: (s && s.status) || 'free', name: (s && s.name) || '', expiresAt: (s && s.expiresAt) || null, hasKey: !!(s && s.key), keyMasked: mask(s && s.key) }));
+      Promise.all([getState(), checkDev()]).then(([s, dev]) => send({
+        ok: true,
+        isPlus: dev || isPlus(s),
+        status: dev ? 'active' : ((s && s.status) || 'free'),
+        name: (s && s.name) || (dev ? 'Geliştirici' : ''),
+        expiresAt: (s && s.expiresAt) || null,
+        hasKey: !!(s && s.key),
+        keyMasked: mask(s && s.key)
+      }));
       return true;
     }
     if (req.action === 'licenseActivate') { activate(req.key).then(send); return true; }
@@ -80,11 +102,12 @@
     if (req.action === 'licenseDeactivate') { deactivate().then(send); return true; }
   });
 
-  // SW içinden Plus kontrolü (diğer modüller için): sync (önbellek) + async (storage)
-  self.tkIsPlus = () => isPlus(self._tkLic);
-  self.tkIsPlusAsync = async () => isPlus(await getState());
+  // SW içinden Plus kontrolü (diğer modüller için): sync (önbellek) + async (storage). Dev modu OR'lanır.
+  self.tkIsPlus = () => (_devMode === true) || isPlus(self._tkLic);
+  self.tkIsPlusAsync = async () => (await checkDev()) || isPlus(await getState());
 
-  // Periyodik yeniden doğrulama (12 saat) + açılışta bir kez
+  // Açılışta dev modunu belirle (önbelleğe al) + periyodik yeniden doğrulama (12 saat) + bir kez doğrula
+  checkDev();
   try { chrome.alarms.create('tkLicenseRevalidate', { periodInMinutes: 720 }); } catch (_) {}
   chrome.alarms.onAlarm.addListener(a => { if (a && a.name === 'tkLicenseRevalidate') validate(); });
   validate();
