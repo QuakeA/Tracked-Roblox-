@@ -27,8 +27,8 @@
   const ICON_BACK = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>';
   const ICON_VOL = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 6a8 8 0 0 1 0 12"/></svg>';
   const ICON_MUTE = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"/><line x1="22" y1="9" x2="16" y2="15"/><line x1="16" y1="9" x2="22" y2="15"/></svg>';
-  const RESIZE_HTML = '<div class="np-resize" title="Çapraz boyutlandır"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M11 3.5 3.5 11M11 7.5 7.5 11"/></svg></div>' +
-    '<div class="np-resize-x" title="Genişlik"><svg viewBox="0 0 6 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 4v12M4.4 4v12"/></svg></div>';
+  // Görünmez kenar bölgeleri (pencere gibi kenardan resize): sağ=genişlik, alt=yükseklik/ölçek, köşe=çapraz
+  const RESIZE_HTML = '<div class="np-edge np-edge-r"></div><div class="np-edge np-edge-b"></div><div class="np-edge np-edge-c"></div>';
   const SRC_SPOTIFY = '<svg viewBox="0 0 24 24" width="14" height="14"><circle cx="12" cy="12" r="11" fill="#1DB954"/><path fill="#fff" d="M17.2 16.4a.66.66 0 0 1-.9.22c-2.46-1.5-5.56-1.84-9.2-1a.66.66 0 1 1-.3-1.28c3.98-.91 7.4-.52 10.16 1.16.31.2.41.6.24.9zm1.3-2.9a.82.82 0 0 1-1.13.27c-2.82-1.73-7.12-2.23-10.45-1.22a.82.82 0 1 1-.48-1.57c3.81-1.16 8.55-.6 11.79 1.39.39.24.5.74.27 1.13zm.11-3.02C16.54 8.5 10.94 8.32 7.8 9.28a.98.98 0 1 1-.57-1.88c3.6-1.1 9.79-.88 13.66 1.42a.98.98 0 1 1-1 1.68z"/></svg>';
   const SRC_YTMUSIC = '<svg viewBox="0 0 24 24" width="14" height="14"><circle cx="12" cy="12" r="11" fill="#FF0000"/><path fill="#fff" d="M10 8.2v7.6l6.2-3.8z"/></svg>';
   const SRC_YOUTUBE = '<svg viewBox="0 0 24 24" width="15" height="15"><path fill="#FF0000" d="M23 12s0-3.2-.41-4.73a2.46 2.46 0 0 0-1.73-1.74C19.32 5.12 12 5.12 12 5.12s-7.32 0-8.86.41A2.46 2.46 0 0 0 1.41 7.27C1 8.8 1 12 1 12s0 3.2.41 4.73a2.46 2.46 0 0 0 1.73 1.74c1.54.41 8.86.41 8.86.41s7.32 0 8.86-.41a2.46 2.46 0 0 0 1.73-1.74C23 15.2 23 12 23 12z"/><path fill="#fff" d="M9.75 15.27V8.73L15.5 12z"/></svg>';
@@ -89,16 +89,32 @@
     return m[key] || m.bl;
   }
   const SQ = 56; // küçültülmüş kare boyutu
+  let _hSide = 'r', _vSide = 't'; // resize tutamaçlarının (serbest) kenarı — çıpaya göre
   function applyLayout() {
     const w = document.getElementById(WIDGET_ID); if (!w) return;
-    w.style.setProperty('--np-resh', _resH + 'px'); // sonuç listesi yüksekliği (kalıcı)
-    // ÖNEMLİ: min'de inline width'i temizle ki CSS kare (width/height:56) geçerli olsun
+    const isSearch = (_mode === 'idle' || _mode === 'search');
+    const A = _anchor;
+    const ox = (A === 'tl' || A === 'bl' || A === 'l') ? 'left' : (A === 'tr' || A === 'br' || A === 'r') ? 'right' : 'center';
+    const oy = (A === 'tl' || A === 'tr' || A === 't') ? 'top' : (A === 'bl' || A === 'br' || A === 'b') ? 'bottom' : 'center';
+    _hSide = (ox === 'right') ? 'l' : 'r';   // serbest yatay kenar (çıpanın tersi)
+    _vSide = (oy === 'top') ? 'b' : 't';     // serbest dikey kenar
+    // arama: alt-resize sonuç listesini büyütür; oynatıcı: tüm widget ÖLÇEKLENİR (çapraz)
+    w.style.setProperty('--np-resh', _resH + 'px');
+    const scale = (_minimized || isSearch) ? 1 : Math.max(0.85, Math.min(1.55, 1 + (_resH - 230) / 760));
+    w.style.setProperty('--np-scale', scale);
+    w.style.transformOrigin = ox + ' ' + oy;
+    // tutamaç kenarlarını çıpaya göre yerleştir (serbest kenarlar)
+    w.classList.toggle('np-h-l', _hSide === 'l'); w.classList.toggle('np-h-r', _hSide === 'r');
+    w.classList.toggle('np-v-t', _vSide === 't'); w.classList.toggle('np-v-b', _vSide === 'b');
     w.style.width = _minimized ? '' : (_width + 'px');
-    const wd = _minimized ? SQ : _width;
-    const ht = _minimized ? SQ : (w.getBoundingClientRect().height || 96);
-    const p = anchorPos(_anchor, wd, ht);
-    w.style.left = Math.round(Math.max(6, p[0])) + 'px';
-    w.style.top = Math.round(Math.max(6, p[1])) + 'px';
+    const rect = w.getBoundingClientRect();
+    const uw = _minimized ? SQ : _width;                 // ölçeklenmemiş genişlik (CSS)
+    const uh = _minimized ? SQ : (rect.height / scale);  // ölçeklenmemiş yükseklik
+    const W = window.innerWidth, H = window.innerHeight;
+    const left = (ox === 'left') ? M : (ox === 'right') ? (W - M - uw) : (W - uw) / 2;
+    const top = (oy === 'top') ? TOPY : (oy === 'bottom') ? (H - M - uh) : (H - uh) / 2;
+    w.style.left = Math.round(Math.max(6, left)) + 'px';
+    w.style.top = Math.round(Math.max(6, top)) + 'px';
     w.style.right = 'auto'; w.style.bottom = 'auto';
   }
   function nearestAnchor(cx, cy, wd, ht) {
@@ -114,7 +130,7 @@
     if (_dragWired) return; _dragWired = true;
     w.addEventListener('pointerdown', (e) => {
       if (e.button !== 0) return;
-      if (e.target.closest('.np-btn,.np-min-btn,.np-bar,.np-resize,.np-resize-x,.np-search,.np-srcseg,.np-results,.np-vol')) return; // etkileşimli alanlar hariç
+      if (e.target.closest('.np-btn,.np-min-btn,.np-bar,.np-edge,.np-search,.np-srcseg,.np-results,.np-vol')) return; // etkileşimli alanlar hariç
       const sx = e.clientX, sy = e.clientY; const r0 = w.getBoundingClientRect(); const sl = r0.left, st = r0.top; let moved = false;
       w.style.transition = 'none'; w.classList.add('np-dragging');
       beginDrag(w, e, (ev) => {
@@ -136,25 +152,20 @@
     });
   }
   function wireResize(w) {
-    const h = w.querySelector('.np-resize');     // köşe = ÇAPRAZ (genişlik + yükseklik)
-    if (h) h.addEventListener('pointerdown', (e) => {
-      e.stopPropagation();
-      const sx = e.clientX, sy = e.clientY, sw = _width, sh = _resH;
-      w.style.transition = 'none';
-      beginDrag(h, e, (ev) => {
-        _width = clampW(sw + (ev.clientX - sx));
-        _resH = clampH(sh + (ev.clientY - sy));
-        w.style.setProperty('--np-resh', _resH + 'px');
-        applyLayout();
-      }, () => saveLayout());
-    });
-    const hx = w.querySelector('.np-resize-x');  // kenar = YAN (yalnız genişlik)
-    if (hx) hx.addEventListener('pointerdown', (e) => {
-      e.stopPropagation();
-      const sx = e.clientX, sw = _width;
-      w.style.transition = 'none';
-      beginDrag(hx, e, (ev) => { _width = clampW(sw + (ev.clientX - sx)); applyLayout(); }, () => saveLayout());
-    });
+    const wire = (sel, axis) => {  // axis: 'h'=yatay 'v'=dikey 'c'=köşe(çapraz)
+      const h = w.querySelector(sel); if (!h) return;
+      h.addEventListener('pointerdown', (e) => {
+        e.stopPropagation();
+        const sx = e.clientX, sy = e.clientY, sw = _width, sh = _resH;
+        w.style.transition = 'none';
+        beginDrag(h, e, (ev) => {
+          if (axis !== 'v') { const sg = (_hSide === 'l') ? -1 : 1; _width = clampW(sw + sg * (ev.clientX - sx)); }
+          if (axis !== 'h') { const sg = (_vSide === 't') ? -1 : 1; _resH = clampH(sh + sg * (ev.clientY - sy)); }
+          applyLayout();
+        }, () => saveLayout());
+      });
+    };
+    wire('.np-edge-r', 'h'); wire('.np-edge-b', 'v'); wire('.np-edge-c', 'c');
   }
 
   // ── Stiller ──
@@ -170,6 +181,7 @@
         box-shadow:0 12px 44px rgba(0,0,0,.58),inset 0 1px 0 rgba(255,255,255,.06);
         color:rgba(255,255,255,.9);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
         padding:11px 13px 12px;overflow:hidden;
+        transform:scale(var(--np-scale,1));transform-origin:0 0;
         animation:np-in .42s cubic-bezier(.2,.85,.25,1) both;
         transition:width .24s cubic-bezier(.2,.85,.25,1),height .24s cubic-bezier(.2,.85,.25,1),border-radius .24s,box-shadow .3s;}
       /* üstte kapaktan gelen yumuşak accent ışıması */
@@ -213,7 +225,7 @@
       @keyframes np-eq{0%,100%{height:22%;}50%{height:100%;}}
       #${WIDGET_ID}.np-paused .np-eq i{animation-play-state:paused;height:28%;background:rgba(255,255,255,.32);box-shadow:none;}
 
-      .np-min-btn{background:none;border:none;color:rgba(255,255,255,.42);cursor:pointer;width:24px;height:24px;padding:0;border-radius:7px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;align-self:flex-start;transition:background .18s,color .18s,transform .18s;}
+      .np-min-btn{position:relative;z-index:8;background:none;border:none;color:rgba(255,255,255,.42);cursor:pointer;width:24px;height:24px;padding:0;border-radius:7px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;align-self:flex-start;transition:background .18s,color .18s,transform .18s;}
       .np-min-btn:hover{background:rgba(255,255,255,.12);color:#fff;transform:scale(1.08);}
 
       .np-prog{display:flex;align-items:center;gap:8px;margin-top:11px;}
@@ -253,16 +265,21 @@
 
       #${WIDGET_ID}.np-dragging{cursor:grabbing;user-select:none;}
       #${WIDGET_ID}.np-dragging *{user-select:none;}
-      .np-resize{position:absolute;right:0;bottom:0;width:30px;height:30px;cursor:nwse-resize;opacity:.55;display:flex;align-items:flex-end;justify-content:flex-end;padding:0 5px 5px 0;color:rgba(255,255,255,.9);transition:opacity .15s,color .15s;touch-action:none;}
-      .np-resize:hover{opacity:1;color:var(--np-accent);}
-      .np-resize:active{opacity:1;}
-      .np-resize svg{width:15px;height:15px;}
-      .np-resize-x{position:absolute;right:0;top:50%;transform:translateY(-50%);width:13px;height:48px;cursor:ew-resize;display:flex;align-items:center;justify-content:center;opacity:.42;color:rgba(255,255,255,.9);transition:opacity .15s,color .15s;touch-action:none;}
-      .np-resize-x:hover{opacity:.95;color:var(--np-accent);}
-      #${WIDGET_ID}.np-min .np-resize-x{display:none;}
+      /* Görünmez kenar bölgeleri — pencere gibi kenardan resize (çıpaya göre serbest kenarlarda) */
+      .np-edge{position:absolute;z-index:6;touch-action:none;}
+      .np-edge-r{top:12px;bottom:12px;width:12px;cursor:ew-resize;}
+      #${WIDGET_ID}.np-h-r .np-edge-r{right:-3px;} #${WIDGET_ID}.np-h-l .np-edge-r{left:-3px;}
+      .np-edge-b{left:12px;right:12px;height:12px;cursor:ns-resize;}
+      #${WIDGET_ID}.np-v-b .np-edge-b{bottom:-3px;} #${WIDGET_ID}.np-v-t .np-edge-b{top:-3px;}
+      .np-edge-c{width:22px;height:22px;z-index:7;}
+      #${WIDGET_ID}.np-h-r .np-edge-c{right:-3px;} #${WIDGET_ID}.np-h-l .np-edge-c{left:-3px;}
+      #${WIDGET_ID}.np-v-b .np-edge-c{bottom:-3px;} #${WIDGET_ID}.np-v-t .np-edge-c{top:-3px;}
+      #${WIDGET_ID}.np-h-r.np-v-b .np-edge-c,#${WIDGET_ID}.np-h-l.np-v-t .np-edge-c{cursor:nwse-resize;}
+      #${WIDGET_ID}.np-h-r.np-v-t .np-edge-c,#${WIDGET_ID}.np-h-l.np-v-b .np-edge-c{cursor:nesw-resize;}
+      #${WIDGET_ID}.np-min .np-edge{display:none;}
       /* sürükleme/resize sırasında sayfada (Roblox dahil) seçim/sürükleme olmasın */
       .np-dragging-global, .np-dragging-global *{user-select:none !important;-webkit-user-select:none !important;}
-      #${WIDGET_ID}.np-min .np-resize{display:none;}
+      #${WIDGET_ID}.np-min .np-edge{display:none;}
 
       /* Idle — widget-içi arama */
       .np-idle-note{display:none;text-align:center;color:var(--np-accent);}

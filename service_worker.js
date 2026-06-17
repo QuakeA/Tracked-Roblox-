@@ -2943,7 +2943,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           if (sameSite) {
             const res = await chrome.scripting.executeScript({
               target: { tabId: tab.id }, world: 'MAIN', args: [id],
-              func: (vid) => { try { const mp = document.querySelector('#movie_player'); if (mp && mp.loadVideoById) { mp.loadVideoById(vid); try { if (mp.isMuted && mp.isMuted()) mp.unMute(); } catch (_) {} return true; } return false; } catch (_) { return false; } }
+              func: (vid) => { try { const mp = document.querySelector('#movie_player'); if (mp && mp.loadVideoById) { mp.loadVideoById(vid); const fix = () => { try { if (mp.unMute) mp.unMute(); if (mp.getVolume && mp.getVolume() === 0 && mp.setVolume) mp.setVolume(100); } catch (_) {} }; fix(); setTimeout(fix, 500); setTimeout(fix, 1300); return true; } return false; } catch (_) { return false; } }
             }).catch(() => null);
             if (res && res[0] && res[0].result) { self._mediaLastTabId = tab.id; sendResponse({ ok: true, mode: 'bg-api' }); return; }
           }
