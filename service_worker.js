@@ -2975,7 +2975,19 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
   // ── Tracked Plus ekranını aç (kilitli özelliğe tıklayınca) ──
   if (request.action === "openPlusPage") {
-    try { chrome.runtime.openOptionsPage(); } catch (_) {}
+    // Özel Tracked Plus sayfası (yeni sekme). Zaten açıksa o sekmeyi öne al, yenisini açma.
+    (async () => {
+      try {
+        const url = chrome.runtime.getURL('plus.html');
+        const existing = (await chrome.tabs.query({ url }).catch(() => [])) || [];
+        if (existing.length && existing[0].id != null) {
+          await chrome.tabs.update(existing[0].id, { active: true });
+          if (existing[0].windowId != null) { try { await chrome.windows.update(existing[0].windowId, { focused: true }); } catch (_) {} }
+        } else {
+          await chrome.tabs.create({ url });
+        }
+      } catch (_) { try { chrome.runtime.openOptionsPage(); } catch (e) {} }
+    })();
     sendResponse({ ok: true }); return true;
   }
 

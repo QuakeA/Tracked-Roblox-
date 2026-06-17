@@ -2324,3 +2324,18 @@ body.reduced-motion *::after {
 .tk-lock { position: absolute; top: -5px; right: -5px; display: inline-flex; align-items: center; justify-content: center; width: 14px; height: 14px; border-radius: 50%; background: linear-gradient(150deg, #7b4cff, #4c8bf5); color: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.45); pointer-events: none; z-index: 3; }
 .tk-lock svg { width: 8px; height: 8px; display: block; }
 #library-list.tk-plus .tk-lock { display: none !important; }
+
+/* ── Popup Tracked Plus yükseltme kartı ── */
+.plus-cta { display: flex; align-items: center; gap: 12px; padding: 13px 14px;
+  background: linear-gradient(135deg, rgba(123,76,255,.18), rgba(76,139,245,.14));
+  border: 1px solid rgba(123,76,255,.34); border-radius: 14px; }
+.plus-cta-ic { flex-shrink: 0; width: 40px; height: 40px; border-radius: 11px; display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(150deg, #7b4cff, #4c8bf5); color: #fff; box-shadow: 0 6px 16px rgba(100,80,220,.42); }
+.plus-cta-tx { flex: 1; min-width: 0; }
+.plus-cta-h { font-size: 14px; font-weight: 800; color: #fff; letter-spacing: .2px; }
+.plus-cta-d { font-size: 11.5px; color: rgba(255,255,255,.66); margin-top: 1px; line-height: 1.4; }
+.plus-cta-btn { flex-shrink: 0; padding: 9px 16px; border: none; border-radius: 10px; cursor: pointer; font-size: 13px; font-weight: 800;
+  color: #fff; background: linear-gradient(135deg, #7b4cff, #4c8bf5); box-shadow: 0 6px 16px rgba(100,80,220,.42);
+  transition: transform .12s ease, box-shadow .2s ease; }
+.plus-cta-btn:hover { transform: translateY(-1px); box-shadow: 0 9px 22px rgba(100,80,220,.58); }
+.plus-cta-btn:active { transform: translateY(0); }

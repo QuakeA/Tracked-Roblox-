@@ -429,7 +429,17 @@ function setupEventListeners() {
             window.open(chrome.runtime.getURL('options.html'));
         }
     });
-    
+
+    // ── Tracked Plus yükseltme kartı — yalnız Plus yokken görünür; tıkla → özel Plus sayfası ──
+    const plusCta = document.getElementById('plus-cta');
+    const plusCtaBtn = document.getElementById('plus-cta-btn');
+    if (plusCta) {
+        const syncPlusCta = () => { try { chrome.runtime.sendMessage({ action: 'licenseGet' }, r => { if (!chrome.runtime.lastError) plusCta.style.display = (r && r.isPlus) ? 'none' : ''; }); } catch (_) {} };
+        syncPlusCta();
+        try { chrome.storage.onChanged.addListener((ch, a) => { if (a === 'local' && ch.tracked_license) syncPlusCta(); }); } catch (_) {}
+    }
+    if (plusCtaBtn) plusCtaBtn.addEventListener('click', () => { try { chrome.runtime.sendMessage({ action: 'openPlusPage' }); } catch (_) {} });
+
     // Side panel pin button — TOGGLE davranışı: açıksa kapat, kapalıysa aç.
     // chrome.runtime.getContexts ile REAL-TIME state check (storage flag'in async gecikmesi yok).
     if (ui.btnPin) {
@@ -1969,7 +1979,7 @@ async function popupIsPlus() {
 async function requirePlus(feature) {
     if (await popupIsPlus()) return true;
     showToast(`${feature} · Tracked Plus özelliği — 7 gün ücretsiz dene`, 'info');
-    try { chrome.runtime.openOptionsPage(); } catch (_) {}
+    try { chrome.runtime.sendMessage({ action: 'openPlusPage' }); } catch (_) {}
     return false;
 }
 try { chrome.storage.onChanged.addListener((ch, a) => { if (a === 'local' && ch.tracked_license) _plusCache = null; }); } catch (_) {}
