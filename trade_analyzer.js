@@ -1312,10 +1312,59 @@
     setupObserver();
   }
 
-  // Tracked Plus gerektirir (Trade analizi Pro özelliğidir)
+  // ── Kilitli (Plus yok) panel — gerçek analiz yerine çerçeve + kilit; VERİ ÇEKİLMEZ ──
+  function renderLockedPanel() {
+    document.getElementById(PANEL_ID)?.remove();
+    injectStyles();
+    const card = (window.TrackedLicense && window.TrackedLicense.lockCardHtml)
+      ? window.TrackedLicense.lockCardHtml('Trade Analizi', 'Trade dengesini, RAP/değer ve canlı floor fiyatlarını görmek için Tracked Plus.')
+      : '';
+    const panel = document.createElement('div');
+    panel.id = PANEL_ID;
+    panel.innerHTML = `
+      <div class="ta-header">
+        <span class="ta-title">${ICON_TRADE}Trade Analyzer</span>
+        <div class="ta-header-actions">
+          <button class="ta-close" title="Kapat">&#x2715;</button>
+        </div>
+      </div>
+      <div class="ta-view-analysis">${card}</div>`;
+    (document.documentElement || document.body).appendChild(panel);
+    panel.querySelector('.ta-close')?.addEventListener('click', () => panel.remove());
+  }
+  function lockedAnalyze() {
+    if (_inited) return;
+    const sections = findTradeSections();
+    let hasItems = false;
+    if (sections) {
+      try { hasItems = ([...extractItemsFromContainer(sections[0]), ...extractItemsFromContainer(sections[1])].length > 0); } catch (_) {}
+    }
+    if (!hasItems) { document.getElementById(PANEL_ID)?.remove(); return; }
+    if (document.getElementById(PANEL_ID)) return; // zaten kilitli panel duruyor
+    renderLockedPanel();
+  }
+
+  // Tracked Plus gerektirir (Trade analizi Pro özelliğidir). Plus yoksa GİZLEMEK yerine
+  // trade'de item varken panel çerçevesi + kilit gösterilir (tıkla → Plus ekranı).
   const plus = () => (window.TrackedLicense ? window.TrackedLicense.isPlus() : Promise.resolve(false));
-  let _inited = false;
-  const gatedInit = async () => { if (!_inited && await plus()) { _inited = true; init(); } };
+  let _inited = false, _lockObs = null;
+  function lockedSetup() {
+    if (_lockObs) return;
+    injectStyles();
+    let db; const trig = () => { clearTimeout(db); db = setTimeout(lockedAnalyze, 400); };
+    _lockObs = new MutationObserver(trig);
+    _lockObs.observe(document.body, { childList: true, subtree: true });
+    lockedAnalyze();
+  }
+  const gatedInit = async () => {
+    const p = await plus();
+    if (p) {
+      if (_lockObs) { _lockObs.disconnect(); _lockObs = null; document.getElementById(PANEL_ID)?.remove(); }
+      if (!_inited) { _inited = true; init(); }
+    } else if (!_inited && !_lockObs) {
+      lockedSetup();
+    }
+  };
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', gatedInit);

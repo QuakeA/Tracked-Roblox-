@@ -1047,10 +1047,49 @@
     });
   }
 
-  // Tracked Plus gerektirir (Envanter analizi Pro özelliğidir)
+  // Tracked Plus gerektirir (Envanter analizi Pro özelliğidir). Plus yoksa GİZLEMEK yerine
+  // panel çerçevesi + kilit gösterilir (tıkla → Plus ekranı). Veri yalnız Plus ile çekilir.
   const plus = () => (window.TrackedLicense ? window.TrackedLicense.isPlus() : Promise.resolve(false));
-  let _inited = false;
-  const gatedStart = async () => { if (!_inited && await plus()) { _inited = true; init(); watchSpaNavigation(); } };
+  const onInvPage = () => /\/users\/(\d+\/)?inventory/.test(location.pathname);
+  let _inited = false, _lockWatch = false;
+
+  function showLockedPanel() {
+    if (_inited || !onInvPage()) { return; }
+    injectStyles();
+    const card = (window.TrackedLicense && window.TrackedLicense.lockCardHtml)
+      ? window.TrackedLicense.lockCardHtml('Envanter Analizi', 'Envanterinin canlı Rolimons değerini ve dağılımını görmek için Tracked Plus.')
+      : '';
+    showPanel(`${header('Envanter Değeri')}${card}`);
+  }
+  function watchLockedNav() {
+    if (_lockWatch) return; _lockWatch = true;
+    let lastHref = location.href;
+    const onUrlChange = () => {
+      if (_inited) return; // Plus'a geçildi → gerçek izleyici devralır
+      if (location.href === lastHref) return;
+      lastHref = location.href;
+      if (!onInvPage()) document.getElementById(PANEL_ID)?.remove();
+      else if (!document.getElementById(PANEL_ID)) showLockedPanel();
+    };
+    window.addEventListener('popstate', onUrlChange);
+    window.addEventListener('hashchange', onUrlChange);
+    let db; new MutationObserver(() => { clearTimeout(db); db = setTimeout(onUrlChange, 350); }).observe(document.body, { childList: true, subtree: false });
+    if (window._trackedInvLockPoll) clearInterval(window._trackedInvLockPoll);
+    window._trackedInvLockPoll = setInterval(() => { if (location.href !== lastHref) onUrlChange(); }, 350);
+  }
+
+  const gatedStart = async () => {
+    const p = await plus();
+    if (p) {
+      // Plus var → kilitli paneli kaldır, gerçek analizi başlat
+      if (_lockWatch) { if (window._trackedInvLockPoll) { clearInterval(window._trackedInvLockPoll); window._trackedInvLockPoll = null; } document.getElementById(PANEL_ID)?.remove(); }
+      if (!_inited) { _inited = true; init(); watchSpaNavigation(); }
+    } else if (!_inited) {
+      // Plus yok → kilitli panel + nav izleyici (veri ÇEKİLMEZ)
+      showLockedPanel();
+      watchLockedNav();
+    }
+  };
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', gatedStart);

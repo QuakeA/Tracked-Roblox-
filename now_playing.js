@@ -44,6 +44,7 @@
 
   // ── State ──
   let _enabled = false, _minimized = false;
+  let _lockedOn = false, _lockedTimer = null; // Plus yok: kilitli teaser akışı (cheap mediaActive yoklama)
   let _media = null, _tabId = null;
   let _pos = 0, _dur = 0, _posAt = 0, _playing = false;   // ilerleme interpolasyonu
   let _trackKey = '';   // host|title|artist — yalnız bu değişince tam render
@@ -113,7 +114,7 @@
     if (_dragWired) return; _dragWired = true;
     w.addEventListener('pointerdown', (e) => {
       if (e.button !== 0) return;
-      if (e.target.closest('.np-btn,.np-min-btn,.np-bar,.np-edge,.np-search,.np-srcseg,.np-results,.np-vol')) return; // etkileşimli alanlar hariç
+      if (e.target.closest('.np-btn,.np-min-btn,.np-bar,.np-edge,.np-search,.np-srcseg,.np-results,.np-vol,.tkplus-lock')) return; // etkileşimli alanlar hariç
       const sx = e.clientX, sy = e.clientY; const r0 = w.getBoundingClientRect(); const sl = r0.left, st = r0.top; let moved = false;
       w.style.transition = 'none'; w.classList.add('np-dragging');
       beginDrag(w, e, (ev) => {
@@ -665,9 +666,47 @@
 
   function start() { if (_enabled) return; _enabled = true; injectStyles(); poll(); }
   function stop() { _enabled = false; clearTimeout(_pollTimer); clearTimeout(_searchTimer); stopProg(); document.getElementById(WIDGET_ID)?.remove(); _media = null; _trackKey = ''; _accentUrl = ''; _mode = null; }
+
+  // ── Kilitli teaser (Plus YOK): şarkı bilgisi OKUNMAZ; yalnız "bir şey çalıyor mu" (cheap mediaActive)
+  //    kontrol edilir, çalarken kilitli kart gösterilir → tıkla Plus ekranı. ──
+  function renderLocked() {
+    const w = ensureWidget();
+    _mode = 'locked'; _trackKey = '';
+    w.classList.remove('np-paused', 'np-fresh', 'np-min');
+    const card = (window.TrackedLicense && window.TrackedLicense.lockCardHtml)
+      ? window.TrackedLicense.lockCardHtml('Şu An Çalıyor', 'Çalan müziği Roblox\'ta gösterip buradan kontrol etmek için Tracked Plus.')
+      : '';
+    w.innerHTML = `<div class="np-head"><span class="np-logo">${TRACKED_MARK}</span><span class="np-brand">Tracked</span>${VERSION ? `<span class="np-ver">• v${VERSION}</span>` : ''}</div>${card}`;
+    w.style.width = _width + 'px';
+    const rect = w.getBoundingClientRect();
+    const p = anchorPos(_anchor, rect.width || _width, rect.height || 120);
+    w.style.left = Math.round(Math.max(6, p[0])) + 'px';
+    w.style.top = Math.round(Math.max(6, p[1])) + 'px';
+    w.style.right = 'auto'; w.style.bottom = 'auto';
+  }
+  function startLocked() { if (_lockedOn) return; _lockedOn = true; injectStyles(); lockedPoll(); }
+  function stopLocked() { _lockedOn = false; clearTimeout(_lockedTimer); if (_mode === 'locked') { document.getElementById(WIDGET_ID)?.remove(); _mode = null; } }
+  async function lockedPoll() {
+    if (!_lockedOn) return;
+    clearTimeout(_lockedTimer); // çift zincir koruması (visibilitychange doğrudan çağırabilir)
+    if (document.hidden) { _lockedTimer = setTimeout(lockedPoll, 4000); return; }
+    const r = await swMsg({ action: 'mediaActive' });
+    if (!_lockedOn) return;
+    const active = !!(r && r.ok && r.active);
+    if (active) { if (_mode !== 'locked' || !document.getElementById(WIDGET_ID)) renderLocked(); }
+    else if (_mode === 'locked') { document.getElementById(WIDGET_ID)?.remove(); _mode = null; }
+    _lockedTimer = setTimeout(lockedPoll, active ? 4000 : 5000);
+  }
   const saveMin = (v) => { try { chrome.storage.local.set({ [MIN_KEY]: !!v }); } catch (_) {} };
   // Tracked Plus kontrolü (lisans yoksa false) — müzik widget Plus özelliğidir
   const plus = () => (window.TrackedLicense ? window.TrackedLicense.isPlus() : Promise.resolve(false));
+
+  // Ayar açık → Plus varsa gerçek widget, yoksa kilitli teaser. (Özellik tamamen GİZLENMEZ.)
+  function applyState(settingOn, isPlus) {
+    if (!settingOn) { stop(); stopLocked(); return; }
+    if (isPlus) { stopLocked(); start(); }
+    else { stop(); startLocked(); }
+  }
 
   // ── Başlat: ayar oku + canlı aç/kapa ──
   (async () => {
@@ -676,26 +715,28 @@
       _minimized = !!d[MIN_KEY];
       const lay = d[LAYOUT_KEY];
       if (lay) { if (lay.anchor) _anchor = lay.anchor; if (lay.width) _width = clampW(lay.width); if (lay.resH) _resH = clampH(lay.resH); }
-      if (d?.rota_settings?.nowPlaying === true && await plus()) start(); // Tracked Plus özelliği
+      applyState(d?.rota_settings?.nowPlaying === true, await plus());
     } catch (_) {}
   })();
   try {
     chrome.storage.onChanged.addListener(async (ch, area) => {
       if (area !== 'local') return;
       if (ch.rota_settings) {
-        const on = ch.rota_settings.newValue && ch.rota_settings.newValue.nowPlaying === true;
-        if (on && !_enabled && await plus()) start();
-        else if (!on && _enabled) stop();
+        const on = !!(ch.rota_settings.newValue && ch.rota_settings.newValue.nowPlaying === true);
+        applyState(on, await plus());
       }
-      if (ch.tracked_license) { // Plus durumu değişti → aç/kapa
+      if (ch.tracked_license) { // Plus durumu değişti → gerçek ↔ kilitli teaser geçişi
         const settingOn = (await chrome.storage.local.get('rota_settings'))?.rota_settings?.nowPlaying === true;
-        if (settingOn && !_enabled && await plus()) start();
-        else if (_enabled && !(await plus())) stop();
+        applyState(settingOn, await plus());
       }
     });
   } catch (_) {}
   // Sekme tekrar görünür olunca anında tazele
-  document.addEventListener('visibilitychange', () => { if (_enabled && !document.hidden) poll(); });
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) return;
+    if (_enabled) poll();
+    else if (_lockedOn) lockedPoll();
+  });
   // Pencere yeniden boyutlanınca seçili köşeye yapışık kal
   let _rzT = null;
   window.addEventListener('resize', () => { clearTimeout(_rzT); _rzT = setTimeout(() => { if (_enabled && document.getElementById(WIDGET_ID)) applyLayout(); }, 120); });

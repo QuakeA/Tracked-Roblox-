@@ -2663,6 +2663,19 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
   // ── ŞU AN ÇALIYOR (medya widget) — youtube/yt-music/spotify sekmelerinden now-playing + kontrol ──
   // Opt-in: SW yalnız content script istek atınca (özellik açıkken) medya sekmelerine dokunur.
+  // Cheap & gizlilik-dostu: yalnız "bir medya sekmesi ses çıkarıyor mu" — executeScript YOK, içerik OKUNMAZ.
+  // Plus YOK iken müzik widget'ının kilitli teaser'ını yalnız gerçekten bir şey çalarken göstermek için.
+  if (request.action === "mediaActive") {
+    (async () => {
+      try {
+        const audible = await chrome.tabs.query({ audible: true }).catch(() => []);
+        const active = audible.some(t => t && t.url && /(open\.spotify\.com|music\.youtube\.com|youtube\.com)/.test(t.url));
+        sendResponse({ ok: true, active });
+      } catch (e) { sendResponse({ ok: false, active: false }); }
+    })();
+    return true;
+  }
+
   // Performans: audible ön-filtre + son çalan sekme önbelleği (self._mediaLastTabId) → her seferde tüm tarama yok.
   if (request.action === "mediaGetNowPlaying") {
     (async () => {
