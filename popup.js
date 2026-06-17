@@ -1971,7 +1971,7 @@ async function joinClosestServer(placeId) {
     }
     if (!best) { joinGame(placeId); return; }                 // hiç çözülemedi → eski katıl
     const deepLink = `roblox://experiences/start?placeId=${placeId}&gameInstanceId=${best.server.id}`;
-    showToast(`${TrackedI18n.t('launching') || 'Başlatılıyor'} · ${best.region} (~${best.dist} km)`, 'success');
+    showToast(`${TrackedI18n.t('launching') || 'Başlatılıyor'} · ${best.region}`, 'success');
     openUrl(deepLink, false);
 }
 
@@ -2022,7 +2022,7 @@ async function scanServers(placeId) {
             const { server, region, dist } = item;
             const rank = index + 1;
             const rankColor = rank <= 3 ? RANK_COLORS[rank - 1] : 'var(--text-tertiary)';
-            const distTxt = dist != null ? ` · ~${dist} km` : '';
+            const distTxt = '';
             const flag = (typeof tkFlag === 'function') ? tkFlag(region) : '';
 
             const row = document.createElement('div');

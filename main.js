@@ -419,12 +419,6 @@ const TrackedApp = {
                     ps.title = 'Senin ölçtüğün bölgesel ping (popup ping testi)';
                     ps.textContent = `${mp} ms`;
                     badge.appendChild(ps);
-                } else if (typeof info.distanceKm === 'number') {
-                    const ds = document.createElement('span');
-                    ds.className = 'tracked-sv-dist';
-                    ds.title = 'Sana kuş uçuşu mesafe (datacenter konumundan)';
-                    ds.textContent = `~${info.distanceKm} km`;
-                    badge.appendChild(ds);
                 }
             } else if (txt) {
                 // Dürüst: çözülemedi (uydurma sayı göstermeyiz).
@@ -995,7 +989,7 @@ const TrackedApp = {
                 }
             }
             const closestSoFar = resolved.length ? Math.min(...resolved.map(r => r.distanceKm)) : null;
-            if (typeof statusCb === 'function') statusCb(done, candidates.length, closestSoFar !== null ? `${target ? 'hedef ' + (target.label || target.code) : 'en yakın'} ~${closestSoFar}km` : null);
+            if (typeof statusCb === 'function') statusCb(done, candidates.length, closestSoFar !== null ? `${target ? 'hedef ' + (target.label || target.code) : 'en yakın'}` : null);
             if (earlyExit) { console.log(`[Tracked] v5.0: erken çıkış — bölgendeki sunucu bulundu (hedef ≤ ${nearTarget}km)`); break; }
             if (!signal?.aborted && i + CONCURRENCY < candidates.length) await new Promise(r => setTimeout(r, 150));
         }
@@ -1092,7 +1086,7 @@ const TrackedApp = {
                 TrackedUI.setStatus(`Oto-Pilot: Bölge çözülüyor ${i}/${n}${label ? ' · ' + label : ''}`);
             });
             if (best && best.server) {
-                TrackedUI.setStatus(`${best.target ? 'Hedef ' + best.target : 'En yakın'}: ${best.region} · ~${best.distanceKm} km — bağlanılıyor...`);
+                TrackedUI.setStatus(`${best.target ? 'Hedef ' + best.target : 'En yakın'}: ${best.region} — bağlanılıyor...`);
                 this.joinServer(placeId, best.server.id);
                 setTimeout(() => {
                     this.showOtopilotRetryFloater(placeId, best.server.id, {
@@ -1278,7 +1272,7 @@ const TrackedApp = {
                 unknown: { color: '#8E8E93', bg: 'rgba(142,142,147,0.12)', border: 'rgba(142,142,147,0.35)', label: 'BÖLGE', desc: 'Bölge bulundu, mesafe hesaplanamadı.' },
             };
             c = rMap[conf];
-            const distTxt = (d !== null) ? ` · ~${d} km` : '';
+            const distTxt = '';
             const playersTxt = (typeof info.players === 'number' && typeof info.maxPlayers === 'number') ? ` · ${info.players}/${info.maxPlayers} oyuncu` : '';
             infoText = `Bölge: ${info.region}${distTxt}${playersTxt}`;
         } else {
@@ -1400,7 +1394,7 @@ const TrackedApp = {
                 const nextR = reg.ranked.find(c => c.jobId !== badJobId && !trimmed.some(b => b.id === c.jobId));
                 if (nextR) {
                     console.log(`[Tracked] v5.0: Sıradaki en yakın → ${nextR.region} ~${nextR.distanceKm}km`);
-                    TrackedUI.setStatus?.(`Sıradaki en yakın: ${nextR.region} · ~${nextR.distanceKm} km`);
+                    TrackedUI.setStatus?.(`Sıradaki en yakın: ${nextR.region}`);
                     this.joinServer(placeId, nextR.jobId);
                     this.showOtopilotRetryFloater(placeId, nextR.jobId, {
                         region: nextR.region, distanceKm: nextR.distanceKm,

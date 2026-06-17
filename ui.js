@@ -411,7 +411,7 @@ const TrackedUI = {
             // Yakınlık: bölgesinin ölçülen ping'i varsa GERÇEK ping; yoksa mesafe (km).
             const closeness = (typeof s.measuredPing === 'number')
                 ? `<span class="server-ping" title="${TrackedI18n.t('measuredPingTip')}">${s.measuredPing} ms</span>`
-                : ((typeof s.distanceKm === 'number') ? `<span class="server-distance">~${s.distanceKm} km</span>` : '');
+                : '';
             const ver = s.placeVersion ? `<span class="server-version">v${s.placeVersion}</span>` : '';
             const rec = s.recommended ? `<span class="region-recommend" title="${TrackedI18n.t('recommendedTip')}">${TARGET}${TrackedI18n.t('recommended')}</span>` : '';
             const flag = (typeof tkFlag === 'function') ? tkFlag(s.region) : '';
@@ -456,7 +456,7 @@ const TrackedUI = {
         const perfPct = hasRegion ? TrackedRegion.perfPct(server) : null;
         const regionLineInner = (s) => {
             if (s.regionResolved && s.region && !s.regionFailed) {
-                const close = (typeof s.measuredPing === 'number') ? ` · ${s.measuredPing} ms` : ((typeof s.distanceKm === 'number') ? ` · ~${s.distanceKm} km` : '');
+                const close = (typeof s.measuredPing === 'number') ? ` · ${s.measuredPing} ms` : '';
                 const ver = s.placeVersion ? ` · v${s.placeVersion}` : '';
                 const flag = (typeof tkFlag === 'function') ? tkFlag(s.region) : '';
                 return `<div class="tracked-modal-region">${flag || pinSvg}<span>${s.region}${close}${ver}</span></div>`;
