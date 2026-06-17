@@ -180,7 +180,7 @@
 
       .np-head{position:relative;display:flex;align-items:center;gap:5px;margin:-1px 0 9px;cursor:grab;}
       .np-head .np-logo{display:inline-flex;color:var(--np-accent);filter:drop-shadow(0 0 5px color-mix(in srgb,var(--np-accent) 50%,transparent));transition:color .5s,filter .5s;}
-      .np-head .np-brand{font-size:10px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;
+      .np-head .np-brand{font-size:11px;font-weight:800;letter-spacing:.4px;
         background:linear-gradient(90deg,rgba(255,255,255,.62),color-mix(in srgb,var(--np-accent) 65%,#fff));
         -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;user-select:none;transition:background .5s;}
       .np-head .np-ver{font-size:9px;font-weight:700;letter-spacing:.2px;color:rgba(255,255,255,.3);margin-left:2px;user-select:none;}
@@ -412,7 +412,7 @@
       `<button class="np-segbtn${s === _idleSource ? ' on' : ''}" data-s="${s}" title="${SRC_OF[s].label}">${SRC_OF[s].icon}<span>${SRC_OF[s].label}</span></button>`).join('');
     const backBtn = back ? `<button class="np-min-btn np-back-btn" title="Çalana dön">${ICON_BACK}</button>` : '';
     w.innerHTML = `
-      <div class="np-head">${back ? backBtn : ''}<span class="np-logo">${TRACKED_MARK}</span><span class="np-brand">Tracked</span>${VERSION ? `<span class="np-ver">v${VERSION}</span>` : ''}<button class="np-min-btn np-min-only" title="Küçült" style="margin-left:auto">${ICON_MIN}</button></div>
+      <div class="np-head">${back ? backBtn : ''}<span class="np-logo">${TRACKED_MARK}</span><span class="np-brand">Tracked music</span>${VERSION ? `<span class="np-ver">• v${VERSION}</span>` : ''}<button class="np-min-btn np-min-only" title="Küçült" style="margin-left:auto">${ICON_MIN}</button></div>
       <div class="np-idle-note">${ICON_NOTE}</div>
       <div class="np-search">
         <span class="np-search-ic"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg></span>
@@ -515,7 +515,7 @@
       ? `<img class="np-art" src="${esc(_media.artwork)}" alt="">`
       : `<div class="np-art fb">${ICON_NOTE}</div>`;
     w.innerHTML = `
-      <div class="np-head"><span class="np-logo">${TRACKED_MARK}</span><span class="np-brand">Tracked</span>${VERSION ? `<span class="np-ver">v${VERSION}</span>` : ''}<button class="np-min-btn np-search-btn" title="Başka müzik ara" style="margin-left:auto">${ICON_SEARCH}</button><button class="np-min-btn" title="Küçült">${ICON_MIN}</button></div>
+      <div class="np-head"><span class="np-logo">${TRACKED_MARK}</span><span class="np-brand">Tracked music</span>${VERSION ? `<span class="np-ver">• v${VERSION}</span>` : ''}<button class="np-min-btn np-search-btn" title="Başka müzik ara" style="margin-left:auto">${ICON_SEARCH}</button><button class="np-min-btn" title="Küçült">${ICON_MIN}</button></div>
       <div class="np-top">
         <button class="np-art-link" title="Sekmeye geç">${artHtml}<span class="np-min-eq"><i></i><i></i><i></i></span><span class="np-min-ov">${ICON_EXPAND}</span></button>
         <div class="np-mid">

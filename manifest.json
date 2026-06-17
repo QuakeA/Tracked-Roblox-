@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Tracked - Roblox Route Optimizer",
-  "version": "1.9.4",
-  "description": "Roblox için gelişmiş rota takibi, sunucu bölge tespiti, gerçek ping ölçümü, VPN tespiti ve CANLI ETKINLIK bulma. v1.9.4 - Kütüphane Görünümü, Bayraklar & Resmi Etkinlikler",
+  "version": "1.9.5",
+  "description": "Roblox için gelişmiş rota takibi, sunucu bölge tespiti, gerçek ping ölçümü, VPN tespiti ve CANLI ETKINLIK bulma. v1.9.5 - Şu An Çalıyor (müzik) + Oyun Kodları",
   "permissions": [
     "storage",
     "unlimitedStorage",
