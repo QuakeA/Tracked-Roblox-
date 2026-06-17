@@ -160,17 +160,21 @@
     if (pid !== _placeId) { _placeId = pid; _loaded = false; _data = null; _open = false; document.getElementById(WID)?.remove(); document.getElementById(WID + '-btn')?.remove(); if (_enabled && pid) renderBtn(); }
   }, 1200);
 
+  // Tracked Plus kontrolü — Oyun Kodları Plus özelliğidir (lisans yoksa false)
+  const plus = () => (window.TrackedLicense ? window.TrackedLicense.isPlus() : Promise.resolve(false));
   (async () => {
     try {
       const d = await chrome.storage.local.get(['rota_settings']);
-      if (d?.rota_settings?.gameCodes !== false) start(); // varsayılan AÇIK
-    } catch (_) { start(); }
+      if (d?.rota_settings?.gameCodes !== false && await plus()) start(); // varsayılan AÇIK + Plus
+    } catch (_) {}
   })();
   try {
-    chrome.storage.onChanged.addListener((ch, area) => {
-      if (area !== 'local' || !ch.rota_settings) return;
-      const on = !ch.rota_settings.newValue || ch.rota_settings.newValue.gameCodes !== false;
-      if (on && !_enabled) start(); else if (!on && _enabled) stop();
+    chrome.storage.onChanged.addListener(async (ch, area) => {
+      if (area !== 'local' || (!ch.rota_settings && !ch.tracked_license)) return;
+      const st = (await chrome.storage.local.get('rota_settings'))?.rota_settings;
+      const on = !st || st.gameCodes !== false;
+      if (on && !_enabled && await plus()) start();
+      else if (_enabled && (!on || !(await plus()))) stop();
     });
   } catch (_) {}
 })();

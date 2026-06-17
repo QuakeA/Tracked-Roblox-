@@ -1530,7 +1530,7 @@ function renderLibrary() {
 
     // Event Delegation
     const joinBtns = ui.libraryList.querySelectorAll('.join');
-    joinBtns.forEach(b => b.addEventListener('click', (e) => joinClosestServer(e.target.closest('.join').dataset.id)));
+    joinBtns.forEach(b => b.addEventListener('click', (e) => joinGame(e.target.closest('.join').dataset.id))); // NORMAL katılma (Oto-Pilot/Tara değil — onlar Plus)
     
     // Scan Buttons
     const scanBtns = ui.libraryList.querySelectorAll('.scan');

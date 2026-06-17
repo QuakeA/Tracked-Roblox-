@@ -21,6 +21,10 @@
           <span class="toc-brand-name">Tracked</span>
         </div>
         <nav class="toc-nav">
+          <a href="#sec-plus" class="toc-link" data-target="sec-plus">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15 9 22 9.5 17 14 18.5 21 12 17.3 5.5 21 7 14 2 9.5 9 9"/></svg>
+            <span>Tracked Plus</span>
+          </a>
           <a href="#sec-appearance" class="toc-link active" data-target="sec-appearance">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
             <span data-i18n="appearance">Görünüm</span>
@@ -74,6 +78,35 @@
       </header>
 
       <main>
+        <!-- ─── TRACKED PLUS ─── -->
+        <section class="card" id="sec-plus">
+          <h2>Tracked Plus</h2>
+          <div id="plus-status" class="plus-status">
+            <div class="plus-status-row">
+              <span class="plus-badge" id="plus-badge">Ücretsiz</span>
+              <span class="plus-name" id="plus-name"></span>
+            </div>
+            <p class="plus-desc" id="plus-desc">Oto-Pilot, Tara, Auto-Reconnect, Müzik Widget, Oyun Kodları, Trade/Envanter analizi, Temalar ve Etkinlik Analizi <b>Tracked Plus</b> ile açılır. 7 gün ücretsiz dene.</p>
+          </div>
+
+          <div class="setting-row" id="plus-key-row">
+            <div class="setting-label" style="flex:1">
+              <span>Lisans anahtarı</span>
+              <small>Satın aldıktan sonra e-postana gelen anahtarı yapıştır.</small>
+            </div>
+          </div>
+          <div class="plus-key-input">
+            <input type="text" id="plus-key" placeholder="XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX" autocomplete="off" spellcheck="false">
+            <button id="plus-activate" class="btn-primary">Aktive Et</button>
+          </div>
+          <div id="plus-msg" class="plus-msg"></div>
+
+          <div class="plus-actions">
+            <button id="plus-upgrade" class="btn-primary">Plus'a Yükselt — 7 gün ücretsiz</button>
+            <button id="plus-deactivate" class="btn-secondary" style="display:none">Bu cihazdan çıkar</button>
+          </div>
+        </section>
+
         <!-- ─── GÖRÜNÜM VE DENEYİM ─── -->
         <section class="card" id="sec-appearance">
           <h2 data-i18n="appearance">Görünüm ve Deneyim</h2>

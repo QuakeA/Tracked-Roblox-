@@ -666,6 +666,8 @@
   function start() { if (_enabled) return; _enabled = true; injectStyles(); poll(); }
   function stop() { _enabled = false; clearTimeout(_pollTimer); clearTimeout(_searchTimer); stopProg(); document.getElementById(WIDGET_ID)?.remove(); _media = null; _trackKey = ''; _accentUrl = ''; _mode = null; }
   const saveMin = (v) => { try { chrome.storage.local.set({ [MIN_KEY]: !!v }); } catch (_) {} };
+  // Tracked Plus kontrolü (lisans yoksa false) — müzik widget Plus özelliğidir
+  const plus = () => (window.TrackedLicense ? window.TrackedLicense.isPlus() : Promise.resolve(false));
 
   // ── Başlat: ayar oku + canlı aç/kapa ──
   (async () => {
@@ -674,16 +676,21 @@
       _minimized = !!d[MIN_KEY];
       const lay = d[LAYOUT_KEY];
       if (lay) { if (lay.anchor) _anchor = lay.anchor; if (lay.width) _width = clampW(lay.width); if (lay.resH) _resH = clampH(lay.resH); }
-      if (d?.rota_settings?.nowPlaying === true) start();
+      if (d?.rota_settings?.nowPlaying === true && await plus()) start(); // Tracked Plus özelliği
     } catch (_) {}
   })();
   try {
-    chrome.storage.onChanged.addListener((ch, area) => {
+    chrome.storage.onChanged.addListener(async (ch, area) => {
       if (area !== 'local') return;
       if (ch.rota_settings) {
         const on = ch.rota_settings.newValue && ch.rota_settings.newValue.nowPlaying === true;
-        if (on && !_enabled) start();
+        if (on && !_enabled && await plus()) start();
         else if (!on && _enabled) stop();
+      }
+      if (ch.tracked_license) { // Plus durumu değişti → aç/kapa
+        const settingOn = (await chrome.storage.local.get('rota_settings'))?.rota_settings?.nowPlaying === true;
+        if (settingOn && !_enabled && await plus()) start();
+        else if (_enabled && !(await plus())) stop();
       }
     });
   } catch (_) {}

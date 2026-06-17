@@ -1,6 +1,9 @@
 ﻿
 // service_worker.js - Tracked v1.9.5 - Hybrid Event Detector
 
+// Tracked Plus lisans çekirdeği (Lemon Squeezy) — message/alarm handler'larını kaydeder
+try { importScripts('license.js'); } catch (e) { console.warn('[Tracked] license.js yüklenemedi:', e); }
+
 // ==================== INITIALIZATION ====================
 chrome.runtime.onInstalled.addListener((details) => {
   // Always ensure popup (not side panel) opens on action click

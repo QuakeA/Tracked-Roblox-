@@ -88,6 +88,7 @@
         "lib/flags.css"
       ],
       "js": [
+        "license_client.js",
         "config.js",
         "lib/flags.js",
         "utils.js",
@@ -119,6 +120,7 @@
         "content_styles.css"
       ],
       "js": [
+        "license_client.js",
         "reconnect_overlay.js",
         "themes_content.js",
         "now_playing.js"
@@ -130,6 +132,7 @@
         "https://www.roblox.com/games/*"
       ],
       "js": [
+        "license_client.js",
         "reconnect_overlay.js",
         "now_playing.js",
         "codes_content.js"
@@ -141,6 +144,7 @@
         "https://www.roblox.com/trades*"
       ],
       "js": [
+        "license_client.js",
         "trade_analyzer.js"
       ],
       "run_at": "document_end"
@@ -151,6 +155,7 @@
         "https://www.roblox.com/users/inventory*"
       ],
       "js": [
+        "license_client.js",
         "inventory_rac.js"
       ],
       "run_at": "document_end"

@@ -25,6 +25,15 @@ const ui = {
     // Connection
     inpTimeout: document.getElementById('inp-timeout'),
     inpCache: document.getElementById('inp-cache'),
+    // Plus
+    plusBadge: document.getElementById('plus-badge'),
+    plusName: document.getElementById('plus-name'),
+    plusKey: document.getElementById('plus-key'),
+    plusActivate: document.getElementById('plus-activate'),
+    plusDeactivate: document.getElementById('plus-deactivate'),
+    plusUpgrade: document.getElementById('plus-upgrade'),
+    plusMsg: document.getElementById('plus-msg'),
+    plusKeyRow: document.getElementById('plus-key-row'),
     // Appearance
     chkNowPlaying: document.getElementById('chk-now-playing'),
     chkGameCodes: document.getElementById('chk-game-codes'),
@@ -79,7 +88,51 @@ document.addEventListener('DOMContentLoaded', async () => {
     loadDiagnostics();
     clearUnsaved();
     setupChangelog();
+    setupPlus();
 });
+
+// ── Tracked Plus (Lemon Squeezy lisans) ──
+const PLUS_CHECKOUT_URL = 'https://tracked.lemonsqueezy.com/buy/REPLACE-ME'; // TODO: gerçek checkout URL
+function setPlusMsg(t, cls) { if (!ui.plusMsg) return; ui.plusMsg.textContent = t; ui.plusMsg.className = 'plus-msg ' + (cls || ''); }
+async function loadPlusStatus() {
+    let r = null;
+    try { r = await chrome.runtime.sendMessage({ action: 'licenseGet' }); } catch (_) {}
+    const isPlus = !!(r && r.isPlus), status = (r && r.status) || 'free';
+    if (ui.plusBadge) {
+        ui.plusBadge.classList.remove('active', 'trial');
+        if (isPlus) { ui.plusBadge.textContent = 'Aktif'; ui.plusBadge.classList.add('active'); }
+        else if (status === 'expired') ui.plusBadge.textContent = 'Süresi Dolmuş';
+        else ui.plusBadge.textContent = 'Ücretsiz';
+    }
+    if (ui.plusName) ui.plusName.textContent = (r && r.name) || '';
+    if (ui.plusDeactivate) ui.plusDeactivate.style.display = (r && r.hasKey) ? '' : 'none';
+    if (ui.plusKey && r && r.hasKey && r.keyMasked) ui.plusKey.placeholder = r.keyMasked;
+    if (ui.plusUpgrade) ui.plusUpgrade.style.display = isPlus ? 'none' : '';
+}
+async function activateLicense() {
+    const key = (ui.plusKey?.value || '').trim();
+    if (!key) { setPlusMsg('Lisans anahtarı gir.', 'err'); return; }
+    setPlusMsg('Doğrulanıyor…', '');
+    if (ui.plusActivate) ui.plusActivate.disabled = true;
+    let r = null;
+    try { r = await chrome.runtime.sendMessage({ action: 'licenseActivate', key }); } catch (_) {}
+    if (ui.plusActivate) ui.plusActivate.disabled = false;
+    if (r && r.ok && r.isPlus) { setPlusMsg('Aktive edildi — Tracked Plus açık!', 'ok'); if (ui.plusKey) ui.plusKey.value = ''; }
+    else if (r && r.ok) setPlusMsg('Anahtar geçerli ama abonelik aktif değil (durum: ' + (r.status || '?') + ').', 'err');
+    else setPlusMsg((r && r.error) || 'Aktivasyon başarısız.', 'err');
+    loadPlusStatus();
+}
+function setupPlus() {
+    loadPlusStatus();
+    ui.plusActivate?.addEventListener('click', activateLicense);
+    ui.plusKey?.addEventListener('keydown', e => { if (e.key === 'Enter') activateLicense(); });
+    ui.plusDeactivate?.addEventListener('click', async () => {
+        if (!confirm('Lisansı bu cihazdan çıkarmak istediğine emin misin?')) return;
+        try { await chrome.runtime.sendMessage({ action: 'licenseDeactivate' }); } catch (_) {}
+        loadPlusStatus();
+    });
+    ui.plusUpgrade?.addEventListener('click', () => { try { window.open(PLUS_CHECKOUT_URL, '_blank', 'noopener'); } catch (_) {} });
+}
 
 ui.btnSave?.addEventListener('click', saveSettings);
 ui.btnReset?.addEventListener('click', restoreDefaults);
@@ -266,7 +319,7 @@ function setupKeyboardShortcuts() {
 
 // ── Scroll spy: section vurgulayıcı ──
 function setupScrollSpy() {
-    const sectionIds = ['sec-appearance', 'sec-connection', 'sec-reconnect', 'sec-probes', 'sec-diagnostics', 'sec-changelog'];
+    const sectionIds = ['sec-plus', 'sec-appearance', 'sec-connection', 'sec-reconnect', 'sec-probes', 'sec-diagnostics', 'sec-changelog'];
     const sections = sectionIds.map(id => document.getElementById(id)).filter(Boolean);
 
     if (sections.length === 0 || !ui.tocLinks.length) return;
