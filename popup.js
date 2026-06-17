@@ -1001,7 +1001,7 @@ async function measurePings(force = false) {
             renderPingList(state.pingResults);
             renderDashboard(state.pingCache.grade, state.pingCache.jitter, state.pingCache.avgPing);
             
-            if (state.viewMode === 'graph') renderGraph();
+            if (state.viewMode === 'graph') renderGraph(false);
             if (ui.globalStatus) {
                 ui.globalStatus.textContent = TrackedI18n.t('statusReadyCache');
                 ui.globalStatus.style.color = "var(--accent-green)";
@@ -1095,7 +1095,7 @@ async function measurePings(force = false) {
         renderPingList(results);
         renderDashboard(grade, jitter, avgPing);
         
-        if (state.viewMode === 'graph') renderGraph();
+        if (state.viewMode === 'graph') renderGraph(false);
 
         if (ui.btnRefreshPing) ui.btnRefreshPing.querySelector('svg').classList.remove('spin');
         if (ui.globalStatus) {
@@ -1201,7 +1201,7 @@ function tkNiceMax(v) {
     return Math.ceil(v / 50) * 50;
 }
 
-function renderGraph() {
+function renderGraph(animate = true) {
     const history = state.pingHistory;
     const svg = ui.pingChartSvg;
     const legend = ui.graphLegend;
@@ -1272,7 +1272,7 @@ function renderGraph() {
         svg.appendChild(mk('path', { d, fill: 'none', stroke: color, 'stroke-width': 5, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', opacity: 0.15 })); // glow halo
         const line = mk('path', { d, fill: 'none', stroke: color, 'stroke-width': 2, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' });
         svg.appendChild(line);
-        if (!reduceMotion) {
+        if (animate && !reduceMotion) {
             try {
                 const len = line.getTotalLength();
                 line.style.strokeDasharray = len; line.style.strokeDashoffset = len;
@@ -1280,7 +1280,7 @@ function renderGraph() {
             } catch (_) {}
         }
         const last = pts[pts.length - 1];
-        svg.appendChild(mk('circle', { cx: last.x, cy: last.y, r: 5.5, fill: 'none', stroke: color, 'stroke-width': 1, opacity: 0.4 }));
+        svg.appendChild(mk('circle', { cx: last.x, cy: last.y, r: 5.5, fill: 'none', stroke: color, 'stroke-width': 1, opacity: 0.4, class: 'tk-ping-pulse' }));
         svg.appendChild(mk('circle', { cx: last.x, cy: last.y, r: 3.2, fill: color, stroke: 'rgba(0,0,0,.4)', 'stroke-width': 1 }));
     });
 
