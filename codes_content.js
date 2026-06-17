@@ -9,7 +9,7 @@
 
   const WID = 'tracked-codes';
   const STYLE = 'tracked-codes-style';
-  let _enabled = false, _open = false, _loaded = false, _data = null, _placeId = null;
+  let _enabled = false, _open = false, _loaded = false, _data = null, _placeId = null, _plus = false;
 
   const ICON_GIFT = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="13" rx="1.5"/><path d="M12 8v13M3 12h18M12 8S10.5 4 8 4a2 2 0 0 0 0 4zM12 8s1.5-4 4-4a2 2 0 0 1 0 4z"/></svg>';
   const ICON_COPY = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
@@ -17,6 +17,9 @@
   const ICON_OUT = '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6M20 4l-9 9M18 13v5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h5"/></svg>';
   const ICON_X = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>';
   const MARK = '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h3.5l2.2-6.5 4.2 13 2.3-6.5H21"/></svg>';
+  const ICON_WARN = '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg>';
+  const LOCK_BADGE = '<span style="display:inline-flex;margin-left:4px"><svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12 1a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2h-1V6a5 5 0 0 0-5-5zm3 8H9V6a3 3 0 0 1 6 0v3z"/></svg></span>';
+  const ICON_BIGLOCK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2.2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/><circle cx="12" cy="16" r="1.4" fill="currentColor" stroke="none"/></svg>';
 
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const swMsg = (m) => new Promise(res => { try { chrome.runtime.sendMessage(m, r => { if (chrome.runtime.lastError) { res(null); return; } res(r || null); }); } catch { res(null); } });
@@ -77,6 +80,16 @@
       .tc-empty{font-size:11px;color:rgba(255,255,255,.45);line-height:1.5;padding:4px 0 2px;}
       .tc-load{font-size:11px;color:rgba(255,255,255,.5);text-align:center;padding:18px 0;}
       .tc-foot{font-size:9px;color:rgba(255,255,255,.3);margin-top:11px;line-height:1.5;}
+      #${WID}-btn .tc-lockb{display:inline-flex;opacity:.9;}
+      .tc-lock{display:flex;flex-direction:column;align-items:center;text-align:center;gap:11px;padding:22px 8px 12px;}
+      .tc-lock-ic{width:74px;height:74px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+        background:linear-gradient(150deg,rgba(123,76,255,.26),rgba(76,139,245,.12));color:#b9a5ff;box-shadow:inset 0 0 0 1px rgba(140,120,255,.3);}
+      .tc-lock-ic svg{width:38px;height:38px;}
+      .tc-lock-ttl{font-size:15.5px;font-weight:800;color:#fff;}
+      .tc-lock-sub{font-size:12px;line-height:1.55;color:rgba(255,255,255,.6);max-width:250px;}
+      .tc-lock-btn{margin-top:5px;padding:10px 24px;border:none;border-radius:11px;cursor:pointer;font:800 13px/1 inherit;color:#fff;
+        background:linear-gradient(135deg,#7b4cff,#4c8bf5);box-shadow:0 8px 22px rgba(80,60,200,.45);transition:transform .12s,box-shadow .2s;}
+      .tc-lock-btn:hover{transform:translateY(-1px);box-shadow:0 12px 28px rgba(80,60,200,.6);}
     `;
     (document.head || document.documentElement).appendChild(s);
   }
@@ -84,9 +97,29 @@
   function renderBtn() {
     if (document.getElementById(WID) || document.getElementById(WID + '-btn')) return;
     const b = document.createElement('button'); b.id = WID + '-btn';
-    b.innerHTML = `${ICON_GIFT}<span>Kodlar</span>`;
-    b.addEventListener('click', () => { _open = true; document.getElementById(WID + '-btn')?.remove(); renderPanel(); if (!_loaded) load(); });
+    b.innerHTML = `${ICON_GIFT}<span>Kodlar</span>${_plus ? '' : `<span class="tc-lockb">${LOCK_BADGE}</span>`}`;
+    b.addEventListener('click', () => {
+      _open = true; document.getElementById(WID + '-btn')?.remove();
+      if (!_plus) { renderLockedPanel(); return; }      // Plus yok → kilitli panel
+      renderPanel(); if (!_loaded) load();
+    });
     document.body.appendChild(b);
+  }
+
+  // Tracked Plus kilitli panel görünümü (Oyun Kodları Pro özelliği)
+  function renderLockedPanel() {
+    let w = document.getElementById(WID);
+    if (!w) { w = document.createElement('div'); w.id = WID; document.body.appendChild(w); }
+    w.innerHTML = `
+      <div class="tc-head"><span class="tc-logo">${MARK}</span><span class="tc-ttl">Kodlar</span><span class="tc-name"></span><button class="tc-x" title="Kapat">${ICON_X}</button></div>
+      <div class="tc-body"><div class="tc-lock">
+        <div class="tc-lock-ic">${ICON_BIGLOCK}</div>
+        <div class="tc-lock-ttl">Oyun Kodları — Tracked Plus</div>
+        <div class="tc-lock-sub">Oyunların güncel kodlarını ve resmi kaynaklarını görmek için Tracked Plus'a yükselt.</div>
+        <button class="tc-lock-btn">Plus'a Yükselt</button>
+      </div></div>`;
+    w.querySelector('.tc-x')?.addEventListener('click', panelClose);
+    w.querySelector('.tc-lock-btn')?.addEventListener('click', () => { try { chrome.runtime.sendMessage({ action: 'openPlusPage' }); } catch (_) {} });
   }
 
   function panelClose() { _open = false; document.getElementById(WID)?.remove(); if (_enabled) renderBtn(); }
@@ -102,7 +135,7 @@
       body = `<div class="tc-empty">Kod bilgisi alınamadı.</div>`;
     } else {
       const codes = d.codes || [];
-      const warn = `<div class="tc-warn">⚠ Doğrulanmamış — süresi dolmuş olabilir. Roblox'ta resmi kod API'si yok; kodlar topluluk/açıklama kaynaklı. Çalışmazsa aşağıdaki resmi kaynaklara bak.</div>`;
+      const warn = `<div class="tc-warn">${ICON_WARN}Doğrulanmamış — süresi dolmuş olabilir. Roblox'ta resmi kod API'si yok; kodlar topluluk/açıklama kaynaklı. Çalışmazsa aşağıdaki resmi kaynaklara bak.</div>`;
       let codesHtml;
       if (codes.length) {
         codesHtml = `<div class="tc-sec">Bulunan kodlar (${codes.length})</div>` + codes.map((c, i) => `
@@ -160,12 +193,14 @@
     if (pid !== _placeId) { _placeId = pid; _loaded = false; _data = null; _open = false; document.getElementById(WID)?.remove(); document.getElementById(WID + '-btn')?.remove(); if (_enabled && pid) renderBtn(); }
   }, 1200);
 
-  // Tracked Plus kontrolü — Oyun Kodları Plus özelliğidir (lisans yoksa false)
+  // Tracked Plus kontrolü — Oyun Kodları Plus özelliğidir. ÖNEMLİ: buton HER DURUMDA görünür
+  // (gameCodes ayarı açıkken); Plus yoksa butonda kilit rozeti + tıklayınca kilitli panel.
   const plus = () => (window.TrackedLicense ? window.TrackedLicense.isPlus() : Promise.resolve(false));
   (async () => {
     try {
       const d = await chrome.storage.local.get(['rota_settings']);
-      if (d?.rota_settings?.gameCodes !== false && await plus()) start(); // varsayılan AÇIK + Plus
+      try { _plus = await plus(); } catch (_) {}
+      if (d?.rota_settings?.gameCodes !== false) start(); // varsayılan AÇIK (Plus'tan bağımsız görünür)
     } catch (_) {}
   })();
   try {
@@ -173,8 +208,15 @@
       if (area !== 'local' || (!ch.rota_settings && !ch.tracked_license)) return;
       const st = (await chrome.storage.local.get('rota_settings'))?.rota_settings;
       const on = !st || st.gameCodes !== false;
-      if (on && !_enabled && await plus()) start();
-      else if (_enabled && (!on || !(await plus()))) stop();
+      const wasPlus = _plus;
+      try { _plus = await plus(); } catch (_) {}
+      if (on && !_enabled) { start(); return; }
+      if (!on && _enabled) { stop(); return; }
+      // Plus durumu değişti → buton rozetini / açık paneli tazele
+      if (_enabled && wasPlus !== _plus) {
+        if (_open) { if (_plus) { renderPanel(); if (!_loaded) load(); } else { renderLockedPanel(); } }
+        else { document.getElementById(WID + '-btn')?.remove(); renderBtn(); }
+      }
     });
   } catch (_) {}
 })();
