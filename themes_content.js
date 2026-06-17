@@ -138,6 +138,9 @@ function sanitizeOverrides(ov) {
 
 let _state = { theme:'midnight', adj:{}, customAccent:'', fgBase:null, pageOverrides:{}, panelColor: DEFAULT_PANEL_COLOR, panelOpacity: DEFAULT_PANEL_OPACITY, panelBlur: DEFAULT_PANEL_BLUR, headerOpacity: DEFAULT_HEADER_OPACITY, panelWidth: DEFAULT_PANEL_WIDTH, cardFrame: DEFAULT_CARD_FRAME, cardAdv: DEFAULT_CARD_ADV, cardColor: DEFAULT_CARD_COLOR, cardOpacity: DEFAULT_CARD_OPACITY, cardBlur: DEFAULT_CARD_BLUR, searchCustom: DEFAULT_SEARCH_CUSTOM, searchColor: DEFAULT_SEARCH_COLOR, searchOpacity: DEFAULT_SEARCH_OPACITY, textColor: DEFAULT_TEXT_COLOR, textFont: DEFAULT_TEXT_FONT, textContrast: DEFAULT_TEXT_CONTRAST, themeEnabled: DEFAULT_THEME_ENABLED };
 let _wpObjectUrl = null;
+// Tracked Plus durum önbelleği (senkron erişim için — onNavChange/storage handler async await yapamaz).
+// Fail-closed: Plus doğrulanana kadar false → tema asla bypass'la uygulanmaz.
+let _tkPlusCached = false;
 let _wpMeta      = null;
 let _cssReinjector = null;
 let pendingFile  = null;
@@ -713,7 +716,7 @@ function onNavChange(rawUrl) {
   // Tema KAPALI (Roblox Varsayılanı/Default) → hiçbir tema/efekt uygulama. Aksi halde
   // panel hash değişimi (history.replaceState) bu fonksiyonu tetikleyip applyColorTheme ile
   // THEME_CSS_ID'yi GERİ enjekte ediyor → topbar rgba(...,0) ile şeffaflaşıp gri bant bırakıyordu.
-  if (!_state.themeEnabled) return;
+  if (!_state.themeEnabled || !_tkPlusCached) return;
   let pathname;
   try { pathname = rawUrl ? new URL(rawUrl, location.origin).pathname : location.pathname; }
   catch { pathname = location.pathname; }
@@ -1150,6 +1153,18 @@ body[data-internal-page-name="Profile"] .rbx-tab-heading.active{box-shadow:0 -2p
 #tracked-themes-overlay{position:fixed;top:var(--tto-top,60px);left:var(--tto-left,230px);right:0;bottom:0;z-index:9999999;background:#0c0d12;display:flex;flex-direction:column;overflow:hidden;font-family:"Gotham SSm","Helvetica Neue",Helvetica,Arial,sans-serif;animation:tto-panel-in .28s cubic-bezier(0.4,0,0.2,1) both;}
 #tracked-themes-overlay.tto-closing{animation:tto-panel-out .22s cubic-bezier(0.4,0,1,1) both;}
 #tracked-themes-overlay .tto-spacer{display:none;}
+/* ── Tracked Plus kilit overlay (Temalar Pro özelliği — Plus yoksa panel kilitli) ── */
+.tto-plus-lock{position:absolute;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(10,11,16,.82);backdrop-filter:blur(10px) saturate(120%);-webkit-backdrop-filter:blur(10px) saturate(120%);animation:tto-panel-in .26s cubic-bezier(0.4,0,0.2,1) both;}
+.tto-lock-card{max-width:360px;width:100%;text-align:center;padding:36px 32px 30px;background:rgba(22,24,32,.92);border:1px solid rgba(255,255,255,.09);border-radius:20px;box-shadow:0 28px 70px rgba(0,0,0,.55);display:flex;flex-direction:column;align-items:center;gap:13px;}
+.tto-lock-ic{width:92px;height:92px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:linear-gradient(150deg,rgba(200,169,110,.24),rgba(200,169,110,.05));color:#e7c98a;box-shadow:inset 0 0 0 1px rgba(200,169,110,.25);margin-bottom:2px;}
+.tto-lock-ic svg{width:46px;height:46px;}
+.tto-lock-title{font-size:20px;font-weight:800;color:#f4f0e8;letter-spacing:.2px;}
+.tto-lock-sub{font-size:13px;line-height:1.6;color:rgba(235,232,225,.66);max-width:300px;}
+.tto-lock-btn{margin-top:9px;padding:12px 30px;border:none;border-radius:12px;background:linear-gradient(135deg,#d8b878,#c8a96e);color:#1a1206;font-size:14.5px;font-weight:800;cursor:pointer;transition:transform .12s ease,box-shadow .2s ease;box-shadow:0 8px 24px rgba(200,169,110,.34);}
+.tto-lock-btn:hover{transform:translateY(-1px);box-shadow:0 13px 30px rgba(200,169,110,.46);}
+.tto-lock-btn:active{transform:translateY(0);}
+.tto-lock-back{background:none;border:none;color:rgba(235,232,225,.5);font-size:12.5px;cursor:pointer;padding:5px;text-decoration:underline;text-underline-offset:2px;}
+.tto-lock-back:hover{color:rgba(235,232,225,.82);}
 
 /* ── Header ── */
 .tto-hdr{display:flex;align-items:center;gap:10px;padding:0 20px;height:50px;flex-shrink:0;background:#0c0d12;border-bottom:1px solid rgba(255,255,255,.055);}
@@ -3519,6 +3534,9 @@ async function openThemesPage(opts) {
 
   document.body.appendChild(overlay);
 
+  // ── TRACKED PLUS GATE: Temalar Pro özelliği. Plus değilse panelin üstüne kilit overlay bin ──
+  _syncThemeLock();
+
   // ── HAFIZA: panel UI durumu (scroll konumu + açık collapse bölümleri) — geri açınca
   //    kaldığın yerden devam et. (Picker'lardaki hafıza sistemiyle aynı mantık.) ──
   const _ttoScrollEl = overlay.querySelector('.tto-scroll');
@@ -4570,6 +4588,51 @@ function injectAvatarControls() {
 }
 
 // ── Init ──────────────────────────────────────────────────────
+// ── Tema efektlerini topluca uygula (init + Plus canlı-aktifleşmede ortak kullanılır) ──
+function applyAllThemeEffects() {
+  injectStyles();
+  applyColorTheme(_state.theme, _state.adj, _state.customAccent, _state.fgBase, true);
+  applyPanelVars(_state.panelColor, _state.panelOpacity, _state.panelBlur, _state.panelWidth);
+  applyHeaderOpacity(_state.headerOpacity);
+  applyCardFrame(_state.cardFrame);
+  applyCardAdvanced(_state.cardAdv, _state.cardColor, _state.cardOpacity, _state.cardBlur);
+  applySearchColor(_state.searchCustom, _state.searchColor, _state.searchOpacity);
+  applyTextColor(_state.textColor);
+  applyTextFont(_state.textFont);
+  applyTextContrast(_state.textContrast);
+  applyWallpaper();
+}
+
+// ── Açık themes paneline Plus kilidini senkronla: Plus yoksa kilit overlay bin, varsa kaldır ──
+async function _syncThemeLock() {
+  const overlay = document.getElementById(OVERLAY_ID);
+  if (!overlay) return;
+  let plus = false;
+  try { plus = await _tkPlus(); } catch (_) {}
+  _tkPlusCached = plus;
+  const existing = overlay.querySelector('#tto-plus-lock');
+  if (plus) { if (existing) existing.remove(); return; }
+  if (existing) return;
+  const lock = document.createElement('div');
+  lock.id = 'tto-plus-lock';
+  lock.className = 'tto-plus-lock';
+  lock.innerHTML =
+    '<div class="tto-lock-card">' +
+      '<div class="tto-lock-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2.2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/><circle cx="12" cy="16" r="1.4" fill="currentColor" stroke="none"/></svg></div>' +
+      '<div class="tto-lock-title">Temalar — Tracked Plus</div>' +
+      '<div class="tto-lock-sub">Site temalarını, wallpaper\'ı ve tüm görünüm ayarlarını açmak için Tracked Plus\'a yükselt.</div>' +
+      '<button class="tto-lock-btn" id="tto-lock-upgrade">Plus\'a Yükselt</button>' +
+      '<button class="tto-lock-back" id="tto-lock-back">Geri dön</button>' +
+    '</div>';
+  overlay.appendChild(lock);
+  lock.querySelector('#tto-lock-upgrade').addEventListener('click', () => {
+    try { chrome.runtime.sendMessage({ action: 'openPlusPage' }); } catch (_) {}
+  });
+  lock.querySelector('#tto-lock-back').addEventListener('click', () => {
+    try { closeThemesPage(); } catch (_) {}
+  });
+}
+
 async function init() {
   // ── BACKWARD COMPAT: Eski /themes ve /free-items bookmark'larını hash'e migrate et ──
   // Hash routing'e geçildi. Eski path-based URL'lerden gelen kullanıcıyı /home#tk-... 'a yönlendir.
@@ -4600,23 +4663,18 @@ async function init() {
   }
   setTimeout(tryInject, 200);
 
-  if (_state.themeEnabled) {
+  // ── Temalar = Tracked Plus özelliği. Plus yoksa tema UYGULANMAZ (sayfa saf Roblox kalır);
+  //    ancak sidebar butonu + panel yine açılır → panelde kilit gösterilir. ──
+  let _plusNow = false;
+  try { _plusNow = await _tkPlus(); } catch (_) {}
+  _tkPlusCached = _plusNow;
+  if (_state.themeEnabled && _plusNow) {
     // ── Tracked teması AÇIK → tüm efektleri uygula ──
     try { localStorage.removeItem('tk_theme_off'); } catch(_) {}
-    injectStyles();
     if (document.body) setCommunitiesClass();
     else document.addEventListener('DOMContentLoaded', setCommunitiesClass, { once: true });
 
-    applyColorTheme(_state.theme, _state.adj, _state.customAccent, _state.fgBase, true);
-    applyPanelVars(_state.panelColor, _state.panelOpacity, _state.panelBlur, _state.panelWidth);
-    applyHeaderOpacity(_state.headerOpacity);
-    applyCardFrame(_state.cardFrame);
-    applyCardAdvanced(_state.cardAdv, _state.cardColor, _state.cardOpacity, _state.cardBlur);
-    applySearchColor(_state.searchCustom, _state.searchColor, _state.searchOpacity);
-    applyTextColor(_state.textColor);
-    applyTextFont(_state.textFont);
-    applyTextContrast(_state.textContrast);
-    applyWallpaper();
+    applyAllThemeEffects();
 
     startCSSReinjector();
 
@@ -4791,12 +4849,13 @@ async function init() {
       const newVal = changes[THEME_ENABLED_KEY].newValue !== false;
       if (newVal !== _state.themeEnabled) {
         _state.themeEnabled = newVal;
-        if (newVal) enableAllTheming();
-        else        disableAllTheming();
+        // Plus yoksa tema uygulanmaz — sadece kapatma (disable) işle.
+        if (newVal && _tkPlusCached) enableAllTheming();
+        else                        disableAllTheming();
       }
     }
-    // Tema KAPALIYKEN tema/wallpaper güncellemelerini UYGULAMA (THEME_CSS_ID geri gelmesin)
-    if (!_state.themeEnabled) return;
+    // Tema KAPALIYKEN ya da Plus yokken tema/wallpaper güncellemelerini UYGULAMA.
+    if (!_state.themeEnabled || !_tkPlusCached) return;
     if (STORAGE_KEY in changes)  applyWallpaper();
     if (THEME_KEY in changes) {
       const key = changes[THEME_KEY].newValue || 'midnight';
@@ -4818,17 +4877,29 @@ async function init() {
   });
 }
 
-// Tracked Plus gerektirir (Temalar Pro özelliğidir). Plus değilse erken (critical) temayı kaldır → varsayılan görünüm.
+// Temalar = Tracked Plus özelliği. ÖNEMLİ: sidebar butonu + panel HER DURUMDA görünür kalır
+// (Plus yoksa panelde kilit gösterilir). Sadece temanın SAYFAYA UYGULANMASI Plus'a bağlıdır.
 const _tkPlus = () => (window.TrackedLicense ? window.TrackedLicense.isPlus() : Promise.resolve(false));
 let _themeInited = false;
 const _gatedThemeInit = async () => {
   if (_themeInited) return;
-  if (await _tkPlus()) { _themeInited = true; init(); }
-  else { try { document.getElementById('tracked-critical-theme')?.remove(); } catch (_) {} }
+  _themeInited = true;
+  // Plus yoksa erken (critical) temayı hemen kaldır → themed flash olmasın. init yine çalışır:
+  // sidebar butonu + panel enjekte edilir; tema apply'ı init içinde Plus'a göre gate'lenir.
+  try { if (!(await _tkPlus())) document.getElementById('tracked-critical-theme')?.remove(); } catch (_) {}
+  init();
 };
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', _gatedThemeInit);
 else _gatedThemeInit();
-if (window.TrackedLicense) window.TrackedLicense.onChange(() => _gatedThemeInit());
+// Plus durumu değişince temayı canlı uygula/kaldır + açık panelin kilidini güncelle.
+if (window.TrackedLicense) window.TrackedLicense.onChange(async () => {
+  let plus = false;
+  try { plus = await _tkPlus(); } catch (_) {}
+  _tkPlusCached = plus;
+  if (plus && _state.themeEnabled) { try { applyAllThemeEffects(); } catch (_) {} }
+  else { try { disableAllTheming(document.getElementById(OVERLAY_ID) ? { keepPanelStyles: true } : undefined); } catch (_) {} }
+  _syncThemeLock();
+});
 
 })();
 }
