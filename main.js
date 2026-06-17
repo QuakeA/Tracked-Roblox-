@@ -686,6 +686,8 @@ const TrackedApp = {
     // v2.4.5: Global Buton Kilitleme ile performDeepScan
     // ============================================
     performDeepScan: async function(placeId) {
+        // Tracked Plus gerektirir (Tara Pro özelliğidir)
+        if (!(await (window.TrackedLicense && window.TrackedLicense.isPlus()))) { TrackedUI.setStatus('Tara · Tracked Plus özelliği — Ayarlar\'dan 7 gün ücretsiz dene'); return; }
         // Cooldown kontrolü
         if (!this.checkGlobalCooldown()) return;
         
@@ -1021,6 +1023,8 @@ const TrackedApp = {
     // v3.0: AUTO-BLOCKER - Akıllı Filtreleme ve Otomatik Bağlanma
     // ============================================
     autoBlockerScan: async function(placeId) {
+        // Tracked Plus gerektirir (Oto-Pilot Pro özelliğidir)
+        if (!(await (window.TrackedLicense && window.TrackedLicense.isPlus()))) { TrackedUI.setStatus('Oto-Pilot · Tracked Plus özelliği — Ayarlar\'dan 7 gün ücretsiz dene'); return; }
         if (!this.checkGlobalCooldown()) return;
 
         if (TrackedScanner.state.isScanning || this.state.isProcessing || TrackedUI.isAnyButtonLocked()) {
