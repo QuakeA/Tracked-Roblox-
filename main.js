@@ -602,6 +602,8 @@ const TrackedApp = {
     // v2.4.5: Global Buton Kilitleme ile findNewServer
     // ============================================
     findNewServer: async function(placeId) {
+        // Tracked Plus gerektirir (gelişmiş sunucu aracı)
+        if (!(await (window.TrackedLicense && window.TrackedLicense.isPlus()))) { try { chrome.runtime.sendMessage({ action: 'openPlusPage' }); } catch (_) {} return; }
         // Cooldown kontrolü
         if (!this.checkGlobalCooldown()) return;
         
@@ -849,7 +851,9 @@ const TrackedApp = {
     // ============================================
     // SUNUCU BEKÇİSİ — kriterli sunucu izleme (SW arka planda çalışır)
     // ============================================
-    openServerWatch: function(placeId) {
+    openServerWatch: async function(placeId) {
+        // Tracked Plus gerektirir (Sunucu Bekçisi gelişmiş özellik)
+        if (!(await (window.TrackedLicense && window.TrackedLicense.isPlus()))) { try { chrome.runtime.sendMessage({ action: 'openPlusPage' }); } catch (_) {} return; }
         try {
             chrome.runtime.sendMessage({ action: 'getServerWatch', placeId }, (resp) => {
                 const watch = (resp && resp.ok) ? resp.watch : null;    // bu oyunun bekçisi

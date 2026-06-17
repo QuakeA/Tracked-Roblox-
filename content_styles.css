@@ -1961,3 +1961,9 @@
 .tracked-reduced-motion .tr-reconnect-btn-shine {
   animation: none !important;
 }
+
+/* ── Tracked Plus kilit rozeti (oyun-içi bar Pro butonları) ── */
+.tracked-bar-btn.tk-pro { position: relative; overflow: visible; }
+.tracked-bar-btn .tk-lock { position: absolute; top: -5px; right: -5px; display: inline-flex; align-items: center; justify-content: center; width: 14px; height: 14px; border-radius: 50%; background: linear-gradient(150deg, #7b4cff, #4c8bf5); color: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.45); pointer-events: none; z-index: 2; }
+.tracked-bar-btn .tk-lock svg { width: 8px; height: 8px; display: block; }
+.tk-plus .tk-lock { display: none !important; }

@@ -2960,6 +2960,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true;
   }
 
+  // ── Tracked Plus ekranını aç (kilitli özelliğe tıklayınca) ──
+  if (request.action === "openPlusPage") {
+    try { chrome.runtime.openOptionsPage(); } catch (_) {}
+    sendResponse({ ok: true }); return true;
+  }
+
   // ── OYUN KODLARI — dürüst kaynaklar (küratörlü repo + açıklama + resmi sosyal linkler + web araması) ──
   if (request.action === "getGameCodes") {
     (async () => {

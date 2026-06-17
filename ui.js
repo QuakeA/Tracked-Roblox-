@@ -64,18 +64,32 @@ const TrackedUI = {
 
         // v3.0: Event listener'ları güvenli şekilde ekle
         setTimeout(() => {
+            // ── Tracked Plus: gelişmiş sunucu araçları (Yeni/Derin/Oto-Pilot/Bekçi) Pro; kilit rozeti + Plus yönlendirme ──
+            const LOCK = '<span class="tk-lock" title="Tracked Plus"><svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><path d="M12 1a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2h-1V6a5 5 0 0 0-5-5zm3 8H9V6a3 3 0 0 1 6 0v3z"/></svg></span>';
+            const isPlus = () => (window.TrackedLicense ? window.TrackedLicense.isPlus() : Promise.resolve(false));
+            const proGuard = async () => { if (await isPlus()) return true; try { chrome.runtime.sendMessage({ action: 'openPlusPage' }); } catch (_) {} return false; };
+            ['btn-find-new', 'btn-deep-scan', 'btn-autopilot', 'btn-watch'].forEach(id => {
+                const b = bar.querySelector('#' + id);
+                if (b && !b.querySelector('.tk-lock')) { b.classList.add('tk-pro'); b.insertAdjacentHTML('beforeend', LOCK); }
+            });
+            const refreshLocks = async () => { bar.classList.toggle('tk-plus', await isPlus()); };
+            refreshLocks();
+            if (window.TrackedLicense) window.TrackedLicense.onChange(refreshLocks);
+
             const btnNew = bar.querySelector('#btn-find-new');
             const btnDeep = bar.querySelector('#btn-deep-scan');
             const btnCopy = bar.querySelector('#btn-copy-id');
 
             if (btnNew) {
-                btnNew.onclick = () => {
+                btnNew.onclick = async () => {
+                    if (!(await proGuard())) return;
                     if (TrackedUI.isAnyButtonLocked()) return;
                     if (!btnNew.disabled) TrackedApp.findNewServer(placeId);
                 };
             }
             if (btnDeep) {
-                btnDeep.onclick = () => {
+                btnDeep.onclick = async () => {
+                    if (!(await proGuard())) return;
                     if (TrackedUI.isAnyButtonLocked()) return;
                     if (!btnDeep.disabled) TrackedApp.performDeepScan(placeId);
                 };
@@ -90,7 +104,8 @@ const TrackedUI = {
             // Oto-Pilot — bağımsız buton (en yakın sunucuya otomatik bağlan)
             const btnAutoPilot = bar.querySelector('#btn-autopilot');
             if (btnAutoPilot) {
-                btnAutoPilot.onclick = () => {
+                btnAutoPilot.onclick = async () => {
+                    if (!(await proGuard())) return;
                     if (TrackedUI.isAnyButtonLocked()) return;
                     if (!btnAutoPilot.disabled) TrackedApp.autoBlockerScan(placeId);
                 };
@@ -100,7 +115,7 @@ const TrackedUI = {
             const btnWatch = bar.querySelector('#btn-watch');
             if (btnWatch) {
                 btnWatch.dataset.placeId = String(placeId);
-                btnWatch.onclick = () => TrackedApp.openServerWatch(placeId);
+                btnWatch.onclick = async () => { if (!(await proGuard())) return; TrackedApp.openServerWatch(placeId); };
                 // Bu oyun için bekçi aktifse butonu işaretle
                 try {
                     chrome.runtime.sendMessage({ action: 'getServerWatch', placeId }, (resp) => {
