@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tracked — Gizlilik Politikası / Privacy Policy</title>
+<style>
+  body{max-width:780px;margin:0 auto;padding:40px 22px 80px;background:#0c0d12;color:#e8e6e1;
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;line-height:1.65;}
+  h1{font-size:26px;margin:0 0 4px;}
+  h2{font-size:18px;margin:30px 0 8px;border-bottom:1px solid rgba(255,255,255,.1);padding-bottom:6px;}
+  h3{font-size:15px;margin:18px 0 4px;color:#cfe;}
+  p,li{color:rgba(232,230,225,.82);font-size:14.5px;}
+  a{color:#6f9cff;}
+  code{background:rgba(255,255,255,.06);padding:1px 5px;border-radius:4px;font-size:13px;}
+  .muted{color:rgba(232,230,225,.5);font-size:13px;}
+  .tag{display:inline-block;background:rgba(123,76,255,.15);border:1px solid rgba(123,76,255,.3);color:#c9b6ff;
+    font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;margin-left:8px;vertical-align:middle;}
+  table{width:100%;border-collapse:collapse;margin:10px 0;font-size:13.5px;}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid rgba(255,255,255,.08);vertical-align:top;}
+  th{color:rgba(232,230,225,.6);font-weight:600;}
+  hr{border:none;border-top:1px solid rgba(255,255,255,.1);margin:48px 0;}
+  .lang-note{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:12px 14px;font-size:13px;}
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════ TÜRKÇE ════════════════════════ -->
+<h1>Gizlilik Politikası — Tracked</h1>
+<p class="muted">Tracked — Roblox Route Optimizer · Son güncelleme: 19 Haziran 2026</p>
+
+<div class="lang-note">Bu eklenti <b>backend kullanmaz</b>. Verileriniz bizim (geliştiricinin) sunucularına <b>gönderilmez, saklanmaz veya satılmaz</b>. Tüm ayar ve geçmiş yalnızca cihazınızda (<code>chrome.storage.local</code>) tutulur.</div>
+
+<h2>1. Topladığımız / İşlediğimiz veriler</h2>
+<p>Tracked'in <b>kendi sunucusu yoktur</b>; hiçbir kişisel veriyi toplamaz, profilleştirmez veya üçüncü taraflara satmaz. Eklenti yalnızca özelliklerini çalıştırmak için aşağıdaki verileri <b>cihazınızda yerel olarak</b> işler:</p>
+<ul>
+  <li><b>Ayarlar ve tercihler</b> (tema, bölge şablonu, açık/kapalı özellikler) — yerel.</li>
+  <li><b>Favori oyunlar, son ziyaret edilenler, kaydedilen sunucular</b> — yerel.</li>
+  <li><b>Ölçülen ping geçmişi</b> (gerçek gecikme ölçümleri) — yerel.</li>
+  <li><b>Lisans durumu</b> (Tracked Plus) — yerel; doğrulama için bkz. §3.</li>
+</ul>
+
+<h2>2. Üçüncü taraf servislerine giden istekler</h2>
+<p>Eklenti, özellikleri için doğrudan tarayıcınızdan aşağıdaki servislere istek atar. Bu isteklerin içeriği yalnızca ilgili özelliğin gerektirdiği kadardır:</p>
+<table>
+  <tr><th>Servis</th><th>Ne için</th><th>Ne gönderilir</th></tr>
+  <tr><td>Roblox API'leri (<code>*.roblox.com</code>)</td><td>Sunucu listesi, oyun/kullanıcı/arkadaş bilgisi, katılma</td><td>Standart Roblox istekleri (oturumunuz tarayıcınızda kalır)</td></tr>
+  <tr><td>AWS S3 / Cloudflare</td><td>Bölgesel <b>ping ölçümü</b> (gecikme)</td><td>Yalnızca zamanlama amaçlı boş istek; kişisel veri yok</td></tr>
+  <tr><td>geojs.io · ipapi.co · ipinfo.io</td><td>IP tabanlı <b>yaklaşık konum</b> (en yakın bölgeyi seçmek için)</td><td>IP adresiniz (bu servisin politikasına tabidir)</td></tr>
+  <tr><td>Rolimons (<code>rolimons.com</code>) <span class="tag">PLUS</span></td><td>Trade / envanter item <b>değerleri</b></td><td>Genel item ID'leri (kişisel veri yok)</td></tr>
+  <tr><td>Lemon Squeezy <span class="tag">PLUS</span></td><td>Abonelik <b>lisans doğrulama</b></td><td>Girdiğiniz lisans anahtarı + anonim cihaz örneği adı</td></tr>
+  <tr><td>YouTube · Spotify <span class="tag">PLUS</span></td><td>"Şu An Çalıyor" müzik widget'ı</td><td>Yalnızca <b>açıkken</b>; çalan medyanın başlık/sanatçı bilgisi cihazınızda okunur, dışarı gönderilmez</td></tr>
+</table>
+<p class="muted">IP-konum servisleri ve müzik siteleri kendi gizlilik politikalarına tabidir. Tracked bu servislere kimliğinizi ilişkilendiren ekstra bilgi göndermez.</p>
+
+<h2>3. Tracked Plus (abonelik) <span class="tag">PLUS</span></h2>
+<p>Plus aboneliği <b>Lemon Squeezy</b> üzerinden yönetilir. Ödeme bilgileriniz doğrudan Lemon Squeezy tarafından işlenir; Tracked <b>kart/ödeme bilginizi görmez veya saklamaz</b>. Eklenti yalnızca girdiğiniz <b>lisans anahtarını</b> doğrulamak için Lemon Squeezy'nin lisans API'sine gönderir ve sonucu (aktif/değil) cihazınızda saklar. Çevrimdışıyken son bilinen durum bir süre korunur.</p>
+
+<h2>4. İzinler neden isteniyor?</h2>
+<ul>
+  <li><b>Sekme / komut dosyası (tabs, scripting)</b> — sunucuya katılmayı tetiklemek ve Roblox sayfasına arayüz (bar, panel) eklemek için.</li>
+  <li><b>Site erişimi (host)</b> — Roblox API'leri, ping ölçüm noktaları, item-değer ve (açıksa) müzik servisleriyle konuşmak için. Veriler dışarıya pazarlanmaz.</li>
+  <li><b>Bildirimler</b> — Sunucu Bekçisi ve yeniden bağlanma uyarıları için.</li>
+  <li><b>Alarmlar / depolama</b> — arka plan kontrolleri ve yerel ayar saklama için.</li>
+</ul>
+
+<h2>5. Veri saklama ve silme</h2>
+<p>Tüm veriler cihazınızdadır. Eklentiyi kaldırdığınızda yerel verileri silinir. Dilediğiniz zaman eklenti ayarlarından geçmişi/favorileri temizleyebilirsiniz.</p>
+
+<h2>6. Çocukların gizliliği</h2>
+<p>Tracked kişisel veri toplamaz. Roblox'un kendi yaş/kullanım kurallarına tabidir.</p>
+
+<h2>7. Değişiklikler</h2>
+<p>Bu politika güncellenebilir; önemli değişiklikler sürüm notlarında belirtilir.</p>
+
+<h2>8. İletişim</h2>
+<p>Sorular için: <code>[buraya iletişim e-postanı koy]</code></p>
+
+<hr>
+
+<!-- ════════════════════════ ENGLISH ════════════════════════ -->
+<h1>Privacy Policy — Tracked</h1>
+<p class="muted">Tracked — Roblox Route Optimizer · Last updated: June 19, 2026</p>
+
+<div class="lang-note">This extension has <b>no backend</b>. Your data is <b>never sent to, stored on, or sold by us</b> (the developer). All settings and history stay only on your device (<code>chrome.storage.local</code>).</div>
+
+<h2>1. Data we process</h2>
+<p>Tracked has <b>no server of its own</b>; it does not collect, profile, or sell any personal data. It processes the following <b>locally on your device</b> only to power its features:</p>
+<ul>
+  <li><b>Settings &amp; preferences</b> (theme, region template, feature toggles) — local.</li>
+  <li><b>Favorite games, recently visited, saved servers</b> — local.</li>
+  <li><b>Measured ping history</b> (real latency measurements) — local.</li>
+  <li><b>License status</b> (Tracked Plus) — local; validation in §3.</li>
+</ul>
+
+<h2>2. Requests to third-party services</h2>
+<p>For its features, the extension makes requests directly from your browser to the services below, limited to what each feature needs:</p>
+<table>
+  <tr><th>Service</th><th>Purpose</th><th>What is sent</th></tr>
+  <tr><td>Roblox APIs (<code>*.roblox.com</code>)</td><td>Server lists, game/user/friend info, joining</td><td>Standard Roblox requests (your session stays in your browser)</td></tr>
+  <tr><td>AWS S3 / Cloudflare</td><td>Regional <b>ping measurement</b> (latency)</td><td>Timing-only empty requests; no personal data</td></tr>
+  <tr><td>geojs.io · ipapi.co · ipinfo.io</td><td>IP-based <b>approximate location</b> (to pick nearest region)</td><td>Your IP address (subject to that service's policy)</td></tr>
+  <tr><td>Rolimons (<code>rolimons.com</code>) <span class="tag">PLUS</span></td><td>Trade / inventory item <b>values</b></td><td>Public item IDs (no personal data)</td></tr>
+  <tr><td>Lemon Squeezy <span class="tag">PLUS</span></td><td>Subscription <b>license validation</b></td><td>The license key you enter + an anonymous device instance name</td></tr>
+  <tr><td>YouTube · Spotify <span class="tag">PLUS</span></td><td>"Now Playing" music widget</td><td>Only <b>when enabled</b>; media title/artist is read on your device, not sent out</td></tr>
+</table>
+<p class="muted">IP-geolocation services and music sites are governed by their own privacy policies. Tracked sends no extra identifying info to them.</p>
+
+<h2>3. Tracked Plus (subscription) <span class="tag">PLUS</span></h2>
+<p>Plus is managed via <b>Lemon Squeezy</b>. Payment details are handled directly by Lemon Squeezy; Tracked <b>never sees or stores your card/payment info</b>. The extension only sends the <b>license key</b> you enter to Lemon Squeezy's license API for validation and stores the result (active/not) on your device. The last known status is kept for a grace period while offline.</p>
+
+<h2>4. Why permissions are requested</h2>
+<ul>
+  <li><b>Tabs / scripting</b> — to trigger joining a server and to add the in-page UI (bar, panels) on Roblox.</li>
+  <li><b>Host access</b> — to talk to Roblox APIs, ping endpoints, item-value and (if enabled) music services. Data is not marketed externally.</li>
+  <li><b>Notifications</b> — for Server Watcher and reconnect alerts.</li>
+  <li><b>Alarms / storage</b> — for background checks and local settings.</li>
+</ul>
+
+<h2>5. Retention &amp; deletion</h2>
+<p>All data is on your device. Uninstalling the extension deletes its local data. You can clear history/favorites anytime from settings.</p>
+
+<h2>6. Children's privacy</h2>
+<p>Tracked collects no personal data and is subject to Roblox's own age/use rules.</p>
+
+<h2>7. Changes</h2>
+<p>This policy may be updated; significant changes are noted in release notes.</p>
+
+<h2>8. Contact</h2>
+<p>Questions: <code>[put your contact email here]</code></p>
+
+</body>
+</html>
