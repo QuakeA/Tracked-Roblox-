@@ -4602,6 +4602,44 @@ async function stopServerWatchInternal() {
   try { chrome.alarms.clear('serverWatch'); } catch {}
 }
 
+// Arka plandan (jest YOK) güvenilir katılma: chrome.tabs.create(roblox://) jest olmadan
+// engellenir → açık bir Roblox sekmesine NATIVE launcher (Roblox.GameLauncher.joinGameInstance)
+// enjekte et (sayfa bağlamı protokolü güvenle başlatır). Roblox sekmesi yoksa deep-link'e düş.
+async function tkAutoJoinServer(placeId, jobId) {
+  let tabs = [];
+  try { tabs = await chrome.tabs.query({ url: ['*://*.roblox.com/*'] }); } catch (_) {}
+  const pidPath = '/games/' + placeId;
+  const tab = tabs.find(t => t.url && t.url.includes(pidPath))   // tercihen bu oyunun sayfası
+           || tabs.find(t => t.url && /\/games\//.test(t.url))   // başka bir oyun sayfası
+           || tabs[0];                                            // herhangi bir roblox sekmesi
+  if (tab && tab.id != null) {
+    try {
+      const res = await chrome.scripting.executeScript({
+        target: { tabId: tab.id }, world: 'MAIN',
+        func: (pid, jid) => {
+          try {
+            const p = parseInt(pid, 10);
+            if (window.Roblox && Roblox.GameLauncher && typeof Roblox.GameLauncher.joinGameInstance === 'function') {
+              Roblox.GameLauncher.joinGameInstance(p, jid); return 'native';
+            }
+          } catch (_) {}
+          try { window.location.href = 'roblox://experiences/start?placeId=' + encodeURIComponent(pid) + '&gameInstanceId=' + encodeURIComponent(jid); return 'deeplink'; }
+          catch (_) { return 'fail'; }
+        },
+        args: [String(placeId), String(jobId)]
+      });
+      const method = res && res[0] && res[0].result;
+      if (method === 'native' || method === 'deeplink') {
+        try { await chrome.tabs.update(tab.id, { active: true }); } catch (_) {}
+        return true;
+      }
+    } catch (_) { /* enjeksiyon başarısız → fallback */ }
+  }
+  // Fallback: açık Roblox sekmesi yok → deep-link sekmesi (jest yoksa engellenebilir ama son çare)
+  try { chrome.tabs.create({ url: `roblox://experiences/start?placeId=${placeId}&gameInstanceId=${encodeURIComponent(jobId)}`, active: true }); return true; } catch (_) {}
+  return false;
+}
+
 let tkWatchRunning = false;   // aynı anda iki tik çalışmasın (geniş tarama uzun sürebilir → çakışmayı önle)
 async function runServerWatchCheck() {
   if (tkWatchRunning) { console.log('[ServerWatch] önceki tik hâlâ sürüyor → bu tik atlandı'); return; }
@@ -4705,10 +4743,12 @@ async function runServerWatchCheck() {
 
     // ── EŞLEŞME bulundu → aksiyon, sonra DUR (tek eşleşme) ──
     if (w.action === 'autojoin') {
-      try { chrome.tabs.create({ url: `roblox://experiences/start?placeId=${w.placeId}&gameInstanceId=${encodeURIComponent(match.id)}`, active: true }); } catch {}
+      const joined = await tkAutoJoinServer(w.placeId, match.id);   // native launcher (jest gerektirmez) → fallback deep-link
       chrome.notifications.create(`tracked_watchinfo_${Date.now()}`, {
         type: 'basic', iconUrl: 'icons/icon128.png', title: 'Sunucu Bekçisi',
-        message: `${w.gameTitle}: uygun sunucu bulundu (${match.playing}/${match.maxPlayers}${regionSuffix}) — katılınıyor.`,
+        message: joined
+          ? `${w.gameTitle}: uygun sunucu bulundu (${match.playing}/${match.maxPlayers}${regionSuffix}) — katılınıyor.`
+          : `${w.gameTitle}: uygun sunucu bulundu (${match.playing}/${match.maxPlayers}${regionSuffix}) ama otomatik katılınamadı (Roblox sekmesi açık değil). Tıkla → katıl.`,
         priority: 2
       });
     } else {
