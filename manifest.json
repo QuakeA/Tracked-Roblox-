@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Tracked - Roblox Route Optimizer",
   "version": "1.9.5",
-  "description": "Roblox için gelişmiş rota takibi, sunucu bölge tespiti, gerçek ping ölçümü, VPN tespiti ve CANLI ETKINLIK bulma. v1.9.5 - Şu An Çalıyor (müzik) + Oyun Kodları",
+  "description": "Roblox için en yakın sunucuyu bul, gerçek ping ölç, bölge & VPN tespiti, Sunucu Bekçisi, müzik widget, trade analizi ve temalar.",
   "permissions": [
     "storage",
     "unlimitedStorage",
@@ -25,17 +25,21 @@
     ]
   },
   "host_permissions": [
-    "https://www.roblox.com/*",
-    "https://users.roblox.com/*",
-    "https://presence.roblox.com/*",
-    "https://games.roblox.com/*",
-    "https://friends.roblox.com/*",
-    "https://accountinformation.roblox.com/*",
-    "https://auth.roblox.com/*",
-    "https://apis.roblox.com/*",
-    "https://thumbnails.roblox.com/*",
-    "http://*/*",
-    "https://*/*"
+    "https://*.roblox.com/*",
+    "https://*.rbxcdn.com/*",
+    "https://*.amazonaws.com/*",
+    "https://*.cloudflare.com/*",
+    "https://www.google.com/*",
+    "https://*.geojs.io/*",
+    "https://ipapi.co/*",
+    "https://ipinfo.io/*",
+    "https://ipwho.is/*",
+    "https://*.rolimons.com/*",
+    "https://api.lemonsqueezy.com/*",
+    "https://*.youtube.com/*",
+    "https://*.spotify.com/*",
+    "https://api.github.com/*",
+    "https://raw.githubusercontent.com/*"
   ],
   "background": {
     "service_worker": "service_worker.js"
