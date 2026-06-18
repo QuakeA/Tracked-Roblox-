@@ -4602,41 +4602,74 @@ async function stopServerWatchInternal() {
   try { chrome.alarms.clear('serverWatch'); } catch {}
 }
 
-// Arka plandan (jest YOK) güvenilir katılma: chrome.tabs.create(roblox://) jest olmadan
-// engellenir → açık bir Roblox sekmesine NATIVE launcher (Roblox.GameLauncher.joinGameInstance)
-// enjekte et (sayfa bağlamı protokolü güvenle başlatır). Roblox sekmesi yoksa deep-link'e düş.
+// Arka plandan (jest YOK) güvenilir katılma. chrome.tabs.create(roblox://) jest olmadan
+// engellenir → bunun yerine bir Roblox SAYFASINA native launcher (Roblox.GameLauncher.joinGameInstance)
+// enjekte edilir = kullanıcının "Oyna"ya basmasının programatik eşdeğeri (jest gerektirmez).
+// Açık Roblox sekmesi yoksa oyun sayfası AÇILIR, yüklenip launcher hazır olunca enjekte edilir
+// → sekme kapalıyken bile çalışır.
 async function tkAutoJoinServer(placeId, jobId) {
+  // Bir sekmeye katılma enjekte et. waitForLauncher=true ise (taze sayfa) launcher yüklenene kadar yoklar.
+  async function injectJoin(tabId, waitForLauncher) {
+    try {
+      const res = await chrome.scripting.executeScript({
+        target: { tabId }, world: 'MAIN',
+        func: (pid, jid, wait) => new Promise((resolve) => {
+          const p = parseInt(pid, 10);
+          const tryNative = () => {
+            try {
+              if (window.Roblox && Roblox.GameLauncher && typeof Roblox.GameLauncher.joinGameInstance === 'function') {
+                Roblox.GameLauncher.joinGameInstance(p, jid); return true;
+              }
+            } catch (_) {}
+            return false;
+          };
+          const deeplink = () => {
+            try { window.location.href = 'roblox://experiences/start?placeId=' + encodeURIComponent(pid) + '&gameInstanceId=' + encodeURIComponent(jid); return 'deeplink'; }
+            catch (_) { return 'fail'; }
+          };
+          if (tryNative()) return resolve('native');
+          if (!wait) return resolve(deeplink());
+          // Taze sayfa: launcher yüklenene kadar ~12sn yokla, sonra deep-link'e düş
+          let n = 0;
+          const iv = setInterval(() => {
+            if (tryNative()) { clearInterval(iv); return resolve('native'); }
+            if (++n > 40) { clearInterval(iv); return resolve(deeplink()); }
+          }, 300);
+        }),
+        args: [String(placeId), String(jobId), !!waitForLauncher]
+      });
+      return res && res[0] && res[0].result;
+    } catch (_) { return null; }
+  }
+
+  // 1) Açık Roblox sekmesi varsa oraya enjekte et (launcher zaten hazır)
   let tabs = [];
   try { tabs = await chrome.tabs.query({ url: ['*://*.roblox.com/*'] }); } catch (_) {}
   const pidPath = '/games/' + placeId;
-  const tab = tabs.find(t => t.url && t.url.includes(pidPath))   // tercihen bu oyunun sayfası
-           || tabs.find(t => t.url && /\/games\//.test(t.url))   // başka bir oyun sayfası
-           || tabs[0];                                            // herhangi bir roblox sekmesi
+  const tab = tabs.find(t => t.url && t.url.includes(pidPath))
+           || tabs.find(t => t.url && /\/games\//.test(t.url))
+           || tabs[0];
   if (tab && tab.id != null) {
-    try {
-      const res = await chrome.scripting.executeScript({
-        target: { tabId: tab.id }, world: 'MAIN',
-        func: (pid, jid) => {
-          try {
-            const p = parseInt(pid, 10);
-            if (window.Roblox && Roblox.GameLauncher && typeof Roblox.GameLauncher.joinGameInstance === 'function') {
-              Roblox.GameLauncher.joinGameInstance(p, jid); return 'native';
-            }
-          } catch (_) {}
-          try { window.location.href = 'roblox://experiences/start?placeId=' + encodeURIComponent(pid) + '&gameInstanceId=' + encodeURIComponent(jid); return 'deeplink'; }
-          catch (_) { return 'fail'; }
-        },
-        args: [String(placeId), String(jobId)]
-      });
-      const method = res && res[0] && res[0].result;
-      if (method === 'native' || method === 'deeplink') {
-        try { await chrome.tabs.update(tab.id, { active: true }); } catch (_) {}
-        return true;
-      }
-    } catch (_) { /* enjeksiyon başarısız → fallback */ }
+    const m = await injectJoin(tab.id, false);
+    if (m === 'native' || m === 'deeplink') { try { await chrome.tabs.update(tab.id, { active: true }); } catch (_) {} return true; }
   }
-  // Fallback: açık Roblox sekmesi yok → deep-link sekmesi (jest yoksa engellenebilir ama son çare)
-  try { chrome.tabs.create({ url: `roblox://experiences/start?placeId=${placeId}&gameInstanceId=${encodeURIComponent(jobId)}`, active: true }); return true; } catch (_) {}
+
+  // 2) Roblox sekmesi YOK → oyun sayfasını aç, yüklenince native launcher'ı enjekte et (sekmesiz auto-join)
+  try {
+    const newTab = await chrome.tabs.create({ url: `https://www.roblox.com/games/${placeId}`, active: true });
+    const tid = newTab && newTab.id;
+    if (tid == null) return false;
+    return await new Promise((resolve) => {
+      let injecting = false, done = false;
+      const finish = (ok) => { if (done) return; done = true; try { chrome.tabs.onUpdated.removeListener(onUpd); } catch (_) {} resolve(!!ok); };
+      const go = () => { if (injecting) return; injecting = true; injectJoin(tid, true).then(m => finish(m === 'native' || m === 'deeplink')); };
+      const onUpd = (id, info) => { if (id === tid && info.status === 'complete') go(); };
+      chrome.tabs.onUpdated.addListener(onUpd);
+      // Güvenlik: 'complete' hiç gelmezse 18sn sonra yine dene; toplam üst sınır 35sn
+      setTimeout(go, 18000);
+      setTimeout(() => finish(false), 35000);
+    });
+  } catch (_) {}
   return false;
 }
 
@@ -4748,7 +4781,7 @@ async function runServerWatchCheck() {
         type: 'basic', iconUrl: 'icons/icon128.png', title: 'Sunucu Bekçisi',
         message: joined
           ? `${w.gameTitle}: uygun sunucu bulundu (${match.playing}/${match.maxPlayers}${regionSuffix}) — katılınıyor.`
-          : `${w.gameTitle}: uygun sunucu bulundu (${match.playing}/${match.maxPlayers}${regionSuffix}) ama otomatik katılınamadı (Roblox sekmesi açık değil). Tıkla → katıl.`,
+          : `${w.gameTitle}: uygun sunucu bulundu (${match.playing}/${match.maxPlayers}${regionSuffix}) ama otomatik katılınamadı. Roblox açıldıysa elle gir.`,
         priority: 2
       });
     } else {
