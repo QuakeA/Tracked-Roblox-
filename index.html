@@ -67,38 +67,41 @@
   .btn-sec{color:var(--ink);border-color:var(--edge);background:rgba(22,34,60,.5);}
   .btn-sec:hover{border-color:var(--pulse);}
 
-  /* ── SIGNATURE: latency radar (node distance ∝ real ping) ── */
+  /* ── SIGNATURE: ping sonar — node distance ∝ real round-trip latency ── */
   .scope{position:relative;aspect-ratio:1/1;max-width:472px;margin-left:auto;width:100%;}
-  .scope-card{position:absolute;inset:0;border:1px solid var(--edge);border-radius:20px;overflow:hidden;
-    background:radial-gradient(115% 115% at 50% 42%,rgba(77,141,255,.1),transparent 60%),linear-gradient(180deg,var(--surface2),var(--abyss2));
-    box-shadow:0 40px 100px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.045);}
-  .radar{position:absolute;top:7%;left:7%;width:86%;height:86%;}
-  .ring{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);border:1px solid rgba(120,140,180,.09);border-radius:50%;}
-  .ring.r1{width:28%;height:28%;}.ring.r2{width:52%;height:52%;}.ring.r3{width:76%;height:76%;}.ring.r4{width:100%;height:100%;}
-  .cross{position:absolute;top:50%;left:50%;background:rgba(120,140,180,.06);}
-  .cross.h{width:100%;height:1px;transform:translate(-50%,-50%);}
-  .cross.v{height:100%;width:1px;transform:translate(-50%,-50%);}
-  .sweep{position:absolute;inset:0;border-radius:50%;
-    background:conic-gradient(from 0deg,transparent 0 302deg,rgba(34,224,161,.025) 328deg,rgba(34,224,161,.08) 351deg,rgba(34,224,161,.2) 359deg,transparent 360deg);
-    animation:spin 5.4s linear infinite;}
-  .scope svg.mesh{position:absolute;inset:0;width:100%;height:100%;overflow:visible;z-index:1;}
-  .mesh-line{stroke:rgba(120,140,180,.13);stroke-width:1;}
-  .route-glow{stroke:rgba(34,224,161,.16);stroke-width:7;fill:none;stroke-linecap:round;}
-  .route{stroke:var(--signal);stroke-width:2.4;fill:none;stroke-linecap:round;filter:drop-shadow(0 0 5px rgba(34,224,161,.75));stroke-dasharray:5 8;animation:flow 1s linear infinite;}
-  .node{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:4px;z-index:3;}
-  .node .pt{width:9px;height:9px;border-radius:50%;background:var(--faint);box-shadow:0 0 0 4px rgba(92,106,140,.08);}
-  .node .lab{font-family:var(--mono);font-size:9.5px;color:var(--mute);white-space:nowrap;}
-  .node .lab b{color:var(--ink);font-weight:500;}
-  .node.rn{cursor:pointer;transition:opacity .2s;}
-  .node.rn .pt{transition:background .2s,box-shadow .2s;}
-  .node.sel .pt{background:var(--signal);box-shadow:0 0 0 5px rgba(34,224,161,.18),0 0 16px rgba(34,224,161,.7);animation:ping 2.1s ease-out infinite;}
-  .node.sel .lab b{color:var(--signal);}
-  .scope-card:hover .node.rn:not(.sel){opacity:.42;}
-  .node.you{z-index:4;}
-  .node.you .pt{width:14px;height:14px;background:#fff;box-shadow:0 0 0 6px rgba(77,141,255,.16),0 0 20px rgba(77,141,255,.85);}
-  .node.you .lab{color:#fff;font-weight:700;letter-spacing:.12em;}
+  .scope-card{position:absolute;inset:0;border:1px solid var(--edge);border-radius:22px;overflow:hidden;
+    background:radial-gradient(120% 120% at 50% 40%,rgba(77,141,255,.12),transparent 62%),linear-gradient(180deg,var(--surface2),var(--abyss2));
+    box-shadow:0 40px 100px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.05);}
+  .scope-svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible;}
+  .sc-ring{fill:none;stroke:rgba(120,140,180,.1);}
+  .sc-ring.bound{stroke:rgba(120,140,180,.17);stroke-dasharray:2 4;}
+  .sc-rlab{font-family:var(--mono);font-size:7.5px;fill:rgba(150,170,210,.4);letter-spacing:.04em;}
+  .sc-spoke{stroke:rgba(120,140,180,.1);stroke-width:1;}
+  .sweep-arm{stroke:rgba(34,224,161,.32);stroke-width:1.4;stroke-linecap:round;}
+  .sweep-wedge{fill:rgba(34,224,161,.038);}
+  .beam-glow{stroke:rgba(34,224,161,.16);stroke-width:9;fill:none;stroke-linecap:round;}
+  .beam{stroke:url(#beamg);stroke-width:2.8;fill:none;stroke-linecap:round;stroke-dasharray:2 7;filter:url(#sglow);animation:beamflow .85s linear infinite;}
+  @keyframes beamflow{to{stroke-dashoffset:-18;}}
+  .rnode{cursor:pointer;transition:opacity .2s;}
+  .np{fill:var(--faint);transition:fill .25s;}
+  .nl{font-family:var(--mono);font-size:9px;fill:var(--mute);dominant-baseline:middle;}
+  .nl .reg{fill:#c3ccdf;}
+  .ping{fill:none;stroke:var(--signal);stroke-width:1.5;opacity:0;transform-box:fill-box;transform-origin:center;}
+  .rnode.sel .np{fill:var(--signal);filter:url(#sglow);}
+  .rnode.sel .nl .reg{fill:var(--signal);}
+  .rnode.sel .ping{animation:pingring 2s ease-out infinite;}
+  @keyframes pingring{0%{transform:scale(1);opacity:.85;}70%{opacity:0;}100%{transform:scale(3.6);opacity:0;}}
+  .scope-svg:hover .rnode:not(.sel){opacity:.4;}
+  #reticle{opacity:0;transition:opacity .25s;}
+  #reticle.on{opacity:.9;}
+  .ret-br{stroke:var(--signal);stroke-width:1.4;fill:none;stroke-linecap:round;}
+  .you-halo{fill:rgba(77,141,255,.5);transform-box:fill-box;transform-origin:center;animation:youpulse 2.6s ease-out infinite;}
+  @keyframes youpulse{0%{transform:scale(.55);opacity:.5;}80%{opacity:0;}100%{transform:scale(2.5);opacity:0;}}
+  .you-core{fill:#fff;filter:url(#sglowblue);}
+  .you-l{font-family:var(--mono);font-size:8.5px;font-weight:700;letter-spacing:.18em;fill:#fff;text-anchor:middle;}
+  @media (prefers-reduced-motion: reduce){.beam,.rnode.sel .ping,.you-halo{animation:none;}}
   .scope-foot{position:absolute;left:14px;right:14px;bottom:14px;display:flex;align-items:center;gap:10px;z-index:5;
-    font-family:var(--mono);font-size:11px;color:var(--mute);background:rgba(7,11,22,.72);border:1px solid var(--edge);border-radius:10px;padding:9px 12px;backdrop-filter:blur(6px);}
+    font-family:var(--mono);font-size:11px;color:var(--mute);background:rgba(7,11,22,.74);border:1px solid var(--edge);border-radius:12px;padding:10px 13px;backdrop-filter:blur(6px);}
   .scope-foot .ok{color:var(--signal);display:flex;align-items:center;gap:6px;}
   .scope-foot .sp{margin-left:auto;color:var(--ink);}
 
@@ -365,25 +368,62 @@
     <!-- SIGNATURE -->
     <div class="scope reveal" aria-hidden="true">
       <div class="scope-card">
-        <div class="radar">
-          <span class="ring r1"></span><span class="ring r2"></span><span class="ring r3"></span><span class="ring r4"></span>
-          <span class="cross h"></span><span class="cross v"></span>
-          <span class="sweep"></span>
-        </div>
-        <svg class="mesh" viewBox="0 0 400 400" preserveAspectRatio="none">
-          <line class="mesh-line" x1="200" y1="200" x2="264" y2="172"/>
-          <line class="mesh-line" x1="200" y1="200" x2="148" y2="276"/>
-          <line class="mesh-line" x1="200" y1="200" x2="312" y2="264"/>
-          <line class="mesh-line" x1="200" y1="200" x2="252" y2="344"/>
-          <path class="route-glow" id="rt-glow" d="M200,200 L160,172"/>
-          <path class="route" id="rt-route" d="M200,200 L160,172"/>
+        <svg class="scope-svg" viewBox="0 0 400 400">
+          <defs>
+            <radialGradient id="beamg" gradientUnits="userSpaceOnUse" cx="200" cy="200" r="185">
+              <stop offset="0" stop-color="#22e0a1"/><stop offset="1" stop-color="#4d8dff"/>
+            </radialGradient>
+            <filter id="sglow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="2.4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+            <filter id="sglowblue" x="-150%" y="-150%" width="400%" height="400%"><feDropShadow dx="0" dy="0" stdDeviation="4.5" flood-color="#4d8dff" flood-opacity="0.95"/></filter>
+          </defs>
+
+          <!-- latency rings (distance from YOU = round-trip ms) -->
+          <g>
+            <circle class="sc-ring" cx="200" cy="200" r="59"/><text class="sc-rlab" x="205" y="143">25ms</text>
+            <circle class="sc-ring" cx="200" cy="200" r="83.4"/><text class="sc-rlab" x="205" y="118.6">50ms</text>
+            <circle class="sc-ring" cx="200" cy="200" r="118"/><text class="sc-rlab" x="205" y="84">100ms</text>
+            <circle class="sc-ring" cx="200" cy="200" r="149.3"/><text class="sc-rlab" x="205" y="52.7">160ms</text>
+            <circle class="sc-ring bound" cx="200" cy="200" r="190"/>
+          </g>
+
+          <!-- spokes to each region -->
+          <g>
+            <line class="sc-spoke" x1="200" y1="200" x2="152.6" y2="166.8"/>
+            <line class="sc-spoke" x1="200" y1="200" x2="268.5" y2="168.1"/>
+            <line class="sc-spoke" x1="200" y1="200" x2="113.3" y2="250.1"/>
+            <line class="sc-spoke" x1="200" y1="200" x2="307.5" y2="269.8"/>
+            <line class="sc-spoke" x1="200" y1="200" x2="148.3" y2="342.0"/>
+          </g>
+
+          <!-- sonar sweep -->
+          <g>
+            <animateTransform attributeName="transform" type="rotate" from="0 200 200" to="360 200 200" dur="6.5s" repeatCount="indefinite"/>
+            <path class="sweep-wedge" d="M200,200 L200,12 A188,188 0 0 1 294,37.2 Z"/>
+            <line class="sweep-arm" x1="200" y1="200" x2="200" y2="12"/>
+          </g>
+
+          <!-- active route beam (JS repoints to hovered region) -->
+          <line class="beam-glow" id="beam-glow" x1="200" y1="200" x2="152.6" y2="166.8"/>
+          <line class="beam" id="beam" x1="200" y1="200" x2="152.6" y2="166.8"/>
+
+          <!-- target-lock reticle (JS moves to active region) -->
+          <g id="reticle" transform="translate(152.6,166.8)">
+            <path class="ret-br" d="M-13,-7 L-13,-13 L-7,-13"/><path class="ret-br" d="M7,-13 L13,-13 L13,-7"/>
+            <path class="ret-br" d="M13,7 L13,13 L7,13"/><path class="ret-br" d="M-7,13 L-13,13 L-13,7"/>
+          </g>
+
+          <!-- region nodes -->
+          <g class="rnode sel" data-r="eu-south-1" data-ms="24" data-x="152.6" data-y="166.8"><circle r="16" fill="transparent" cx="152.6" cy="166.8"/><circle class="ping" cx="152.6" cy="166.8" r="6"/><circle class="np" cx="152.6" cy="166.8" r="5"/><text class="nl" x="141.6" y="166.8" text-anchor="end"><tspan class="reg">eu-south-1</tspan> · 24ms</text></g>
+          <g class="rnode" data-r="eu-central-1" data-ms="41" data-x="268.5" data-y="168.1"><circle r="16" fill="transparent" cx="268.5" cy="168.1"/><circle class="ping" cx="268.5" cy="168.1" r="6"/><circle class="np" cx="268.5" cy="168.1" r="4.5"/><text class="nl" x="279.5" y="168.1" text-anchor="start"><tspan class="reg">eu-central-1</tspan> · 41ms</text></g>
+          <g class="rnode" data-r="eu-north-1" data-ms="72" data-x="113.3" data-y="250.1"><circle r="16" fill="transparent" cx="113.3" cy="250.1"/><circle class="ping" cx="113.3" cy="250.1" r="6"/><circle class="np" cx="113.3" cy="250.1" r="4.5"/><text class="nl" x="102.3" y="250.1" text-anchor="end"><tspan class="reg">eu-north-1</tspan> · 72ms</text></g>
+          <g class="rnode" data-r="us-east-1" data-ms="118" data-x="307.5" data-y="269.8"><circle r="16" fill="transparent" cx="307.5" cy="269.8"/><circle class="ping" cx="307.5" cy="269.8" r="6"/><circle class="np" cx="307.5" cy="269.8" r="4.5"/><text class="nl" x="318.5" y="269.8" text-anchor="start"><tspan class="reg">us-east-1</tspan> · 118ms</text></g>
+          <g class="rnode" data-r="ap-south-1" data-ms="164" data-x="148.3" data-y="342.0"><circle r="16" fill="transparent" cx="148.3" cy="342.0"/><circle class="ping" cx="148.3" cy="342.0" r="6"/><circle class="np" cx="148.3" cy="342.0" r="4.5"/><text class="nl" x="137.3" y="342.0" text-anchor="end"><tspan class="reg">ap-south-1</tspan> · 164ms</text></g>
+
+          <!-- you -->
+          <circle class="you-halo" cx="200" cy="200" r="9"/>
+          <circle class="you-core" cx="200" cy="200" r="5.5"/>
+          <text class="you-l" x="200" y="220">YOU</text>
         </svg>
-        <div class="node you" style="top:50%;left:50%"><span class="pt"></span><span class="lab">YOU</span></div>
-        <div class="node rn" data-r="eu-south-1" data-ms="24" data-x="40" data-y="43" style="top:43%;left:40%"><span class="pt"></span><span class="lab"><b>eu-south-1</b> 24ms</span></div>
-        <div class="node rn" data-r="eu-central-1" data-ms="41" data-x="66" data-y="43" style="top:43%;left:66%"><span class="pt"></span><span class="lab"><b>eu-central-1</b> 41ms</span></div>
-        <div class="node rn" data-r="eu-north-1" data-ms="72" data-x="37" data-y="69" style="top:69%;left:37%"><span class="pt"></span><span class="lab"><b>eu-north-1</b> 72ms</span></div>
-        <div class="node rn" data-r="us-east-1" data-ms="118" data-x="78" data-y="66" style="top:66%;left:78%"><span class="pt"></span><span class="lab"><b>us-east-1</b> 118ms</span></div>
-        <div class="node rn" data-r="ap-south-1" data-ms="164" data-x="63" data-y="86" style="top:86%;left:63%"><span class="pt"></span><span class="lab"><b>ap-south-1</b> 164ms</span></div>
         <div class="scope-foot">
           <span class="ok"><span class="dotlive"></span><span data-en="OPTIMAL ROUTE" data-tr="EN İYİ ROTA">OPTIMAL ROUTE</span></span>
           <span class="sp"><b id="rt-reg" style="color:var(--signal)">eu-south-1</b> · <span id="rt-ms">24ms</span> · <b style="color:var(--signal)" data-en="JOIN" data-tr="KATIL">JOIN</b></span>
@@ -617,25 +657,27 @@
     els.forEach(function(e){ io.observe(e); });
   })();
 
-  // ── Interactive latency radar: hover a region → route + readout follow it ──
+  // ── Ping sonar: hover a region → beam + reticle + readout lock onto it ──
   (function(){
-    var card = document.querySelector('.scope-card'); if(!card) return;
-    var route = document.getElementById('rt-route'), glow = document.getElementById('rt-glow');
+    var svg = document.querySelector('.scope-svg'); if(!svg) return;
+    var beam = document.getElementById('beam'), bglow = document.getElementById('beam-glow');
+    var ret = document.getElementById('reticle');
     var reg = document.getElementById('rt-reg'), ms = document.getElementById('rt-ms');
-    var nodes = [].slice.call(card.querySelectorAll('.node.rn'));
+    var nodes = [].slice.call(svg.querySelectorAll('.rnode'));
     if(!nodes.length) return;
     var best = nodes.reduce(function(a, b){ return (+b.dataset.ms < +a.dataset.ms) ? b : a; }, nodes[0]);
     function pick(n){
       nodes.forEach(function(x){ x.classList.toggle('sel', x === n); });
-      var d = 'M200,200 L' + (+n.dataset.x * 4) + ',' + (+n.dataset.y * 4);
-      if(route) route.setAttribute('d', d);
-      if(glow) glow.setAttribute('d', d);
+      var x = n.dataset.x, y = n.dataset.y;
+      [beam, bglow].forEach(function(l){ if(l){ l.setAttribute('x2', x); l.setAttribute('y2', y); } });
+      if(ret){ ret.setAttribute('transform', 'translate(' + x + ',' + y + ')'); ret.classList.add('on'); }
       if(reg) reg.textContent = n.dataset.r;
       if(ms) ms.textContent = n.dataset.ms + 'ms';
     }
     nodes.forEach(function(n){ n.addEventListener('mouseenter', function(){ pick(n); }); });
-    card.addEventListener('mouseleave', function(){ pick(best); });
+    svg.addEventListener('mouseleave', function(){ pick(best); });
     pick(best);
+    try{ if(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) svg.pauseAnimations(); }catch(_){}
   })();
 </script>
 </body>
