@@ -137,15 +137,17 @@
   .chip.plus{color:var(--violet);border:1px solid rgba(124,92,255,.4);}
   .chip.free{color:var(--signal);border:1px solid rgba(34,224,161,.35);}
 
-  /* feature spotlights — themed illustrations */
-  .spots{display:flex;flex-direction:column;gap:20px;}
-  .spot{display:grid;grid-template-columns:1.05fr 1fr;gap:40px;align-items:center;border:1px solid var(--edge);border-radius:20px;padding:28px;background:linear-gradient(180deg,var(--surface),var(--abyss2));overflow:hidden;}
-  .spot:nth-child(even) .spot-vis{order:2;}
-  .spot-txt h3{font-size:clamp(20px,2.6vw,27px);font-weight:700;letter-spacing:-.02em;margin:10px 0 9px;text-wrap:balance;}
-  .spot-txt p{color:var(--mute);font-size:15px;margin:0;}
-  .spot-txt .chip{display:inline-block;margin-top:14px;font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;padding:3px 9px;border-radius:6px;color:var(--signal);border:1px solid rgba(34,224,161,.35);}
-  .spot-vis{aspect-ratio:16/10;border-radius:14px;position:relative;overflow:hidden;border:1px solid var(--edge);}
-  @media(max-width:760px){.spot{grid-template-columns:1fr;gap:22px;}.spot:nth-child(even) .spot-vis{order:0;}}
+  /* feature gallery — concept mockups of the real UI */
+  .gallery{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+  @media(max-width:900px){.gallery{grid-template-columns:repeat(2,1fr);}}
+  @media(max-width:560px){.gallery{grid-template-columns:1fr;}}
+  .gcard{border:1px solid var(--edge);border-radius:16px;overflow:hidden;background:linear-gradient(180deg,var(--surface),var(--abyss2));transition:transform .2s,border-color .2s;}
+  .gcard:hover{transform:translateY(-4px);border-color:rgba(255,255,255,.14);}
+  .gvis{aspect-ratio:16/10;position:relative;overflow:hidden;border-bottom:1px solid var(--edge);}
+  .gmeta{padding:14px 16px 16px;display:flex;align-items:center;gap:9px;flex-wrap:wrap;}
+  .gmeta h4{font-size:14.5px;font-weight:600;margin:0;}
+  .gmeta .chip{font-family:var(--mono);font-size:9.5px;letter-spacing:.07em;text-transform:uppercase;padding:2px 7px;border-radius:5px;color:var(--signal);border:1px solid rgba(34,224,161,.35);}
+  .gmeta .chip.plus{color:var(--violet);border-color:rgba(124,92,255,.4);}
 
   /* themes illustration */
   .vis-theme{background:linear-gradient(140deg,#191340,#0c1730);}
@@ -185,6 +187,61 @@
   .vis-auto .ams{color:var(--ink);}
   .vis-auto .ar.best .ams{color:var(--signal);}
   .vis-auto .aj{font-size:9px;color:var(--signal);border:1px solid rgba(34,224,161,.4);border-radius:5px;padding:2px 7px;}
+
+  /* ping graph */
+  .vis-ping{background:linear-gradient(160deg,#0d1424,#0a1020);padding:16px 16px 0;display:flex;flex-direction:column;}
+  .vis-ping svg{width:100%;flex:1;overflow:visible;}
+  .vis-ping .pgl{fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+  .vis-ping .pgg{stroke:rgba(120,140,180,.1);stroke-width:1;}
+  .vis-ping .pgleg{display:flex;gap:10px;justify-content:center;font-family:var(--mono);font-size:8px;color:var(--mute);padding:7px 0 9px;}
+  .vis-ping .pgleg i{width:5px;height:5px;border-radius:50%;display:inline-block;margin-right:3px;vertical-align:middle;}
+  /* in-game bar */
+  .vis-bar{background:linear-gradient(160deg,#0e1830,#0a1020);display:flex;align-items:center;justify-content:center;}
+  .vis-bar .bp{display:flex;align-items:center;gap:2px;background:rgba(11,16,30,.92);border:1px solid var(--edge);border-radius:11px;padding:6px;box-shadow:0 12px 32px rgba(0,0,0,.45);}
+  .vis-bar .bo{width:15px;height:15px;border-radius:50%;border:2px solid rgba(238,243,254,.75);margin:0 5px;flex-shrink:0;}
+  .vis-bar .bb{font-family:var(--mono);font-size:9px;color:var(--mute);padding:5px 8px;border-radius:6px;white-space:nowrap;}
+  .vis-bar .bb.on{background:rgba(34,224,161,.14);color:var(--signal);}
+  /* server watcher */
+  .vis-watch{background:linear-gradient(160deg,#0e1830,#0a1020);display:flex;align-items:center;justify-content:center;}
+  .vis-watch .wc{width:80%;background:rgba(11,16,30,.88);border:1px solid var(--edge);border-radius:12px;padding:13px;}
+  .vis-watch .wt{display:flex;align-items:center;gap:7px;font-family:var(--mono);font-size:9.5px;color:var(--signal);margin-bottom:10px;}
+  .vis-watch .wp{width:6px;height:6px;border-radius:50%;background:var(--signal);box-shadow:0 0 0 0 rgba(34,224,161,.5);animation:ping 2s ease-out infinite;}
+  .vis-watch .wr{height:7px;border-radius:4px;background:rgba(255,255,255,.12);margin-bottom:7px;}
+  .vis-watch .wr.s{width:52%;}
+  .vis-watch .wbadge{margin-top:4px;display:inline-block;font-family:var(--mono);font-size:9px;color:var(--violet);border:1px solid rgba(124,92,255,.4);border-radius:5px;padding:2px 8px;}
+  /* player insight */
+  .vis-insight{background:linear-gradient(160deg,#0d1424,#0a1020);display:flex;align-items:center;justify-content:center;}
+  .vis-insight .ic{width:82%;background:rgba(11,16,30,.88);border:1px solid var(--edge);border-radius:12px;padding:13px;display:flex;flex-direction:column;gap:9px;}
+  .vis-insight .ih{display:flex;align-items:center;gap:9px;}
+  .vis-insight .iav{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#4d8dff,#7c5cff);flex-shrink:0;}
+  .vis-insight .inm{height:7px;width:64px;border-radius:4px;background:rgba(255,255,255,.5);}
+  .vis-insight .irow{display:flex;justify-content:space-between;font-family:var(--mono);font-size:8.5px;color:var(--mute);}
+  .vis-insight .irow b{color:var(--ink);}
+  /* inventory value */
+  .vis-inv{background:linear-gradient(160deg,#100c20,#0a1020);display:flex;align-items:center;justify-content:center;}
+  .vis-inv .nc{width:82%;background:rgba(11,16,30,.88);border:1px solid var(--edge);border-radius:12px;padding:13px;}
+  .vis-inv .nl{font-family:var(--mono);font-size:8px;color:var(--faint);text-transform:uppercase;letter-spacing:.12em;}
+  .vis-inv .nv{font-family:var(--mono);font-size:19px;font-weight:700;color:var(--signal);margin-bottom:10px;}
+  .vis-inv .ng{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;}
+  .vis-inv .ng i{aspect-ratio:1;border-radius:6px;background:linear-gradient(135deg,rgba(124,92,255,.45),rgba(77,141,255,.3));}
+  /* network / vpn */
+  .vis-net{background:linear-gradient(160deg,#0d1424,#0a1020);display:flex;align-items:center;justify-content:center;}
+  .vis-net .cc{width:82%;background:rgba(11,16,30,.88);border:1px solid var(--edge);border-radius:12px;padding:13px;display:flex;flex-direction:column;gap:8px;}
+  .vis-net .crow{display:flex;justify-content:space-between;font-family:var(--mono);font-size:9px;color:var(--mute);}
+  .vis-net .crow b{color:var(--ink);}
+  .vis-net .vpn{align-self:flex-start;margin-top:3px;font-family:var(--mono);font-size:9px;color:var(--warm);border:1px solid rgba(255,157,77,.4);border-radius:5px;padding:2px 8px;}
+  /* auto-reconnect */
+  .vis-reconnect{background:linear-gradient(160deg,#0e1830,#0a1020);display:flex;align-items:center;justify-content:center;}
+  .vis-reconnect .rc{width:82%;background:rgba(11,16,30,.92);border:1px solid var(--edge);border-radius:12px;padding:13px;}
+  .vis-reconnect .rt{font-family:var(--mono);font-size:9px;color:var(--mute);margin-bottom:11px;line-height:1.5;}
+  .vis-reconnect .rt b{color:var(--ink);}
+  .vis-reconnect .rb{font-family:var(--mono);font-size:9.5px;font-weight:700;color:#06140d;background:var(--signal);border-radius:7px;padding:7px;text-align:center;}
+  /* game codes */
+  .vis-codes{background:linear-gradient(160deg,#0d1424,#0a1020);display:flex;align-items:center;justify-content:center;}
+  .vis-codes .cl{width:82%;display:flex;flex-direction:column;gap:6px;}
+  .vis-codes .cr{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.04);border:1px solid var(--edge);border-radius:8px;padding:7px 10px;}
+  .vis-codes .cv{flex:1;font-family:var(--mono);font-size:10px;color:var(--ink);letter-spacing:.5px;}
+  .vis-codes .cp{font-family:var(--mono);font-size:8px;color:var(--signal);border:1px solid rgba(34,224,161,.4);border-radius:5px;padding:2px 6px;}
 
   /* how it works — signal pipeline */
   .pipe{position:relative;display:grid;grid-template-columns:repeat(4,1fr);gap:18px;}
@@ -400,46 +457,37 @@
     </div>
   </section>
 
-  <!-- SPOTLIGHTS -->
+  <!-- GALLERY -->
   <section class="sec">
     <div class="sec-head reveal">
-      <span class="eyebrow" data-en="// in action" data-tr="// iş başında">// in action</span>
-      <h2 data-en="Made to feel effortless" data-tr="Zahmetsiz hissettirir">Made to feel effortless</h2>
-      <p data-en="Real tools, not gimmicks — here's what a few of them look like." data-tr="Gerçek araçlar, hile değil — birkaçı şöyle görünür.">Real tools, not gimmicks — here's what a few of them look like.</p>
+      <span class="eyebrow" data-en="// the toolkit, illustrated" data-tr="// araçlar, görselleştirilmiş">// the toolkit, illustrated</span>
+      <h2 data-en="A look at the tools you'll use" data-tr="Kullanacağın araçlara bir bakış">A look at the tools you'll use</h2>
+      <p data-en="Concept previews of the actual interfaces — close to what you see inside the extension." data-tr="Gerçek arayüzlerin konsept önizlemeleri — eklentide göreceğine yakın.">Concept previews of the actual interfaces — close to what you see inside the extension.</p>
     </div>
-    <div class="spots">
-      <div class="spot reveal">
-        <div class="spot-vis vis-theme" aria-hidden="true"><div class="tw"></div><div class="tp"><div class="tb"></div><div class="tb s"></div><div class="tsw"><i></i><i></i><i></i><i></i></div></div></div>
-        <div class="spot-txt">
-          <span class="eyebrow" data-en="Themes" data-tr="Temalar">Themes</span>
-          <h3 data-en="Make Roblox truly yours" data-tr="Roblox'u tamamen kendine ait yap">Make Roblox truly yours</h3>
-          <p data-en="Drop in a wallpaper, frost the panels, pick your own colors and fonts — then flip back to the default look in one switch." data-tr="Wallpaper koy, panelleri buzlandır, kendi renk ve fontlarını seç — sonra tek anahtarla varsayılan görünüme dön.">Drop in a wallpaper, frost the panels, pick your own colors and fonts — then flip back to the default look in one switch.</p>
-          <span class="chip" style="color:var(--violet);border-color:rgba(124,92,255,.4)">PLUS</span>
-        </div>
-      </div>
-      <div class="spot reveal">
-        <div class="spot-vis vis-music" aria-hidden="true"><div class="mc"><div class="ma"></div><div class="mm"><div class="mt"></div><div class="mar"></div><div class="meq"><i></i><i></i><i></i><i></i><i></i></div></div></div></div>
-        <div class="spot-txt">
-          <span class="eyebrow" data-en="Now Playing" data-tr="Şu An Çalıyor">Now Playing</span>
-          <h3 data-en="Your music, right on Roblox" data-tr="Müziğin, tam Roblox'ta">Your music, right on Roblox</h3>
-          <p data-en="See what's playing on Spotify, YouTube or YT Music and control it — play, pause, skip — without ever leaving your game." data-tr="Spotify, YouTube veya YT Music'te çalanı gör ve kontrol et — oynat, duraklat, geç — oyundan hiç çıkmadan.">See what's playing on Spotify, YouTube or YT Music and control it — play, pause, skip — without ever leaving your game.</p>
-          <span class="chip">FREE</span>
-        </div>
-      </div>
-      <div class="spot reveal">
-        <div class="spot-vis vis-auto" aria-hidden="true"><div class="al">
-          <div class="ar best"><span class="ad"></span><span class="areg">eu-south-1</span><span class="ams">24ms</span><span class="aj" data-en="JOIN" data-tr="KATIL">JOIN</span></div>
-          <div class="ar"><span class="ad"></span><span class="areg">eu-central-1</span><span class="ams">41ms</span></div>
-          <div class="ar"><span class="ad"></span><span class="areg">eu-west-3</span><span class="ams">57ms</span></div>
-          <div class="ar"><span class="ad"></span><span class="areg">us-east-1</span><span class="ams">118ms</span></div>
-        </div></div>
-        <div class="spot-txt">
-          <span class="eyebrow" data-en="Auto-Pilot" data-tr="Oto-Pilot">Auto-Pilot</span>
-          <h3 data-en="One click to the best server" data-tr="Tek tıkla en iyi sunucuya">One click to the best server</h3>
-          <p data-en="Tracked ranks every open server by your real latency and drops you straight into the closest one — no guessing, no server-hopping." data-tr="Tracked her açık sunucuyu gerçek gecikmene göre sıralar ve seni en yakınına sokar — tahmin yok, sunucu-zıplama yok.">Tracked ranks every open server by your real latency and drops you straight into the closest one — no guessing, no server-hopping.</p>
-          <span class="chip" style="color:var(--violet);border-color:rgba(124,92,255,.4)">PLUS</span>
-        </div>
-      </div>
+    <div class="gallery">
+
+      <div class="gcard reveal"><div class="gvis vis-ping" aria-hidden="true"><svg viewBox="0 0 200 78" preserveAspectRatio="none"><line class="pgg" x1="0" y1="18" x2="200" y2="18"/><line class="pgg" x1="0" y1="39" x2="200" y2="39"/><line class="pgg" x1="0" y1="60" x2="200" y2="60"/><polyline class="pgl" style="stroke:#ff5f57" points="6,30 44,36 82,26 120,34 158,28 196,32"/><polyline class="pgl" style="stroke:#22e0a1" points="6,52 44,46 82,50 120,42 158,46 196,40"/><polyline class="pgl" style="stroke:#4d8dff" points="6,64 44,60 82,66 120,58 158,62 196,56"/></svg><div class="pgleg"><span><i style="background:#22e0a1"></i>24ms</span><span><i style="background:#4d8dff"></i>41ms</span><span><i style="background:#ff5f57"></i>72ms</span></div></div><div class="gmeta"><h4 data-en="Regional ping" data-tr="Bölgesel ping">Regional ping</h4><span class="chip" data-en="FREE" data-tr="ÜCRETSİZ">FREE</span></div></div>
+
+      <div class="gcard reveal"><div class="gvis vis-bar" aria-hidden="true"><div class="bp"><span class="bo"></span><span class="bb">Yeni</span><span class="bb">Derin</span><span class="bb">ID</span><span class="bb on">Oto-Pilot</span><span class="bb">Bekçi</span></div></div><div class="gmeta"><h4 data-en="In-game toolbar" data-tr="Oyun-içi bar">In-game toolbar</h4><span class="chip" data-en="FREE" data-tr="ÜCRETSİZ">FREE</span></div></div>
+
+      <div class="gcard reveal"><div class="gvis vis-auto" aria-hidden="true"><div class="al"><div class="ar best"><span class="ad"></span><span class="areg">eu-south-1</span><span class="ams">24ms</span><span class="aj" data-en="JOIN" data-tr="KATIL">JOIN</span></div><div class="ar"><span class="ad"></span><span class="areg">eu-central-1</span><span class="ams">41ms</span></div><div class="ar"><span class="ad"></span><span class="areg">us-east-1</span><span class="ams">118ms</span></div></div></div><div class="gmeta"><h4 data-en="Auto-Pilot" data-tr="Oto-Pilot">Auto-Pilot</h4><span class="chip plus">PLUS</span></div></div>
+
+      <div class="gcard reveal"><div class="gvis vis-watch" aria-hidden="true"><div class="wc"><div class="wt"><span class="wp"></span>WATCHING · ≥ 1</div><div class="wr"></div><div class="wr s"></div><span class="wbadge">auto-join</span></div></div><div class="gmeta"><h4 data-en="Server Watcher" data-tr="Sunucu Bekçisi">Server Watcher</h4><span class="chip plus">PLUS</span></div></div>
+
+      <div class="gcard reveal"><div class="gvis vis-reconnect" aria-hidden="true"><div class="rc"><div class="rt"><b>Disconnected.</b> Jump back into the exact same server?</div><div class="rb" data-en="Rejoin same server" data-tr="Aynı sunucuya dön">Rejoin same server</div></div></div><div class="gmeta"><h4 data-en="Auto-Reconnect" data-tr="Auto-Reconnect">Auto-Reconnect</h4><span class="chip plus">PLUS</span></div></div>
+
+      <div class="gcard reveal"><div class="gvis vis-music" aria-hidden="true"><div class="mc"><div class="ma"></div><div class="mm"><div class="mt"></div><div class="mar"></div><div class="meq"><i></i><i></i><i></i><i></i><i></i></div></div></div></div><div class="gmeta"><h4 data-en="Now Playing" data-tr="Şu An Çalıyor">Now Playing</h4><span class="chip" data-en="FREE" data-tr="ÜCRETSİZ">FREE</span></div></div>
+
+      <div class="gcard reveal"><div class="gvis vis-theme" aria-hidden="true"><div class="tw"></div><div class="tp"><div class="tb"></div><div class="tb s"></div><div class="tsw"><i></i><i></i><i></i><i></i></div></div></div><div class="gmeta"><h4 data-en="Themes" data-tr="Temalar">Themes</h4><span class="chip plus">PLUS</span></div></div>
+
+      <div class="gcard reveal"><div class="gvis vis-insight" aria-hidden="true"><div class="ic"><div class="ih"><span class="iav"></span><span class="inm"></span></div><div class="irow"><span data-en="Account age" data-tr="Hesap yaşı">Account age</span><b>4.2y</b></div><div class="irow"><span data-en="Total value" data-tr="Toplam değer">Total value</span><b>128K</b></div><div class="irow"><span data-en="Mutual friends" data-tr="Ortak arkadaş">Mutual friends</span><b>7</b></div></div></div><div class="gmeta"><h4 data-en="Player Insight" data-tr="Oyuncu İçgörü">Player Insight</h4><span class="chip" data-en="FREE" data-tr="ÜCRETSİZ">FREE</span></div></div>
+
+      <div class="gcard reveal"><div class="gvis vis-inv" aria-hidden="true"><div class="nc"><div class="nl" data-en="Inventory value" data-tr="Envanter değeri">Inventory value</div><div class="nv">412K</div><div class="ng"><i></i><i></i><i></i><i></i></div></div></div><div class="gmeta"><h4 data-en="Inventory value" data-tr="Envanter değeri">Inventory value</h4><span class="chip plus">PLUS</span></div></div>
+
+      <div class="gcard reveal"><div class="gvis vis-net" aria-hidden="true"><div class="cc"><div class="crow"><span>IP</span><b>·· · .84.12</b></div><div class="crow"><span>ISP</span><b>Turk Telekom</b></div><span class="vpn" data-en="VPN likely" data-tr="Muhtemel VPN">VPN likely</span></div></div><div class="gmeta"><h4 data-en="Network &amp; VPN" data-tr="Ağ &amp; VPN">Network &amp; VPN</h4><span class="chip" data-en="FREE" data-tr="ÜCRETSİZ">FREE</span></div></div>
+
+      <div class="gcard reveal"><div class="gvis vis-codes" aria-hidden="true"><div class="cl"><div class="cr"><span class="cv">RELEASE2024</span><span class="cp" data-en="Copy" data-tr="Kopyala">Copy</span></div><div class="cr"><span class="cv">FREESPINS</span><span class="cp" data-en="Copy" data-tr="Kopyala">Copy</span></div><div class="cr"><span class="cv">UPDATE25</span><span class="cp" data-en="Copy" data-tr="Kopyala">Copy</span></div></div></div><div class="gmeta"><h4 data-en="Game codes" data-tr="Oyun kodları">Game codes</h4><span class="chip plus">PLUS</span></div></div>
+
     </div>
   </section>
 
