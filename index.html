@@ -137,6 +137,55 @@
   .chip.plus{color:var(--violet);border:1px solid rgba(124,92,255,.4);}
   .chip.free{color:var(--signal);border:1px solid rgba(34,224,161,.35);}
 
+  /* feature spotlights — themed illustrations */
+  .spots{display:flex;flex-direction:column;gap:20px;}
+  .spot{display:grid;grid-template-columns:1.05fr 1fr;gap:40px;align-items:center;border:1px solid var(--edge);border-radius:20px;padding:28px;background:linear-gradient(180deg,var(--surface),var(--abyss2));overflow:hidden;}
+  .spot:nth-child(even) .spot-vis{order:2;}
+  .spot-txt h3{font-size:clamp(20px,2.6vw,27px);font-weight:700;letter-spacing:-.02em;margin:10px 0 9px;text-wrap:balance;}
+  .spot-txt p{color:var(--mute);font-size:15px;margin:0;}
+  .spot-txt .chip{display:inline-block;margin-top:14px;font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;padding:3px 9px;border-radius:6px;color:var(--signal);border:1px solid rgba(34,224,161,.35);}
+  .spot-vis{aspect-ratio:16/10;border-radius:14px;position:relative;overflow:hidden;border:1px solid var(--edge);}
+  @media(max-width:760px){.spot{grid-template-columns:1fr;gap:22px;}.spot:nth-child(even) .spot-vis{order:0;}}
+
+  /* themes illustration */
+  .vis-theme{background:linear-gradient(140deg,#191340,#0c1730);}
+  .vis-theme .tw{position:absolute;inset:0;background:radial-gradient(120% 120% at 82% 8%,rgba(124,92,255,.55),transparent 55%),radial-gradient(110% 110% at 8% 95%,rgba(34,224,161,.32),transparent 55%);}
+  .vis-theme .tp{position:absolute;inset:24% 17%;border-radius:12px;background:rgba(18,26,46,.5);backdrop-filter:blur(9px);border:1px solid rgba(255,255,255,.13);padding:16px;display:flex;flex-direction:column;gap:9px;}
+  .vis-theme .tb{height:8px;border-radius:5px;background:rgba(255,255,255,.2);}
+  .vis-theme .tb.s{width:52%;}
+  .vis-theme .tsw{display:flex;gap:8px;margin-top:auto;}
+  .vis-theme .tsw i{width:17px;height:17px;border-radius:50%;}
+  .vis-theme .tsw i:nth-child(1){background:#7c5cff;box-shadow:0 0 0 2px rgba(255,255,255,.6);}
+  .vis-theme .tsw i:nth-child(2){background:#22e0a1;}
+  .vis-theme .tsw i:nth-child(3){background:#4d8dff;}
+  .vis-theme .tsw i:nth-child(4){background:#ff8a3d;}
+
+  /* music illustration */
+  .vis-music{background:linear-gradient(140deg,#101a30,#0a1020);display:flex;align-items:center;justify-content:center;}
+  .vis-music .mc{display:flex;gap:14px;align-items:center;width:76%;background:rgba(9,14,28,.72);border:1px solid var(--edge);border-radius:14px;padding:14px;backdrop-filter:blur(6px);box-shadow:0 16px 40px rgba(0,0,0,.4);}
+  .vis-music .ma{width:52px;height:52px;border-radius:10px;background:linear-gradient(135deg,#22e0a1,#4d8dff);flex-shrink:0;}
+  .vis-music .mm{flex:1;display:flex;flex-direction:column;gap:7px;min-width:0;}
+  .vis-music .mt{height:8px;width:78%;border-radius:5px;background:rgba(255,255,255,.6);}
+  .vis-music .mar{height:6px;width:48%;border-radius:5px;background:rgba(255,255,255,.26);}
+  .vis-music .meq{display:flex;gap:3px;align-items:flex-end;height:15px;margin-top:3px;}
+  .vis-music .meq i{width:3px;height:40%;background:var(--signal);border-radius:2px;animation:eq 1s ease-in-out infinite;}
+  .vis-music .meq i:nth-child(2){animation-delay:.15s;}
+  .vis-music .meq i:nth-child(3){animation-delay:.3s;}
+  .vis-music .meq i:nth-child(4){animation-delay:.45s;}
+  .vis-music .meq i:nth-child(5){animation-delay:.6s;}
+
+  /* auto-pilot illustration */
+  .vis-auto{background:linear-gradient(140deg,#0e1830,#0a1020);display:flex;align-items:center;justify-content:center;}
+  .vis-auto .al{width:80%;display:flex;flex-direction:column;gap:7px;}
+  .vis-auto .ar{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.04);border:1px solid var(--edge);border-radius:9px;padding:9px 12px;font-family:var(--mono);font-size:11px;color:var(--mute);}
+  .vis-auto .ar.best{border-color:rgba(34,224,161,.4);background:rgba(34,224,161,.07);}
+  .vis-auto .ad{width:7px;height:7px;border-radius:50%;background:var(--faint);flex-shrink:0;}
+  .vis-auto .ar.best .ad{background:var(--signal);box-shadow:0 0 8px rgba(34,224,161,.8);}
+  .vis-auto .areg{flex:1;}
+  .vis-auto .ams{color:var(--ink);}
+  .vis-auto .ar.best .ams{color:var(--signal);}
+  .vis-auto .aj{font-size:9px;color:var(--signal);border:1px solid rgba(34,224,161,.4);border-radius:5px;padding:2px 7px;}
+
   /* how it works — signal pipeline */
   .pipe{position:relative;display:grid;grid-template-columns:repeat(4,1fr);gap:18px;}
   .pipe-line{position:absolute;top:17px;left:12.5%;right:12.5%;height:2px;border-radius:2px;overflow:hidden;background:linear-gradient(90deg,var(--signal),var(--pulse) 55%,var(--violet));opacity:.4;}
@@ -205,6 +254,7 @@
   @keyframes ping{0%{box-shadow:0 0 0 0 rgba(34,224,161,.5);}70%{box-shadow:0 0 0 9px rgba(34,224,161,0);}100%{box-shadow:0 0 0 0 rgba(34,224,161,0);}}
   @keyframes flow{to{stroke-dashoffset:-26;}}
   @keyframes pflow{from{transform:translateX(-120%);}to{transform:translateX(360%);}}
+  @keyframes eq{0%,100%{height:35%;}50%{height:100%;}}
   @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;}.route{stroke-dashoffset:0!important;}.reveal{opacity:1!important;transform:none!important;}}
 </style>
 <noscript><style>.reveal{opacity:1!important;transform:none!important;}</style></noscript>
@@ -337,6 +387,49 @@
         <div class="card v"><div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v12H4z"/><path d="M8 20h8M12 16v4M8 9l2 2 2-3 2 4 2-2"/></svg></div><h4><span data-en="Game codes" data-tr="Oyun kodları">Game codes</span><span class="chip plus">PLUS</span></h4><p data-en="Pulls a game's codes from curated sources, its description and official socials — every entry labeled, nothing faked." data-tr="Bir oyunun kodlarını küratörlü kaynaklardan, açıklamasından ve resmi sosyallerden çeker — her giriş etiketli, uydurma yok.">Pulls a game's codes from curated sources, its description and official socials — every entry labeled, nothing faked.</p></div>
         <div class="card v"><div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4"/><circle cx="12" cy="12" r="3"/></svg></div><h4><span data-en="Event analysis" data-tr="Etkinlik analizi">Event analysis</span><span class="chip plus">PLUS</span></h4><p data-en="Shows a game's official Roblox events first — exact times, live or upcoming — and only estimates when there are none." data-tr="Bir oyunun resmi Roblox etkinliklerini önce gösterir — kesin saatler, canlı ya da yakında — yoksa sadece tahmin eder.">Shows a game's official Roblox events first — exact times, live or upcoming — and only estimates when there are none.</p></div>
         <div class="card"><div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></div><h4><span data-en="Library & side panel" data-tr="Kütüphane & yan panel">Library &amp; side panel</span><span class="chip free" data-en="FREE" data-tr="ÜCRETSİZ">FREE</span></h4><p data-en="A game library with favorites and comfort/compact views, plus a pinnable side panel and recent-games tracking." data-tr="Favoriler ve geniş/kompakt görünümlü oyun kütüphanesi, pinlenebilir yan panel ve son-oyun takibi.">A game library with favorites and comfort/compact views, plus a pinnable side panel and recent-games tracking.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SPOTLIGHTS -->
+  <section class="sec">
+    <div class="sec-head reveal">
+      <span class="eyebrow" data-en="// in action" data-tr="// iş başında">// in action</span>
+      <h2 data-en="Made to feel effortless" data-tr="Zahmetsiz hissettirir">Made to feel effortless</h2>
+      <p data-en="Real tools, not gimmicks — here's what a few of them look like." data-tr="Gerçek araçlar, hile değil — birkaçı şöyle görünür.">Real tools, not gimmicks — here's what a few of them look like.</p>
+    </div>
+    <div class="spots">
+      <div class="spot reveal">
+        <div class="spot-vis vis-theme" aria-hidden="true"><div class="tw"></div><div class="tp"><div class="tb"></div><div class="tb s"></div><div class="tsw"><i></i><i></i><i></i><i></i></div></div></div>
+        <div class="spot-txt">
+          <span class="eyebrow" data-en="Themes" data-tr="Temalar">Themes</span>
+          <h3 data-en="Make Roblox truly yours" data-tr="Roblox'u tamamen kendine ait yap">Make Roblox truly yours</h3>
+          <p data-en="Drop in a wallpaper, frost the panels, pick your own colors and fonts — then flip back to the default look in one switch." data-tr="Wallpaper koy, panelleri buzlandır, kendi renk ve fontlarını seç — sonra tek anahtarla varsayılan görünüme dön.">Drop in a wallpaper, frost the panels, pick your own colors and fonts — then flip back to the default look in one switch.</p>
+          <span class="chip" style="color:var(--violet);border-color:rgba(124,92,255,.4)">PLUS</span>
+        </div>
+      </div>
+      <div class="spot reveal">
+        <div class="spot-vis vis-music" aria-hidden="true"><div class="mc"><div class="ma"></div><div class="mm"><div class="mt"></div><div class="mar"></div><div class="meq"><i></i><i></i><i></i><i></i><i></i></div></div></div></div>
+        <div class="spot-txt">
+          <span class="eyebrow" data-en="Now Playing" data-tr="Şu An Çalıyor">Now Playing</span>
+          <h3 data-en="Your music, right on Roblox" data-tr="Müziğin, tam Roblox'ta">Your music, right on Roblox</h3>
+          <p data-en="See what's playing on Spotify, YouTube or YT Music and control it — play, pause, skip — without ever leaving your game." data-tr="Spotify, YouTube veya YT Music'te çalanı gör ve kontrol et — oynat, duraklat, geç — oyundan hiç çıkmadan.">See what's playing on Spotify, YouTube or YT Music and control it — play, pause, skip — without ever leaving your game.</p>
+          <span class="chip">FREE</span>
+        </div>
+      </div>
+      <div class="spot reveal">
+        <div class="spot-vis vis-auto" aria-hidden="true"><div class="al">
+          <div class="ar best"><span class="ad"></span><span class="areg">eu-south-1</span><span class="ams">24ms</span><span class="aj" data-en="JOIN" data-tr="KATIL">JOIN</span></div>
+          <div class="ar"><span class="ad"></span><span class="areg">eu-central-1</span><span class="ams">41ms</span></div>
+          <div class="ar"><span class="ad"></span><span class="areg">eu-west-3</span><span class="ams">57ms</span></div>
+          <div class="ar"><span class="ad"></span><span class="areg">us-east-1</span><span class="ams">118ms</span></div>
+        </div></div>
+        <div class="spot-txt">
+          <span class="eyebrow" data-en="Auto-Pilot" data-tr="Oto-Pilot">Auto-Pilot</span>
+          <h3 data-en="One click to the best server" data-tr="Tek tıkla en iyi sunucuya">One click to the best server</h3>
+          <p data-en="Tracked ranks every open server by your real latency and drops you straight into the closest one — no guessing, no server-hopping." data-tr="Tracked her açık sunucuyu gerçek gecikmene göre sıralar ve seni en yakınına sokar — tahmin yok, sunucu-zıplama yok.">Tracked ranks every open server by your real latency and drops you straight into the closest one — no guessing, no server-hopping.</p>
+          <span class="chip" style="color:var(--violet);border-color:rgba(124,92,255,.4)">PLUS</span>
+        </div>
       </div>
     </div>
   </section>
