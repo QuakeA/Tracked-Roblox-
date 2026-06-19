@@ -207,25 +207,34 @@
   }
 
   /* pricing */
-  .plans{display:grid;grid-template-columns:1fr 1fr;gap:18px;max-width:780px;}
+  .bill-wrap{text-align:center;margin:0 0 30px;}
+  .bill{display:inline-flex;border:1px solid var(--edge);border-radius:12px;padding:4px;background:var(--surface);font-family:var(--mono);font-size:13px;}
+  .bill button{background:transparent;border:0;color:var(--mute);padding:9px 18px;border-radius:9px;cursor:pointer;font-family:inherit;font-size:inherit;display:inline-flex;align-items:center;gap:8px;transition:background .2s,color .2s;}
+  .bill button.on{background:var(--ink);color:#06101f;font-weight:700;}
+  .bill .save2{font-size:10px;font-weight:700;padding:2px 6px;border-radius:5px;background:rgba(34,224,161,.16);color:var(--signal);}
+  .bill button.on .save2{background:rgba(34,224,161,.85);color:#06210f;}
+  .plans{display:grid;grid-template-columns:1fr 1fr;gap:18px;max-width:760px;margin:0 auto;}
   @media(max-width:680px){.plans{grid-template-columns:1fr;}}
-  .plan{border:1px solid var(--edge);border-radius:18px;padding:26px;background:linear-gradient(180deg,var(--surface),var(--abyss2));position:relative;overflow:hidden;}
+  .plan{border:1px solid var(--edge);border-radius:20px;padding:32px 28px;background:linear-gradient(180deg,var(--surface),var(--abyss2));position:relative;overflow:hidden;}
   .plan.pro{border-color:transparent;}
-  .plan.pro::before{content:'';position:absolute;inset:0;border-radius:18px;padding:1.5px;background:var(--spectrum);-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;}
+  .plan.pro::before{content:'';position:absolute;inset:0;border-radius:20px;padding:1.5px;background:var(--spectrum);-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none;}
+  .ptag{position:absolute;top:18px;right:18px;font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#0c0720;background:var(--spectrum);border-radius:6px;padding:4px 9px;}
   .plan .pk{font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);}
-  .plan.pro .pk{color:var(--violet);}
-  .plan .amt{font-size:34px;font-weight:700;letter-spacing:-.02em;margin:10px 0 3px;}
-  .plan .amt small{font-family:var(--mono);font-size:14px;font-weight:500;color:var(--mute);}
-  .plan .pnote{font-family:var(--mono);font-size:12px;color:var(--faint);margin-bottom:18px;}
-  .plan ul{list-style:none;margin:0 0 22px;padding:0;}
-  .plan li{display:flex;gap:11px;align-items:flex-start;font-size:14px;color:rgba(238,243,254,.92);padding:7px 0;border-top:1px solid rgba(31,44,73,.6);}
+  .plan.pro .pk{color:#c9b6ff;}
+  .plan .amt{font-size:46px;font-weight:700;letter-spacing:-.03em;margin:12px 0 4px;line-height:1;}
+  .plan .amt small{font-family:var(--mono);font-size:14px;font-weight:500;color:var(--mute);letter-spacing:0;}
+  .plan .pnote{font-family:var(--mono);font-size:12px;color:var(--faint);margin-bottom:24px;min-height:16px;}
+  .plan ul{list-style:none;margin:0 0 26px;padding:0;}
+  .plan li{display:flex;gap:11px;align-items:flex-start;font-size:14px;color:rgba(238,243,254,.9);padding:10px 0;border-top:1px solid rgba(31,44,73,.5);line-height:1.45;}
   .plan li:first-child{border-top:0;}
-  .plan li svg{flex-shrink:0;margin-top:2px;color:var(--signal);}
+  .plan li svg{flex-shrink:0;margin-top:3px;color:var(--signal);}
   .plan.pro li svg{color:var(--violet);}
-  .pbtn{display:block;text-align:center;font-family:var(--mono);font-size:14px;font-weight:600;padding:13px;border-radius:11px;cursor:pointer;transition:transform .14s;}
+  .plan li b{color:var(--ink);font-weight:600;}
+  .pbtn{display:block;text-align:center;font-family:var(--mono);font-size:14px;font-weight:600;padding:14px;border-radius:12px;cursor:pointer;transition:transform .14s,box-shadow .2s;}
   .pbtn.free{border:1px solid var(--edge);color:var(--ink);background:rgba(22,34,60,.5);}
-  .pbtn.pro{background:var(--spectrum);color:#06101f;border:0;}
-  .pbtn:hover{transform:translateY(-2px);}
+  .pbtn.free:hover{border-color:var(--faint);transform:translateY(-2px);}
+  .pbtn.pro{background:var(--spectrum);color:#0c0720;border:0;box-shadow:0 12px 30px rgba(100,80,220,.35);}
+  .pbtn.pro:hover{transform:translateY(-2px);box-shadow:0 18px 40px rgba(100,80,220,.5);}
 
   /* footer */
   footer{border-top:1px solid var(--edge);padding:40px 0 60px;font-family:var(--mono);font-size:12.5px;color:var(--faint);}
@@ -452,37 +461,44 @@
 
   <!-- PRICING -->
   <section class="sec" id="pricing">
-    <div class="sec-head reveal">
+    <div class="sec-head reveal" style="max-width:580px;margin:0 auto 30px;text-align:center;">
       <span class="eyebrow" data-en="// pricing" data-tr="// fiyat">// pricing</span>
       <h2 data-en="Start free. Go Plus when you’re ready." data-tr="Ücretsiz başla. Hazır olunca Plus’a geç.">Start free. Go Plus when you’re ready.</h2>
-      <p data-en="The core toolkit is free for everyone. Plus unlocks the advanced server and automation tools — try them free for 7 days." data-tr="Çekirdek araçlar herkese ücretsiz. Plus, gelişmiş sunucu ve otomasyon araçlarını açar — 7 gün ücretsiz dene.">The core toolkit is free for everyone. Plus unlocks the advanced server and automation tools — try them free for 7 days.</p>
+      <p data-en="The core stays free for everyone. Plus unlocks the advanced server, automation and analysis tools." data-tr="Çekirdek herkese ücretsiz kalır. Plus, gelişmiş sunucu, otomasyon ve analiz araçlarını açar.">The core stays free for everyone. Plus unlocks the advanced server, automation and analysis tools.</p>
+    </div>
+    <div class="bill-wrap reveal">
+      <div class="bill" role="group" aria-label="Billing period">
+        <button id="bill-mo" class="on" onclick="setBill('mo')" data-en="Monthly" data-tr="Aylık">Monthly</button>
+        <button id="bill-yr" onclick="setBill('yr')"><span data-en="Yearly" data-tr="Yıllık">Yearly</span><span class="save2" data-en="Save 40%" data-tr="%40">Save 40%</span></button>
+      </div>
     </div>
     <div class="plans reveal">
       <div class="plan">
         <div class="pk">Free</div>
         <div class="amt">₺0</div>
-        <div class="pnote" data-en="core tools, no account" data-tr="çekirdek araçlar, hesapsız">core tools, no account</div>
+        <div class="pnote" data-en="Free forever · no account" data-tr="Sonsuza dek ücretsiz · hesapsız">Free forever · no account</div>
         <ul>
-          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span data-en="Nearest-server join + real ping graph" data-tr="En yakın sunucuya katıl + gerçek ping grafiği">Nearest-server join + real ping graph</span></li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span data-en="Nearest-server join + real ping" data-tr="En yakın sunucuya katıl + gerçek ping">Nearest-server join + real ping</span></li>
           <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span data-en="Per-server region + VPN detection" data-tr="Sunucu başına bölge + VPN tespiti">Per-server region + VPN detection</span></li>
           <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span data-en="Now Playing music widget" data-tr="Şu An Çalıyor müzik widget'ı">Now Playing music widget</span></li>
-          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span data-en="Catalog insights, free-item radar, Player Insight" data-tr="Katalog içgörüleri, ücretsiz-item radarı, Oyuncu İçgörü">Catalog insights, free-item radar, Player Insight</span></li>
-          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span data-en="Avatar Try-On, library, side panel" data-tr="Avatar Try-On, kütüphane, yan panel">Avatar Try-On, library, side panel</span></li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span data-en="Catalog, free items &amp; Player Insight" data-tr="Katalog, ücretsiz item &amp; Oyuncu İçgörü">Catalog, free items &amp; Player Insight</span></li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span data-en="Avatar Try-On, library &amp; side panel" data-tr="Avatar Try-On, kütüphane &amp; yan panel">Avatar Try-On, library &amp; side panel</span></li>
         </ul>
         <a class="pbtn free" href="#top" data-en="Add to Chrome" data-tr="Chrome'a ekle">Add to Chrome</a>
       </div>
       <div class="plan pro">
+        <span class="ptag" data-en="Most popular" data-tr="En popüler">Most popular</span>
         <div class="pk">Tracked Plus</div>
-        <div class="amt">₺49<small> /mo</small> · ₺349<small> /yr</small></div>
-        <div class="pnote" data-en="7-day free trial · cancel anytime" data-tr="7 gün ücretsiz · istediğin an iptal">7-day free trial · cancel anytime</div>
+        <div class="amt"><span id="price-amt">₺49</span><small id="price-per"> /month</small></div>
+        <div class="pnote" id="price-note" data-en="7-day free trial · cancel anytime" data-tr="7 gün ücretsiz · istediğin an iptal">7-day free trial · cancel anytime</div>
         <ul>
-          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span data-en="Fresh finder, Deep scan, Server Watcher" data-tr="Yeni bulucu, Derin tarama, Sunucu Bekçisi">Fresh finder, Deep scan, Server Watcher</span></li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span data-en="Fresh finder, Deep scan &amp; Server Watcher" data-tr="Yeni bulucu, Derin tarama &amp; Sunucu Bekçisi">Fresh finder, Deep scan &amp; Server Watcher</span></li>
           <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span data-en="Auto-Pilot + Auto-Reconnect" data-tr="Oto-Pilot + Auto-Reconnect">Auto-Pilot + Auto-Reconnect</span></li>
-          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span data-en="Inventory value analysis" data-tr="Envanter değeri analizi">Inventory value analysis</span></li>
-          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span data-en="Themes, game codes, event analysis" data-tr="Temalar, oyun kodları, etkinlik analizi">Themes, game codes, event analysis</span></li>
-          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span data-en="Everything in Free, always" data-tr="Free'deki her şey, her zaman">Everything in Free, always</span></li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span data-en="Inventory value, themes &amp; game codes" data-tr="Envanter değeri, temalar &amp; oyun kodları">Inventory value, themes &amp; game codes</span></li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span data-en="Event analysis" data-tr="Etkinlik analizi">Event analysis</span></li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span><b data-en="Everything in Free" data-tr="Free’deki her şey">Everything in Free</b><span data-en=", always" data-tr=", her zaman">, always</span></span></li>
         </ul>
-        <a class="pbtn pro" href="#top" data-en="Start 7-day trial" data-tr="7 günlük denemeyi başlat">Start 7-day trial</a>
+        <a class="pbtn pro" href="#top" data-en="Start free trial" data-tr="Ücretsiz denemeyi başlat">Start free trial</a>
       </div>
     </div>
   </section>
@@ -511,8 +527,26 @@
 </div>
 
 <script>
-  // ── Language toggle (EN default, persisted) ──
+  // ── Language + billing period (both persisted, both drive the Plus price) ──
+  var lang = 'en', billing = 'mo';
+  function updatePrice(){
+    var amt = document.getElementById('price-amt'), per = document.getElementById('price-per'), note = document.getElementById('price-note');
+    var T = { mo:{ en:[' /month','7-day free trial · cancel anytime'], tr:[' /ay','7 gün ücretsiz · istediğin an iptal'] },
+              yr:{ en:[' /year','7-day free trial · just ₺29/month'], tr:[' /yıl','7 gün ücretsiz · ayda yalnızca ₺29'] } };
+    var t = (T[billing] && T[billing][lang]) || T.mo.en;
+    if(amt) amt.textContent = billing === 'yr' ? '₺349' : '₺49';
+    if(per) per.textContent = t[0];
+    if(note) note.textContent = t[1];
+  }
+  function setBill(b){
+    billing = b;
+    var mo = document.getElementById('bill-mo'), yr = document.getElementById('bill-yr');
+    if(mo) mo.classList.toggle('on', b === 'mo');
+    if(yr) yr.classList.toggle('on', b === 'yr');
+    updatePrice();
+  }
   function setLang(l){
+    lang = l;
     document.documentElement.lang = l;
     document.querySelectorAll('[data-en]').forEach(function(e){
       var t = e.getAttribute('data-' + l);
@@ -521,6 +555,7 @@
     document.getElementById('lg-en').classList.toggle('on', l === 'en');
     document.getElementById('lg-tr').classList.toggle('on', l === 'tr');
     try{ localStorage.setItem('tk_lang', l); }catch(_){}
+    updatePrice();
   }
   setLang((function(){ try{ return localStorage.getItem('tk_lang') || 'en'; }catch(_){ return 'en'; } })());
 
