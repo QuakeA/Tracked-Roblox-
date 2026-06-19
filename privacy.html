@@ -1,133 +1,328 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Tracked — Gizlilik Politikası / Privacy Policy</title>
+<title>Tracked — Privacy Policy</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
-  body{max-width:780px;margin:0 auto;padding:40px 22px 80px;background:#0c0d12;color:#e8e6e1;
-    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;line-height:1.65;}
-  h1{font-size:26px;margin:0 0 4px;}
-  h2{font-size:18px;margin:30px 0 8px;border-bottom:1px solid rgba(255,255,255,.1);padding-bottom:6px;}
-  h3{font-size:15px;margin:18px 0 4px;color:#cfe;}
-  p,li{color:rgba(232,230,225,.82);font-size:14.5px;}
-  a{color:#6f9cff;}
-  code{background:rgba(255,255,255,.06);padding:1px 5px;border-radius:4px;font-size:13px;}
-  .muted{color:rgba(232,230,225,.5);font-size:13px;}
-  .tag{display:inline-block;background:rgba(123,76,255,.15);border:1px solid rgba(123,76,255,.3);color:#c9b6ff;
-    font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;margin-left:8px;vertical-align:middle;}
-  table{width:100%;border-collapse:collapse;margin:10px 0;font-size:13.5px;}
-  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid rgba(255,255,255,.08);vertical-align:top;}
-  th{color:rgba(232,230,225,.6);font-weight:600;}
-  hr{border:none;border-top:1px solid rgba(255,255,255,.1);margin:48px 0;}
-  .lang-note{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:12px 14px;font-size:13px;}
+  :root{
+    --abyss:#070b16; --abyss2:#0a1020; --surface:#101a30; --surface2:#16223c; --edge:#1f2c49;
+    --ink:#eef3fe; --mute:#9aa7c6; --faint:#5c6a8c;
+    --signal:#22e0a1; --pulse:#4d8dff; --violet:#7c5cff;
+    --spectrum:linear-gradient(100deg,#22e0a1,#4d8dff 55%,#7c5cff);
+    --disp:'Space Grotesk',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    --mono:'JetBrains Mono',ui-monospace,Consolas,monospace;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{margin:0;background:var(--abyss);color:var(--ink);font-family:var(--disp);line-height:1.7;-webkit-font-smoothing:antialiased;}
+  body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+    background:radial-gradient(800px 460px at 82% -6%,rgba(77,141,255,.13),transparent 60%),radial-gradient(680px 420px at 4% 4%,rgba(34,224,161,.09),transparent 58%);}
+  .wrap{position:relative;z-index:1;max-width:1060px;margin:0 auto;padding:0 26px;}
+  a{color:var(--pulse);text-decoration:none;} a:hover{text-decoration:underline;}
+  .mono{font-family:var(--mono);}
+  code{font-family:var(--mono);font-size:.88em;background:rgba(120,140,180,.12);border:1px solid var(--edge);border-radius:5px;padding:1px 6px;color:var(--ink);}
+  .eyebrow{font-family:var(--mono);font-size:11.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--faint);}
+  .grad{background:var(--spectrum);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
+
+  /* nav */
+  .nav{position:sticky;top:0;z-index:50;backdrop-filter:blur(14px);background:rgba(7,11,22,.72);border-bottom:1px solid var(--edge);}
+  .nav-in{display:flex;align-items:center;gap:14px;height:62px;}
+  .brand{display:flex;align-items:center;gap:11px;font-weight:700;font-size:16.5px;}
+  .orb{position:relative;width:28px;height:28px;border-radius:50%;border:2px solid rgba(238,243,254,.85);background:rgba(0,0,0,.4);overflow:hidden;flex-shrink:0;}
+  .orb::before{content:'';position:absolute;inset:0;background:conic-gradient(from 0deg,transparent 0 150deg,rgba(34,224,161,.9) 180deg,transparent 210deg 360deg);animation:spin 3.6s linear infinite;}
+  .orb::after{content:'';position:absolute;top:50%;left:50%;width:5px;height:5px;margin:-2.5px;border-radius:50%;background:#fff;box-shadow:0 0 8px 1px rgba(255,255,255,.7);}
+  .nav-right{margin-left:auto;display:flex;align-items:center;gap:14px;font-size:13.5px;}
+  .nav-right a.home{color:var(--mute);} .nav-right a.home:hover{color:var(--ink);text-decoration:none;}
+  .lang{display:inline-flex;border:1px solid var(--edge);border-radius:8px;overflow:hidden;font-family:var(--mono);font-size:12px;}
+  .lang button{background:transparent;border:0;color:var(--mute);padding:6px 11px;cursor:pointer;font-family:inherit;font-size:inherit;transition:.18s;}
+  .lang button.on{background:var(--pulse);color:#04101f;font-weight:700;}
+
+  /* header */
+  header.hd{padding:54px 0 30px;border-bottom:1px solid var(--edge);}
+  header.hd h1{font-size:clamp(32px,5vw,46px);font-weight:700;letter-spacing:-.03em;margin:12px 0 10px;}
+  header.hd .meta{font-family:var(--mono);font-size:12.5px;color:var(--faint);}
+  .callout{display:flex;gap:13px;margin:26px 0 0;padding:16px 18px;border:1px solid rgba(34,224,161,.25);background:rgba(34,224,161,.06);border-radius:13px;font-size:14.5px;color:var(--mute);}
+  .callout .ci{flex-shrink:0;color:var(--signal);margin-top:1px;}
+  .callout b{color:var(--ink);}
+
+  /* layout: toc + body */
+  .layout{display:grid;grid-template-columns:210px 1fr;gap:48px;padding:42px 0 20px;align-items:start;}
+  @media(max-width:840px){.layout{grid-template-columns:1fr;gap:0;}.toc{display:none;}}
+  .toc{position:sticky;top:88px;}
+  .toc .tl{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);margin-bottom:12px;}
+  .toc a{display:block;font-size:13.5px;color:var(--mute);padding:6px 0 6px 13px;border-left:2px solid var(--edge);transition:.16s;}
+  .toc a:hover{color:var(--ink);border-color:var(--faint);text-decoration:none;}
+  .toc a.act{color:var(--ink);border-color:var(--signal);}
+
+  /* sections */
+  section.sx{padding:6px 0 34px;scroll-margin-top:84px;}
+  section.sx h2{display:flex;align-items:baseline;gap:12px;font-size:21px;font-weight:600;letter-spacing:-.01em;margin:0 0 14px;}
+  section.sx h2 .n{font-family:var(--mono);font-size:13px;color:var(--pulse);}
+  section.sx p{color:var(--mute);font-size:15px;margin:0 0 14px;}
+  section.sx b{color:var(--ink);font-weight:600;}
+  ul.cl{list-style:none;margin:0 0 14px;padding:0;}
+  ul.cl li{position:relative;padding:7px 0 7px 22px;color:var(--mute);font-size:14.5px;border-top:1px solid rgba(31,44,73,.55);}
+  ul.cl li:first-child{border-top:0;}
+  ul.cl li::before{content:'';position:absolute;left:2px;top:15px;width:6px;height:6px;border-radius:50%;background:var(--signal);}
+  ul.cl li b{color:var(--ink);}
+
+  .chip{display:inline-block;font-family:var(--mono);font-size:9.5px;letter-spacing:.08em;color:var(--violet);border:1px solid rgba(124,92,255,.4);border-radius:5px;padding:1px 6px;vertical-align:middle;margin-left:6px;}
+
+  /* table */
+  .tbl{border:1px solid var(--edge);border-radius:14px;overflow:hidden;margin:6px 0 8px;}
+  .tbl .tr{display:grid;grid-template-columns:1fr 1.2fr 1.3fr;}
+  .tbl .tr+.tr{border-top:1px solid var(--edge);}
+  .tbl .th,.tbl .td{padding:13px 15px;font-size:13.5px;}
+  .tbl .thead{background:rgba(120,140,180,.06);}
+  .tbl .th{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);}
+  .tbl .td{color:var(--mute);border-left:1px solid var(--edge);}
+  .tbl .td:first-child{border-left:0;color:var(--ink);font-weight:500;}
+  .tbl .td b{color:var(--ink);}
+  .tbl .svc code{font-size:11px;display:inline-block;margin-top:5px;background:transparent;border:0;padding:0;color:var(--faint);}
+  @media(max-width:620px){.tbl .tr{grid-template-columns:1fr;}.tbl .td{border-left:0;border-top:1px solid rgba(31,44,73,.5);}.tbl .thead{display:none;}.tbl .td::before{content:attr(data-l);display:block;font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);margin-bottom:3px;}}
+
+  footer{border-top:1px solid var(--edge);margin-top:30px;padding:30px 0 56px;font-family:var(--mono);font-size:12px;color:var(--faint);line-height:1.8;}
+  footer a{color:var(--mute);}
+  .doc[hidden]{display:none;}
+
+  @keyframes spin{to{transform:rotate(360deg);}}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;}}
+  :focus-visible{outline:2px solid var(--pulse);outline-offset:3px;border-radius:4px;}
 </style>
 </head>
 <body>
 
-<!-- ════════════════════════ TÜRKÇE ════════════════════════ -->
-<h1>Gizlilik Politikası — Tracked</h1>
-<p class="muted">Tracked — Roblox Route Optimizer · Son güncelleme: 19 Haziran 2026</p>
+<div class="nav"><div class="wrap nav-in">
+  <a class="brand" href="index.html"><span class="orb"></span>Tracked</a>
+  <div class="nav-right">
+    <a class="home" href="index.html" id="t-home">← Home</a>
+    <div class="lang" role="group" aria-label="Language">
+      <button id="lg-en" class="on" onclick="setLang('en')">EN</button>
+      <button id="lg-tr" onclick="setLang('tr')">TR</button>
+    </div>
+  </div>
+</div></div>
 
-<div class="lang-note">Bu eklenti <b>backend kullanmaz</b>. Verileriniz bizim (geliştiricinin) sunucularına <b>gönderilmez, saklanmaz veya satılmaz</b>. Tüm ayar ve geçmiş yalnızca cihazınızda (<code>chrome.storage.local</code>) tutulur.</div>
+<main class="wrap">
 
-<h2>1. Topladığımız / İşlediğimiz veriler</h2>
-<p>Tracked'in <b>kendi sunucusu yoktur</b>; hiçbir kişisel veriyi toplamaz, profilleştirmez veya üçüncü taraflara satmaz. Eklenti yalnızca özelliklerini çalıştırmak için aşağıdaki verileri <b>cihazınızda yerel olarak</b> işler:</p>
-<ul>
-  <li><b>Ayarlar ve tercihler</b> (tema, bölge şablonu, açık/kapalı özellikler) — yerel.</li>
-  <li><b>Favori oyunlar, son ziyaret edilenler, kaydedilen sunucular</b> — yerel.</li>
-  <li><b>Ölçülen ping geçmişi</b> (gerçek gecikme ölçümleri) — yerel.</li>
-  <li><b>Lisans durumu</b> (Tracked Plus) — yerel; doğrulama için bkz. §3.</li>
-</ul>
+<!-- ═══════════ ENGLISH ═══════════ -->
+<div class="doc" data-lang="en">
+  <header class="hd">
+    <span class="eyebrow">// legal · privacy</span>
+    <h1>Privacy <span class="grad">Policy</span></h1>
+    <div class="meta">Tracked — Roblox Route Optimizer · Last updated 19 June 2026</div>
+    <div class="callout">
+      <span class="ci"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>
+      <div><b>Tracked has no backend.</b> Your data is never sent to, stored on, or sold by us (the developer). Every setting and history entry lives only on your device, in <code>chrome.storage.local</code>.</div>
+    </div>
+  </header>
 
-<h2>2. Üçüncü taraf servislerine giden istekler</h2>
-<p>Eklenti, özellikleri için doğrudan tarayıcınızdan aşağıdaki servislere istek atar. Bu isteklerin içeriği yalnızca ilgili özelliğin gerektirdiği kadardır:</p>
-<table>
-  <tr><th>Servis</th><th>Ne için</th><th>Ne gönderilir</th></tr>
-  <tr><td>Roblox API'leri (<code>*.roblox.com</code>)</td><td>Sunucu listesi, oyun/kullanıcı/arkadaş bilgisi, katılma</td><td>Standart Roblox istekleri (oturumunuz tarayıcınızda kalır)</td></tr>
-  <tr><td>AWS S3 / Cloudflare</td><td>Bölgesel <b>ping ölçümü</b> (gecikme)</td><td>Yalnızca zamanlama amaçlı boş istek; kişisel veri yok</td></tr>
-  <tr><td>geojs.io · ipapi.co · ipinfo.io</td><td>IP tabanlı <b>yaklaşık konum</b> (en yakın bölgeyi seçmek için)</td><td>IP adresiniz (bu servisin politikasına tabidir)</td></tr>
-  <tr><td>Rolimons (<code>rolimons.com</code>) <span class="tag">PLUS</span></td><td>Trade / envanter item <b>değerleri</b></td><td>Genel item ID'leri (kişisel veri yok)</td></tr>
-  <tr><td>Lemon Squeezy <span class="tag">PLUS</span></td><td>Abonelik <b>lisans doğrulama</b></td><td>Girdiğiniz lisans anahtarı + anonim cihaz örneği adı</td></tr>
-  <tr><td>YouTube · Spotify <span class="tag">PLUS</span></td><td>"Şu An Çalıyor" müzik widget'ı</td><td>Yalnızca <b>açıkken</b>; çalan medyanın başlık/sanatçı bilgisi cihazınızda okunur, dışarı gönderilmez</td></tr>
-</table>
-<p class="muted">IP-konum servisleri ve müzik siteleri kendi gizlilik politikalarına tabidir. Tracked bu servislere kimliğinizi ilişkilendiren ekstra bilgi göndermez.</p>
+  <div class="layout">
+    <aside class="toc">
+      <div class="tl">Contents</div>
+      <a href="#en1">01 · What we process</a>
+      <a href="#en2">02 · Third-party requests</a>
+      <a href="#en3">03 · Tracked Plus</a>
+      <a href="#en4">04 · Permissions</a>
+      <a href="#en5">05 · Keeping & deleting</a>
+      <a href="#en6">06 · Children</a>
+      <a href="#en7">07 · Changes</a>
+      <a href="#en8">08 · Contact</a>
+    </aside>
 
-<h2>3. Tracked Plus (abonelik) <span class="tag">PLUS</span></h2>
-<p>Plus aboneliği <b>Lemon Squeezy</b> üzerinden yönetilir. Ödeme bilgileriniz doğrudan Lemon Squeezy tarafından işlenir; Tracked <b>kart/ödeme bilginizi görmez veya saklamaz</b>. Eklenti yalnızca girdiğiniz <b>lisans anahtarını</b> doğrulamak için Lemon Squeezy'nin lisans API'sine gönderir ve sonucu (aktif/değil) cihazınızda saklar. Çevrimdışıyken son bilinen durum bir süre korunur.</p>
+    <article class="body">
+      <section class="sx" id="en1">
+        <h2><span class="n">01</span>What we process</h2>
+        <p>Tracked has no server of its own. It does not collect, profile, or sell personal data. It only processes the items below <b>locally on your device</b>, purely to make its features work:</p>
+        <ul class="cl">
+          <li><b>Settings &amp; preferences</b> — theme, region template, which features are switched on.</li>
+          <li><b>Favorite games, recently visited games, and saved servers.</b></li>
+          <li><b>Measured ping history</b> — your real latency readings over time.</li>
+          <li><b>License status</b> for Tracked Plus — see section 03 for how it's checked.</li>
+        </ul>
+      </section>
 
-<h2>4. İzinler neden isteniyor?</h2>
-<ul>
-  <li><b>Sekme / komut dosyası (tabs, scripting)</b> — sunucuya katılmayı tetiklemek ve Roblox sayfasına arayüz (bar, panel) eklemek için.</li>
-  <li><b>Site erişimi (host)</b> — Roblox API'leri, ping ölçüm noktaları, item-değer ve (açıksa) müzik servisleriyle konuşmak için. Veriler dışarıya pazarlanmaz.</li>
-  <li><b>Bildirimler</b> — Sunucu Bekçisi ve yeniden bağlanma uyarıları için.</li>
-  <li><b>Alarmlar / depolama</b> — arka plan kontrolleri ve yerel ayar saklama için.</li>
-</ul>
+      <section class="sx" id="en2">
+        <h2><span class="n">02</span>Requests to third-party services</h2>
+        <p>To do its job, Tracked talks directly from your browser to the services below. Each request carries only what that feature needs — nothing more.</p>
+        <div class="tbl">
+          <div class="tr thead"><div class="th">Service</div><div class="th">Purpose</div><div class="th">What is sent</div></div>
+          <div class="tr"><div class="td svc" data-l="Service">Roblox APIs<br><code>*.roblox.com</code></div><div class="td" data-l="Purpose">Server lists, game / user / friend info, and joining a server.</div><div class="td" data-l="Sent">Standard Roblox requests — your login stays in your browser.</div></div>
+          <div class="tr"><div class="td svc" data-l="Service">AWS S3 / Cloudflare</div><div class="td" data-l="Purpose">Regional <b>ping measurement</b> (latency).</div><div class="td" data-l="Sent">Timing-only empty requests. No personal data.</div></div>
+          <div class="tr"><div class="td svc" data-l="Service">geojs.io · ipapi.co · ipinfo.io</div><div class="td" data-l="Purpose">Approximate location from your IP, to pick the nearest region.</div><div class="td" data-l="Sent">Your IP address — handled under that service's own policy.</div></div>
+          <div class="tr"><div class="td svc" data-l="Service">Rolimons <code>rolimons.com</code><span class="chip">PLUS</span></div><div class="td" data-l="Purpose">Inventory item <b>values</b>.</div><div class="td" data-l="Sent">Public item IDs only. No personal data.</div></div>
+          <div class="tr"><div class="td svc" data-l="Service">Lemon Squeezy<span class="chip">PLUS</span></div><div class="td" data-l="Purpose">Subscription <b>license check</b>.</div><div class="td" data-l="Sent">The license key you enter + an anonymous device name.</div></div>
+          <div class="tr"><div class="td svc" data-l="Service">YouTube · Spotify</div><div class="td" data-l="Purpose">The "Now Playing" music widget.</div><div class="td" data-l="Sent">Only when you turn it on. The track's title and artist are read <b>on your device</b> and not sent anywhere.</div></div>
+        </div>
+        <p>The IP-location services and music sites are governed by their own privacy policies. Tracked adds no identifying information of its own to those requests.</p>
+      </section>
 
-<h2>5. Veri saklama ve silme</h2>
-<p>Tüm veriler cihazınızdadır. Eklentiyi kaldırdığınızda yerel verileri silinir. Dilediğiniz zaman eklenti ayarlarından geçmişi/favorileri temizleyebilirsiniz.</p>
+      <section class="sx" id="en3">
+        <h2><span class="n">03</span>Tracked Plus<span class="chip">PLUS</span></h2>
+        <p>Plus is handled by <b>Lemon Squeezy</b>. Your payment details go straight to Lemon Squeezy — Tracked never sees or stores your card or payment information. The extension only sends the <b>license key</b> you enter to Lemon Squeezy to confirm it's valid, then stores the result (active or not) on your device. If you go offline, the last known status is kept for a short grace period.</p>
+      </section>
 
-<h2>6. Çocukların gizliliği</h2>
-<p>Tracked kişisel veri toplamaz. Roblox'un kendi yaş/kullanım kurallarına tabidir.</p>
+      <section class="sx" id="en4">
+        <h2><span class="n">04</span>Why each permission is asked</h2>
+        <ul class="cl">
+          <li><b>Tabs &amp; scripting</b> — to trigger joining a server and to add Tracked's interface (the bar and panels) onto Roblox pages.</li>
+          <li><b>Site access</b> — to reach Roblox APIs, ping endpoints, item-value services, and the music services when you enable them. Nothing is marketed or sold.</li>
+          <li><b>Notifications</b> — for Server Watcher and reconnect alerts.</li>
+          <li><b>Alarms &amp; storage</b> — for background checks and saving your settings locally.</li>
+        </ul>
+      </section>
 
-<h2>7. Değişiklikler</h2>
-<p>Bu politika güncellenebilir; önemli değişiklikler sürüm notlarında belirtilir.</p>
+      <section class="sx" id="en5">
+        <h2><span class="n">05</span>Keeping &amp; deleting data</h2>
+        <p>Everything lives on your device. Uninstalling Tracked deletes its local data, and you can clear your history and favorites anytime from the extension's settings.</p>
+      </section>
 
-<h2>8. İletişim</h2>
-<p>Sorular için: <code>[buraya iletişim e-postanı koy]</code></p>
+      <section class="sx" id="en6">
+        <h2><span class="n">06</span>Children's privacy</h2>
+        <p>Tracked collects no personal data and follows Roblox's own age and usage rules.</p>
+      </section>
 
-<hr>
+      <section class="sx" id="en7">
+        <h2><span class="n">07</span>Changes to this policy</h2>
+        <p>We may update this policy over time. Significant changes are noted in the extension's release notes.</p>
+      </section>
 
-<!-- ════════════════════════ ENGLISH ════════════════════════ -->
-<h1>Privacy Policy — Tracked</h1>
-<p class="muted">Tracked — Roblox Route Optimizer · Last updated: June 19, 2026</p>
+      <section class="sx" id="en8">
+        <h2><span class="n">08</span>Contact</h2>
+        <p>Questions about your privacy? Email <a href="mailto:slayer38tr@gmail.com">slayer38tr@gmail.com</a>.</p>
+      </section>
+    </article>
+  </div>
+</div>
 
-<div class="lang-note">This extension has <b>no backend</b>. Your data is <b>never sent to, stored on, or sold by us</b> (the developer). All settings and history stay only on your device (<code>chrome.storage.local</code>).</div>
+<!-- ═══════════ TÜRKÇE ═══════════ -->
+<div class="doc" data-lang="tr" hidden>
+  <header class="hd">
+    <span class="eyebrow">// yasal · gizlilik</span>
+    <h1>Gizlilik <span class="grad">Politikası</span></h1>
+    <div class="meta">Tracked — Roblox Route Optimizer · Son güncelleme 19 Haziran 2026</div>
+    <div class="callout">
+      <span class="ci"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>
+      <div><b>Tracked'in backend'i yoktur.</b> Verileriniz bize (geliştiriciye) gönderilmez, bizde saklanmaz veya satılmaz. Tüm ayar ve geçmiş yalnızca cihazınızda, <code>chrome.storage.local</code> içinde tutulur.</div>
+    </div>
+  </header>
 
-<h2>1. Data we process</h2>
-<p>Tracked has <b>no server of its own</b>; it does not collect, profile, or sell any personal data. It processes the following <b>locally on your device</b> only to power its features:</p>
-<ul>
-  <li><b>Settings &amp; preferences</b> (theme, region template, feature toggles) — local.</li>
-  <li><b>Favorite games, recently visited, saved servers</b> — local.</li>
-  <li><b>Measured ping history</b> (real latency measurements) — local.</li>
-  <li><b>License status</b> (Tracked Plus) — local; validation in §3.</li>
-</ul>
+  <div class="layout">
+    <aside class="toc">
+      <div class="tl">İçindekiler</div>
+      <a href="#tr1">01 · İşlenen veriler</a>
+      <a href="#tr2">02 · Üçüncü taraf istekleri</a>
+      <a href="#tr3">03 · Tracked Plus</a>
+      <a href="#tr4">04 · İzinler</a>
+      <a href="#tr5">05 · Saklama & silme</a>
+      <a href="#tr6">06 · Çocuklar</a>
+      <a href="#tr7">07 · Değişiklikler</a>
+      <a href="#tr8">08 · İletişim</a>
+    </aside>
 
-<h2>2. Requests to third-party services</h2>
-<p>For its features, the extension makes requests directly from your browser to the services below, limited to what each feature needs:</p>
-<table>
-  <tr><th>Service</th><th>Purpose</th><th>What is sent</th></tr>
-  <tr><td>Roblox APIs (<code>*.roblox.com</code>)</td><td>Server lists, game/user/friend info, joining</td><td>Standard Roblox requests (your session stays in your browser)</td></tr>
-  <tr><td>AWS S3 / Cloudflare</td><td>Regional <b>ping measurement</b> (latency)</td><td>Timing-only empty requests; no personal data</td></tr>
-  <tr><td>geojs.io · ipapi.co · ipinfo.io</td><td>IP-based <b>approximate location</b> (to pick nearest region)</td><td>Your IP address (subject to that service's policy)</td></tr>
-  <tr><td>Rolimons (<code>rolimons.com</code>) <span class="tag">PLUS</span></td><td>Trade / inventory item <b>values</b></td><td>Public item IDs (no personal data)</td></tr>
-  <tr><td>Lemon Squeezy <span class="tag">PLUS</span></td><td>Subscription <b>license validation</b></td><td>The license key you enter + an anonymous device instance name</td></tr>
-  <tr><td>YouTube · Spotify <span class="tag">PLUS</span></td><td>"Now Playing" music widget</td><td>Only <b>when enabled</b>; media title/artist is read on your device, not sent out</td></tr>
-</table>
-<p class="muted">IP-geolocation services and music sites are governed by their own privacy policies. Tracked sends no extra identifying info to them.</p>
+    <article class="body">
+      <section class="sx" id="tr1">
+        <h2><span class="n">01</span>İşlediğimiz veriler</h2>
+        <p>Tracked'in kendi sunucusu yoktur. Hiçbir kişisel veriyi toplamaz, profilleştirmez veya satmaz. Yalnızca özellikleri çalışsın diye aşağıdakileri <b>cihazınızda yerel olarak</b> işler:</p>
+        <ul class="cl">
+          <li><b>Ayarlar ve tercihler</b> — tema, bölge şablonu, hangi özelliklerin açık olduğu.</li>
+          <li><b>Favori oyunlar, son ziyaret edilenler ve kaydedilen sunucular.</b></li>
+          <li><b>Ölçülen ping geçmişi</b> — zaman içindeki gerçek gecikme değerleriniz.</li>
+          <li><b>Lisans durumu</b> (Tracked Plus) — nasıl doğrulandığı için 03'e bakın.</li>
+        </ul>
+      </section>
 
-<h2>3. Tracked Plus (subscription) <span class="tag">PLUS</span></h2>
-<p>Plus is managed via <b>Lemon Squeezy</b>. Payment details are handled directly by Lemon Squeezy; Tracked <b>never sees or stores your card/payment info</b>. The extension only sends the <b>license key</b> you enter to Lemon Squeezy's license API for validation and stores the result (active/not) on your device. The last known status is kept for a grace period while offline.</p>
+      <section class="sx" id="tr2">
+        <h2><span class="n">02</span>Üçüncü taraf servislerine giden istekler</h2>
+        <p>İşini yapmak için Tracked, doğrudan tarayıcınızdan aşağıdaki servislerle konuşur. Her istek yalnızca o özelliğin ihtiyacı olanı taşır — fazlasını değil.</p>
+        <div class="tbl">
+          <div class="tr thead"><div class="th">Servis</div><div class="th">Ne için</div><div class="th">Ne gönderilir</div></div>
+          <div class="tr"><div class="td svc" data-l="Servis">Roblox API'leri<br><code>*.roblox.com</code></div><div class="td" data-l="Ne için">Sunucu listesi, oyun / kullanıcı / arkadaş bilgisi ve sunucuya katılma.</div><div class="td" data-l="Gönderilen">Standart Roblox istekleri — oturumunuz tarayıcınızda kalır.</div></div>
+          <div class="tr"><div class="td svc" data-l="Servis">AWS S3 / Cloudflare</div><div class="td" data-l="Ne için">Bölgesel <b>ping ölçümü</b> (gecikme).</div><div class="td" data-l="Gönderilen">Yalnızca zamanlama amaçlı boş istek. Kişisel veri yok.</div></div>
+          <div class="tr"><div class="td svc" data-l="Servis">geojs.io · ipapi.co · ipinfo.io</div><div class="td" data-l="Ne için">En yakın bölgeyi seçmek için IP'nizden yaklaşık konum.</div><div class="td" data-l="Gönderilen">IP adresiniz — o servisin kendi politikasına tabidir.</div></div>
+          <div class="tr"><div class="td svc" data-l="Servis">Rolimons <code>rolimons.com</code><span class="chip">PLUS</span></div><div class="td" data-l="Ne için">Envanter item <b>değerleri</b>.</div><div class="td" data-l="Gönderilen">Yalnızca genel item ID'leri. Kişisel veri yok.</div></div>
+          <div class="tr"><div class="td svc" data-l="Servis">Lemon Squeezy<span class="chip">PLUS</span></div><div class="td" data-l="Ne için">Abonelik <b>lisans doğrulaması</b>.</div><div class="td" data-l="Gönderilen">Girdiğiniz lisans anahtarı + anonim bir cihaz adı.</div></div>
+          <div class="tr"><div class="td svc" data-l="Servis">YouTube · Spotify</div><div class="td" data-l="Ne için">"Şu An Çalıyor" müzik widget'ı.</div><div class="td" data-l="Gönderilen">Yalnızca açtığınızda. Parçanın başlık ve sanatçısı <b>cihazınızda</b> okunur, hiçbir yere gönderilmez.</div></div>
+        </div>
+        <p>IP-konum servisleri ve müzik siteleri kendi gizlilik politikalarına tabidir. Tracked bu isteklere kendi adına hiçbir kimlik bilgisi eklemez.</p>
+      </section>
 
-<h2>4. Why permissions are requested</h2>
-<ul>
-  <li><b>Tabs / scripting</b> — to trigger joining a server and to add the in-page UI (bar, panels) on Roblox.</li>
-  <li><b>Host access</b> — to talk to Roblox APIs, ping endpoints, item-value and (if enabled) music services. Data is not marketed externally.</li>
-  <li><b>Notifications</b> — for Server Watcher and reconnect alerts.</li>
-  <li><b>Alarms / storage</b> — for background checks and local settings.</li>
-</ul>
+      <section class="sx" id="tr3">
+        <h2><span class="n">03</span>Tracked Plus<span class="chip">PLUS</span></h2>
+        <p>Plus, <b>Lemon Squeezy</b> tarafından yönetilir. Ödeme bilgileriniz doğrudan Lemon Squeezy'ye gider — Tracked kart veya ödeme bilginizi asla görmez ya da saklamaz. Eklenti yalnızca girdiğiniz <b>lisans anahtarını</b> geçerli mi diye Lemon Squeezy'ye gönderir, sonucu (aktif ya da değil) cihazınızda saklar. Çevrimdışı olursanız son bilinen durum kısa bir süre korunur.</p>
+      </section>
 
-<h2>5. Retention &amp; deletion</h2>
-<p>All data is on your device. Uninstalling the extension deletes its local data. You can clear history/favorites anytime from settings.</p>
+      <section class="sx" id="tr4">
+        <h2><span class="n">04</span>İzinler neden isteniyor?</h2>
+        <ul class="cl">
+          <li><b>Sekme &amp; komut dosyası</b> — sunucuya katılmayı tetiklemek ve Tracked arayüzünü (bar ve paneller) Roblox sayfalarına eklemek için.</li>
+          <li><b>Site erişimi</b> — Roblox API'lerine, ping noktalarına, item-değer servislerine ve açtığınızda müzik servislerine ulaşmak için. Hiçbir şey pazarlanmaz veya satılmaz.</li>
+          <li><b>Bildirimler</b> — Sunucu Bekçisi ve yeniden bağlanma uyarıları için.</li>
+          <li><b>Alarmlar &amp; depolama</b> — arka plan kontrolleri ve ayarlarınızı yerel saklamak için.</li>
+        </ul>
+      </section>
 
-<h2>6. Children's privacy</h2>
-<p>Tracked collects no personal data and is subject to Roblox's own age/use rules.</p>
+      <section class="sx" id="tr5">
+        <h2><span class="n">05</span>Verilerin saklanması &amp; silinmesi</h2>
+        <p>Her şey cihazınızdadır. Tracked'i kaldırdığınızda yerel verileri silinir; geçmişi ve favorileri istediğiniz zaman eklenti ayarlarından temizleyebilirsiniz.</p>
+      </section>
 
-<h2>7. Changes</h2>
-<p>This policy may be updated; significant changes are noted in release notes.</p>
+      <section class="sx" id="tr6">
+        <h2><span class="n">06</span>Çocukların gizliliği</h2>
+        <p>Tracked kişisel veri toplamaz ve Roblox'un kendi yaş ile kullanım kurallarına tabidir.</p>
+      </section>
 
-<h2>8. Contact</h2>
-<p>Questions: <code>[put your contact email here]</code></p>
+      <section class="sx" id="tr7">
+        <h2><span class="n">07</span>Bu politikadaki değişiklikler</h2>
+        <p>Bu politika zamanla güncellenebilir. Önemli değişiklikler eklentinin sürüm notlarında belirtilir.</p>
+      </section>
 
+      <section class="sx" id="tr8">
+        <h2><span class="n">08</span>İletişim</h2>
+        <p>Gizlilikle ilgili sorularınız için: <a href="mailto:slayer38tr@gmail.com">slayer38tr@gmail.com</a>.</p>
+      </section>
+    </article>
+  </div>
+</div>
+
+</main>
+
+<footer><div class="wrap">
+  Tracked — Roblox Route Optimizer · <a href="index.html" id="f-home">Home</a><br>
+  <span id="f-disc">Tracked is an independent tool and is not affiliated with Roblox Corporation.</span>
+</div></footer>
+
+<script>
+  var FOOT={en:{home:'Home',disc:'Tracked is an independent tool and is not affiliated with Roblox Corporation.',nhome:'← Home'},
+            tr:{home:'Ana sayfa',disc:'Tracked bağımsız bir araçtır; Roblox Corporation ile ilişkili değildir.',nhome:'← Ana sayfa'}};
+  function setLang(l){
+    document.documentElement.lang=l;
+    document.querySelectorAll('.doc').forEach(function(d){ d.hidden = (d.getAttribute('data-lang')!==l); });
+    document.getElementById('lg-en').classList.toggle('on',l==='en');
+    document.getElementById('lg-tr').classList.toggle('on',l==='tr');
+    document.getElementById('t-home').textContent=FOOT[l].nhome;
+    document.getElementById('f-home').textContent=FOOT[l].home;
+    document.getElementById('f-disc').textContent=FOOT[l].disc;
+    try{localStorage.setItem('tk_lang',l);}catch(_){}
+    syncToc();
+  }
+  // active TOC highlight (current visible doc)
+  var io;
+  function syncToc(){
+    if(io) io.disconnect();
+    var doc=document.querySelector('.doc:not([hidden])'); if(!doc) return;
+    var links={}; doc.querySelectorAll('.toc a').forEach(function(a){ links[a.getAttribute('href').slice(1)]=a; });
+    if(!('IntersectionObserver' in window)) return;
+    io=new IntersectionObserver(function(es){
+      es.forEach(function(e){ if(e.isIntersecting){ doc.querySelectorAll('.toc a').forEach(function(a){a.classList.remove('act');}); var a=links[e.target.id]; if(a)a.classList.add('act'); } });
+    },{rootMargin:'-80px 0px -65% 0px'});
+    doc.querySelectorAll('section.sx').forEach(function(s){ io.observe(s); });
+  }
+  setLang((function(){try{return localStorage.getItem('tk_lang')||'en';}catch(_){return 'en';}})());
+</script>
 </body>
 </html>
