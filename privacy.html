@@ -42,24 +42,19 @@
   .lang button.on{background:var(--pulse);color:#04101f;font-weight:700;}
 
   /* header */
-  header.hd{padding:54px 0 30px;border-bottom:1px solid var(--edge);}
+  header.hd{max-width:740px;margin:0 auto;padding:52px 0 26px;border-bottom:1px solid var(--edge);}
   header.hd h1{font-size:clamp(32px,5vw,46px);font-weight:700;letter-spacing:-.03em;margin:12px 0 10px;}
   header.hd .meta{font-family:var(--mono);font-size:12.5px;color:var(--faint);}
   .callout{display:flex;gap:13px;margin:26px 0 0;padding:16px 18px;border:1px solid rgba(34,224,161,.25);background:rgba(34,224,161,.06);border-radius:13px;font-size:14.5px;color:var(--mute);}
   .callout .ci{flex-shrink:0;color:var(--signal);margin-top:1px;}
   .callout b{color:var(--ink);}
 
-  /* layout: toc + body */
-  .layout{display:grid;grid-template-columns:210px 1fr;gap:48px;padding:42px 0 20px;align-items:start;}
-  @media(max-width:840px){.layout{grid-template-columns:1fr;gap:0;}.toc{display:none;}}
-  .toc{position:sticky;top:88px;}
-  .toc .tl{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);margin-bottom:12px;}
-  .toc a{display:block;font-size:13.5px;color:var(--mute);padding:6px 0 6px 13px;border-left:2px solid var(--edge);transition:.16s;}
-  .toc a:hover{color:var(--ink);border-color:var(--faint);text-decoration:none;}
-  .toc a.act{color:var(--ink);border-color:var(--signal);}
+  /* centered single column (no TOC — doc is short) */
+  .layout{max-width:740px;margin:0 auto;padding:26px 0 12px;}
 
   /* sections */
-  section.sx{padding:6px 0 34px;scroll-margin-top:84px;}
+  section.sx{padding:30px 0;scroll-margin-top:84px;border-top:1px solid rgba(31,44,73,.5);}
+  section.sx:first-child{border-top:0;padding-top:20px;}
   section.sx h2{display:flex;align-items:baseline;gap:12px;font-size:21px;font-weight:600;letter-spacing:-.01em;margin:0 0 14px;}
   section.sx h2 .n{font-family:var(--mono);font-size:13px;color:var(--pulse);}
   section.sx p{color:var(--mute);font-size:15px;margin:0 0 14px;}
@@ -122,18 +117,6 @@
   </header>
 
   <div class="layout">
-    <aside class="toc">
-      <div class="tl">Contents</div>
-      <a href="#en1">01 · What we process</a>
-      <a href="#en2">02 · Third-party requests</a>
-      <a href="#en3">03 · Tracked Plus</a>
-      <a href="#en4">04 · Permissions</a>
-      <a href="#en5">05 · Keeping & deleting</a>
-      <a href="#en6">06 · Children</a>
-      <a href="#en7">07 · Changes</a>
-      <a href="#en8">08 · Contact</a>
-    </aside>
-
     <article class="body">
       <section class="sx" id="en1">
         <h2><span class="n">01</span>What we process</h2>
@@ -212,18 +195,6 @@
   </header>
 
   <div class="layout">
-    <aside class="toc">
-      <div class="tl">İçindekiler</div>
-      <a href="#tr1">01 · İşlenen veriler</a>
-      <a href="#tr2">02 · Üçüncü taraf istekleri</a>
-      <a href="#tr3">03 · Tracked Plus</a>
-      <a href="#tr4">04 · İzinler</a>
-      <a href="#tr5">05 · Saklama & silme</a>
-      <a href="#tr6">06 · Çocuklar</a>
-      <a href="#tr7">07 · Değişiklikler</a>
-      <a href="#tr8">08 · İletişim</a>
-    </aside>
-
     <article class="body">
       <section class="sx" id="tr1">
         <h2><span class="n">01</span>İşlediğimiz veriler</h2>
@@ -308,19 +279,6 @@
     document.getElementById('f-home').textContent=FOOT[l].home;
     document.getElementById('f-disc').textContent=FOOT[l].disc;
     try{localStorage.setItem('tk_lang',l);}catch(_){}
-    syncToc();
-  }
-  // active TOC highlight (current visible doc)
-  var io;
-  function syncToc(){
-    if(io) io.disconnect();
-    var doc=document.querySelector('.doc:not([hidden])'); if(!doc) return;
-    var links={}; doc.querySelectorAll('.toc a').forEach(function(a){ links[a.getAttribute('href').slice(1)]=a; });
-    if(!('IntersectionObserver' in window)) return;
-    io=new IntersectionObserver(function(es){
-      es.forEach(function(e){ if(e.isIntersecting){ doc.querySelectorAll('.toc a').forEach(function(a){a.classList.remove('act');}); var a=links[e.target.id]; if(a)a.classList.add('act'); } });
-    },{rootMargin:'-80px 0px -65% 0px'});
-    doc.querySelectorAll('section.sx').forEach(function(s){ io.observe(s); });
   }
   setLang((function(){try{return localStorage.getItem('tk_lang')||'en';}catch(_){return 'en';}})());
 </script>
