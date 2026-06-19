@@ -137,14 +137,25 @@
   .chip.plus{color:var(--violet);border:1px solid rgba(124,92,255,.4);}
   .chip.free{color:var(--signal);border:1px solid rgba(34,224,161,.35);}
 
-  /* how it works */
-  .flow{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;}
-  @media(max-width:820px){.flow{grid-template-columns:repeat(2,1fr);}}
-  @media(max-width:460px){.flow{grid-template-columns:1fr;}}
-  .step{border:1px solid var(--edge);border-radius:14px;padding:22px 18px;background:rgba(16,26,48,.4);position:relative;}
-  .step .sn{font-family:var(--mono);font-size:12px;color:var(--signal);border:1px solid rgba(34,224,161,.3);border-radius:6px;padding:2px 8px;}
-  .step h4{margin:14px 0 6px;font-size:16px;font-weight:600;}
-  .step p{margin:0;font-size:13px;color:var(--mute);}
+  /* how it works — signal pipeline */
+  .pipe{position:relative;display:grid;grid-template-columns:repeat(4,1fr);gap:18px;}
+  .pipe-line{position:absolute;top:17px;left:12.5%;right:12.5%;height:2px;border-radius:2px;overflow:hidden;background:linear-gradient(90deg,var(--signal),var(--pulse) 55%,var(--violet));opacity:.4;}
+  .pipe-line::after{content:'';position:absolute;top:0;left:0;width:34%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.85),transparent);animation:pflow 3.6s linear infinite;}
+  .pstep{position:relative;text-align:center;}
+  .pdot{width:36px;height:36px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:13px;font-weight:700;color:#06140d;background:var(--signal);box-shadow:0 0 0 6px var(--abyss),0 0 18px rgba(34,224,161,.45);position:relative;z-index:1;margin-bottom:20px;}
+  .pstep:nth-of-type(3) .pdot{background:var(--pulse);color:#04101f;box-shadow:0 0 0 6px var(--abyss),0 0 18px rgba(77,141,255,.45);}
+  .pstep:nth-of-type(4) .pdot{background:var(--violet);color:#0c0720;box-shadow:0 0 0 6px var(--abyss),0 0 18px rgba(124,92,255,.45);}
+  .pstep h4{font-size:16.5px;font-weight:600;margin:0 0 7px;}
+  .pstep p{font-size:13px;color:var(--mute);margin:0 auto;max-width:210px;line-height:1.5;}
+  @media(max-width:680px){
+    .pipe{grid-template-columns:1fr;gap:0;}
+    .pipe-line{display:none;}
+    .pstep{text-align:left;display:grid;grid-template-columns:36px 1fr;column-gap:16px;padding:16px 0;border-top:1px solid var(--edge);}
+    .pstep:first-of-type{border-top:0;}
+    .pdot{margin:0;box-shadow:0 0 0 4px var(--abyss),0 0 14px rgba(34,224,161,.4);}
+    .pstep h4{margin:7px 0 0;}
+    .pstep p{grid-column:2;max-width:none;margin:4px 0 0;}
+  }
 
   /* pricing */
   .plans{display:grid;grid-template-columns:1fr 1fr;gap:18px;max-width:780px;}
@@ -193,6 +204,7 @@
   @keyframes spin{to{transform:rotate(360deg);}}
   @keyframes ping{0%{box-shadow:0 0 0 0 rgba(34,224,161,.5);}70%{box-shadow:0 0 0 9px rgba(34,224,161,0);}100%{box-shadow:0 0 0 0 rgba(34,224,161,0);}}
   @keyframes flow{to{stroke-dashoffset:-26;}}
+  @keyframes pflow{from{transform:translateX(-120%);}to{transform:translateX(360%);}}
   @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;}.route{stroke-dashoffset:0!important;}.reveal{opacity:1!important;transform:none!important;}}
 </style>
 <noscript><style>.reveal{opacity:1!important;transform:none!important;}</style></noscript>
@@ -336,11 +348,12 @@
       <h2 data-en="How a join actually works" data-tr="Bir katılma gerçekte nasıl olur">How a join actually works</h2>
       <p data-en="Four steps, every time you open a game — most of it before you even click." data-tr="Her oyun açtığında dört adım — çoğu sen tıklamadan biter.">Four steps, every time you open a game — most of it before you even click.</p>
     </div>
-    <div class="flow reveal">
-      <div class="step"><span class="sn">01</span><h4 data-en="Measure" data-tr="Ölç">Measure</h4><p data-en="Pings 20 global probes in the background and learns your real latency to every region." data-tr="Arka planda 20 küresel proba ping atar ve her bölgeye gerçek gecikmeni öğrenir.">Pings 20 global probes in the background and learns your real latency to every region.</p></div>
-      <div class="step"><span class="sn">02</span><h4 data-en="Locate" data-tr="Konumla">Locate</h4><p data-en="Resolves each server's true datacenter from its IP and matches it to the nearest probe." data-tr="Her sunucunun gerçek datacenter'ını IP'sinden çözer ve en yakın proba eşler.">Resolves each server's true datacenter from its IP and matches it to the nearest probe.</p></div>
-      <div class="step"><span class="sn">03</span><h4 data-en="Route" data-tr="Yönlendir">Route</h4><p data-en="Ranks open servers by real distance and FPS, then picks the shortest route in." data-tr="Açık sunucuları gerçek mesafe ve FPS'e göre sıralar, sonra en kısa rotayı seçer.">Ranks open servers by real distance and FPS, then picks the shortest route in.</p></div>
-      <div class="step"><span class="sn">04</span><h4 data-en="Join & stay" data-tr="Katıl & kal">Join &amp; stay</h4><p data-en="Drops you into the best server — and Auto-Reconnect puts you right back if you crash." data-tr="Seni en iyi sunucuya sokar — atılırsan Auto-Reconnect anında geri koyar.">Drops you into the best server — and Auto-Reconnect puts you right back if you crash.</p></div>
+    <div class="pipe reveal">
+      <span class="pipe-line" aria-hidden="true"></span>
+      <div class="pstep"><span class="pdot">01</span><h4 data-en="Measure" data-tr="Ölç">Measure</h4><p data-en="Pings 20 global probes in the background and learns your real latency to every region." data-tr="Arka planda 20 küresel proba ping atar ve her bölgeye gerçek gecikmeni öğrenir.">Pings 20 global probes in the background and learns your real latency to every region.</p></div>
+      <div class="pstep"><span class="pdot">02</span><h4 data-en="Locate" data-tr="Konumla">Locate</h4><p data-en="Resolves each server's true datacenter from its IP and matches it to the nearest probe." data-tr="Her sunucunun gerçek datacenter'ını IP'sinden çözer ve en yakın proba eşler.">Resolves each server's true datacenter from its IP and matches it to the nearest probe.</p></div>
+      <div class="pstep"><span class="pdot">03</span><h4 data-en="Route" data-tr="Yönlendir">Route</h4><p data-en="Ranks open servers by real distance and FPS, then picks the shortest route in." data-tr="Açık sunucuları gerçek mesafe ve FPS'e göre sıralar, sonra en kısa rotayı seçer.">Ranks open servers by real distance and FPS, then picks the shortest route in.</p></div>
+      <div class="pstep"><span class="pdot">04</span><h4 data-en="Join & stay" data-tr="Katıl & kal">Join &amp; stay</h4><p data-en="Drops you into the best server — and Auto-Reconnect puts you right back if you crash." data-tr="Seni en iyi sunucuya sokar — atılırsan Auto-Reconnect anında geri koyar.">Drops you into the best server — and Auto-Reconnect puts you right back if you crash.</p></div>
     </div>
   </section>
 
