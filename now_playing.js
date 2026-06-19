@@ -44,7 +44,6 @@
 
   // ── State ──
   let _enabled = false, _minimized = false;
-  let _lockedOn = false, _lockedTimer = null; // Plus yok: kilitli teaser akışı (cheap mediaActive yoklama)
   let _media = null, _tabId = null;
   let _pos = 0, _dur = 0, _posAt = 0, _playing = false;   // ilerleme interpolasyonu
   let _trackKey = '';   // host|title|artist — yalnız bu değişince tam render
@@ -667,45 +666,11 @@
   function start() { if (_enabled) return; _enabled = true; injectStyles(); poll(); }
   function stop() { _enabled = false; clearTimeout(_pollTimer); clearTimeout(_searchTimer); stopProg(); document.getElementById(WIDGET_ID)?.remove(); _media = null; _trackKey = ''; _accentUrl = ''; _mode = null; }
 
-  // ── Kilitli teaser (Plus YOK): şarkı bilgisi OKUNMAZ; yalnız "bir şey çalıyor mu" (cheap mediaActive)
-  //    kontrol edilir, çalarken kilitli kart gösterilir → tıkla Plus ekranı. ──
-  function renderLocked() {
-    const w = ensureWidget();
-    _mode = 'locked'; _trackKey = '';
-    w.classList.remove('np-paused', 'np-fresh', 'np-min');
-    const card = (window.TrackedLicense && window.TrackedLicense.lockCardHtml)
-      ? window.TrackedLicense.lockCardHtml('Şu An Çalıyor', 'Çalan müziği Roblox\'ta gösterip buradan kontrol etmek için Tracked Plus.')
-      : '';
-    w.innerHTML = `<div class="np-head"><span class="np-logo">${TRACKED_MARK}</span><span class="np-brand">Tracked</span>${VERSION ? `<span class="np-ver">• v${VERSION}</span>` : ''}</div>${card}`;
-    w.style.width = _width + 'px';
-    const rect = w.getBoundingClientRect();
-    const p = anchorPos(_anchor, rect.width || _width, rect.height || 120);
-    w.style.left = Math.round(Math.max(6, p[0])) + 'px';
-    w.style.top = Math.round(Math.max(6, p[1])) + 'px';
-    w.style.right = 'auto'; w.style.bottom = 'auto';
-  }
-  function startLocked() { if (_lockedOn) return; _lockedOn = true; injectStyles(); lockedPoll(); }
-  function stopLocked() { _lockedOn = false; clearTimeout(_lockedTimer); if (_mode === 'locked') { document.getElementById(WIDGET_ID)?.remove(); _mode = null; } }
-  async function lockedPoll() {
-    if (!_lockedOn) return;
-    clearTimeout(_lockedTimer); // çift zincir koruması (visibilitychange doğrudan çağırabilir)
-    if (document.hidden) { _lockedTimer = setTimeout(lockedPoll, 4000); return; }
-    const r = await swMsg({ action: 'mediaActive' });
-    if (!_lockedOn) return;
-    const active = !!(r && r.ok && r.active);
-    if (active) { if (_mode !== 'locked' || !document.getElementById(WIDGET_ID)) renderLocked(); }
-    else if (_mode === 'locked') { document.getElementById(WIDGET_ID)?.remove(); _mode = null; }
-    _lockedTimer = setTimeout(lockedPoll, active ? 4000 : 5000);
-  }
   const saveMin = (v) => { try { chrome.storage.local.set({ [MIN_KEY]: !!v }); } catch (_) {} };
-  // Tracked Plus kontrolü (lisans yoksa false) — müzik widget Plus özelliğidir
-  const plus = () => (window.TrackedLicense ? window.TrackedLicense.isPlus() : Promise.resolve(false));
 
-  // Ayar açık → Plus varsa gerçek widget, yoksa kilitli teaser. (Özellik tamamen GİZLENMEZ.)
-  function applyState(settingOn, isPlus) {
-    if (!settingOn) { stop(); stopLocked(); return; }
-    if (isPlus) { stopLocked(); start(); }
-    else { stop(); startLocked(); }
+  // Müzik widget ÜCRETSİZ — ayar (rota_settings.nowPlaying) açıksa çalışır; Plus gerekmez.
+  function applyState(settingOn) {
+    if (settingOn) start(); else stop();
   }
 
   // ── Başlat: ayar oku + canlı aç/kapa ──
@@ -715,27 +680,18 @@
       _minimized = !!d[MIN_KEY];
       const lay = d[LAYOUT_KEY];
       if (lay) { if (lay.anchor) _anchor = lay.anchor; if (lay.width) _width = clampW(lay.width); if (lay.resH) _resH = clampH(lay.resH); }
-      applyState(d?.rota_settings?.nowPlaying === true, await plus());
+      applyState(d?.rota_settings?.nowPlaying === true);
     } catch (_) {}
   })();
   try {
-    chrome.storage.onChanged.addListener(async (ch, area) => {
-      if (area !== 'local') return;
-      if (ch.rota_settings) {
-        const on = !!(ch.rota_settings.newValue && ch.rota_settings.newValue.nowPlaying === true);
-        applyState(on, await plus());
-      }
-      if (ch.tracked_license) { // Plus durumu değişti → gerçek ↔ kilitli teaser geçişi
-        const settingOn = (await chrome.storage.local.get('rota_settings'))?.rota_settings?.nowPlaying === true;
-        applyState(settingOn, await plus());
-      }
+    chrome.storage.onChanged.addListener((ch, area) => {
+      if (area !== 'local' || !ch.rota_settings) return;
+      applyState(!!(ch.rota_settings.newValue && ch.rota_settings.newValue.nowPlaying === true));
     });
   } catch (_) {}
   // Sekme tekrar görünür olunca anında tazele
   document.addEventListener('visibilitychange', () => {
-    if (document.hidden) return;
-    if (_enabled) poll();
-    else if (_lockedOn) lockedPoll();
+    if (!document.hidden && _enabled) poll();
   });
   // Pencere yeniden boyutlanınca seçili köşeye yapışık kal
   let _rzT = null;

@@ -145,16 +145,6 @@
     },
     {
       "matches": [
-        "https://www.roblox.com/trades*"
-      ],
-      "js": [
-        "license_client.js",
-        "trade_analyzer.js"
-      ],
-      "run_at": "document_end"
-    },
-    {
-      "matches": [
         "https://www.roblox.com/users/*/inventory*",
         "https://www.roblox.com/users/inventory*"
       ],

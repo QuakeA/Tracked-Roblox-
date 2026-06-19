@@ -42,13 +42,12 @@ Tracked, Roblox deneyimini hızlandıran bir "rota/bağlantı optimize edici"dir
 • Bölgesel gerçek ping ölçümü (AWS uç noktalarına median gecikme)
 • IP tabanlı yaklaşık konum ile en yakın bölge tespiti
 • VPN/proxy tespiti
+• "Şu An Çalıyor" müzik widget'ı (YouTube/Spotify) — çalan şarkıyı göster & kontrol et
 
 — TRACKED PLUS (abonelik) —
 • Gelişmiş sunucu araçları: Yeni sunucu bul · Derin tarama · Sunucu Bekçisi (kriterli sunucu açılınca bildir/oto-katıl)
 • Oto-Pilot: en yakın sunucuya otomatik bağlan
 • Auto-Reconnect: atılınca otomatik yeniden bağlan
-• "Şu An Çalıyor" müzik widget'ı (YouTube/Spotify) — çalan şarkıyı göster & kontrol et
-• Trade analizi (RAP / değer / canlı floor — Rolimons)
 • Envanter değeri analizi
 • Site temaları + wallpaper
 • Oyun Kodları paneli
@@ -71,13 +70,12 @@ Tracked is a "route / connection optimizer" that speeds up your Roblox experienc
 • Real regional ping measurement (median latency to AWS endpoints)
 • Nearest-region detection via approximate IP location
 • VPN/proxy detection
+• "Now Playing" music widget (YouTube/Spotify) — show & control the current track
 
 — TRACKED PLUS (subscription) —
 • Advanced server tools: Find new server · Deep scan · Server Watcher (notify/auto-join when a matching server opens)
 • Auto-Pilot: auto-connect to the nearest server
 • Auto-Reconnect: rejoin automatically after a disconnect
-• "Now Playing" music widget (YouTube/Spotify) — show & control the current track
-• Trade analysis (RAP / value / live floor — Rolimons)
 • Inventory value analysis
 • Site themes + wallpaper
 • Game codes panel
