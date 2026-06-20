@@ -142,17 +142,24 @@
   .chip.plus{color:var(--violet);border:1px solid rgba(124,92,255,.4);}
   .chip.free{color:var(--signal);border:1px solid rgba(34,224,161,.35);}
 
-  /* feature gallery — concept mockups of the real UI */
-  .gallery{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
-  @media(max-width:900px){.gallery{grid-template-columns:repeat(2,1fr);}}
-  @media(max-width:560px){.gallery{grid-template-columns:1fr;}}
-  .gcard{border:1px solid var(--edge);border-radius:16px;overflow:hidden;background:linear-gradient(180deg,var(--surface),var(--abyss2));transition:transform .2s,border-color .2s;}
-  .gcard:hover{transform:translateY(-4px);border-color:rgba(255,255,255,.14);}
-  .gvis{aspect-ratio:16/10;position:relative;overflow:hidden;border-bottom:1px solid var(--edge);}
-  .gmeta{padding:14px 16px 16px;display:flex;align-items:center;gap:9px;flex-wrap:wrap;}
-  .gmeta h4{font-size:14.5px;font-weight:600;margin:0;}
-  .gmeta .chip{font-family:var(--mono);font-size:9.5px;letter-spacing:.07em;text-transform:uppercase;padding:2px 7px;border-radius:5px;color:var(--signal);border:1px solid rgba(34,224,161,.35);}
-  .gmeta .chip.plus{color:var(--violet);border-color:rgba(124,92,255,.4);}
+  /* cinematic feature moments — big alternating showcases */
+  .moments{display:flex;flex-direction:column;gap:clamp(72px,9vw,132px);}
+  .moment{display:grid;grid-template-columns:1fr 1fr;gap:clamp(40px,6vw,88px);align-items:center;}
+  .moment:nth-child(even) .m-vis{order:2;}
+  .m-vis{position:relative;aspect-ratio:16/11;border:1px solid var(--edge);border-radius:22px;overflow:hidden;box-shadow:0 44px 90px rgba(0,0,0,.5);}
+  .m-vis::after{content:'';position:absolute;inset:-30% -10% auto -10%;height:60%;background:radial-gradient(closest-side,rgba(77,141,255,.14),transparent 75%);pointer-events:none;}
+  .m-txt .chip{display:inline-flex;font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;padding:4px 10px;border-radius:6px;color:var(--signal);border:1px solid rgba(34,224,161,.35);}
+  .m-txt .chip.plus{color:var(--violet);border-color:rgba(124,92,255,.4);}
+  .m-txt h3{font-size:clamp(27px,3.7vw,46px);font-weight:700;letter-spacing:-.03em;line-height:1.02;margin:18px 0 16px;text-wrap:balance;}
+  .m-txt p{color:var(--mute);font-size:clamp(16px,1.55vw,18.5px);line-height:1.55;margin:0;max-width:46ch;}
+  @media(max-width:860px){.moment{grid-template-columns:1fr;gap:30px;}.moment:nth-child(even) .m-vis{order:0;}}
+  /* compact "everything else" tag cloud */
+  .more-tools{margin-top:clamp(64px,8vw,116px);text-align:center;}
+  .more-tools .ml{font-family:var(--mono);font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--faint);margin:0 0 24px;}
+  .more-tags{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;max-width:900px;margin:0 auto;}
+  .more-tags span{font-family:var(--mono);font-size:12.5px;color:var(--mute);border:1px solid var(--edge);background:var(--surface);border-radius:9px;padding:8px 13px;display:inline-flex;gap:8px;align-items:center;}
+  .more-tags span i{font-style:normal;font-size:8.5px;letter-spacing:.06em;color:var(--signal);}
+  .more-tags span i.p{color:var(--violet);}
 
   /* themes illustration */
   .vis-theme{background:linear-gradient(140deg,#191340,#0c1730);}
@@ -443,92 +450,88 @@
     <div class="stat"><b class="grad" data-en="REAL" data-tr="GERÇEK">REAL</b><span data-en="Measurements, no fakes" data-tr="Ölçüm, uydurma yok">Measurements, no fakes</span></div>
   </div>
 
-  <!-- CAPABILITIES -->
+  <!-- FEATURES (cinematic moments) -->
   <section class="sec" id="caps">
     <div class="sec-head reveal">
       <span class="eyebrow" data-en="// the toolkit" data-tr="// araç seti">// the toolkit</span>
-      <h2 data-en="Everything Tracked does" data-tr="Tracked'in yaptığı her şey">Everything Tracked does</h2>
+      <h2 data-en="Everything you need, nothing you don’t" data-tr="İhtiyacın olan her şey, fazlası yok">Everything you need, nothing you don’t</h2>
       <p data-en="Built on real measurements. Nothing leaves your device. The core is free for everyone." data-tr="Gerçek ölçümlere dayanır. Hiçbir şey cihazından çıkmaz. Çekirdek herkese ücretsiz.">Built on real measurements. Nothing leaves your device. The core is free for everyone.</p>
     </div>
 
-    <!-- group 1 -->
-    <div class="grp reveal">
-      <div class="grp-bar"><span class="gnum">01</span><h3 data-en="Connect & join" data-tr="Bağlan & katıl">Connect &amp; join</h3><span class="rule"></span></div>
-      <div class="cards">
-        <div class="card"><div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div><h4><span data-en="Nearest server" data-tr="En yakın sunucu">Nearest server</span><span class="chip free" data-en="FREE" data-tr="ÜCRETSİZ">FREE</span></h4><p data-en="Joins the closest open server by real measured latency — not Roblox's misleading average." data-tr="Gerçek ölçülen gecikmeye göre en yakın açık sunucuya katılır — Roblox'un yanıltıcı ortalamasına değil.">Joins the closest open server by real measured latency — not Roblox's misleading average.</p></div>
-        <div class="card v"><div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2 3 14h9l-1 8 10-12h-9z"/></svg></div><h4><span data-en="Fresh server finder" data-tr="Yeni sunucu bulucu">Fresh server finder</span><span class="chip plus">PLUS</span></h4><p data-en="Watches the list and catches servers that genuinely just opened — no half-full servers faked as 'new'." data-tr="Listeyi izleyip gerçekten yeni açılan sunucuları yakalar — yarı dolu sunucuyu 'yeni' diye göstermez.">Watches the list and catches servers that genuinely just opened — no half-full servers faked as 'new'.</p></div>
-        <div class="card v"><div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3M11 8v6M8 11h6"/></svg></div><h4><span data-en="Deep scan" data-tr="Derin tarama">Deep scan</span><span class="chip plus">PLUS</span></h4><p data-en="Scans ~400 servers, verifies each, ranks by region, distance and FPS, and flags the recommended one." data-tr="~400 sunucu tarar, her birini doğrular, bölge/mesafe/FPS'e göre sıralar ve önerileni işaretler.">Scans ~400 servers, verifies each, ranks by region, distance and FPS, and flags the recommended one.</p></div>
-        <div class="card v"><div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 11 2 2 4-4"/></svg></div><h4><span data-en="Auto-Pilot" data-tr="Oto-Pilot">Auto-Pilot</span><span class="chip plus">PLUS</span></h4><p data-en="One click auto-connects you to a server in your nearest region — it tells you exactly where you landed." data-tr="Tek tıkla seni en yakın bölgendeki bir sunucuya bağlar — nereye düştüğünü net söyler.">One click auto-connects you to a server in your nearest region — it tells you exactly where you landed.</p></div>
-        <div class="card v"><div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg></div><h4><span data-en="Server Watcher" data-tr="Sunucu Bekçisi">Server Watcher</span><span class="chip plus">PLUS</span></h4><p data-en="Set a target player count; it watches in the background and notifies — or auto-joins — when a matching server opens." data-tr="Bir hedef oyuncu sayısı gir; arka planda izler ve uygun sunucu açılınca bildirir — ya da otomatik katılır.">Set a target player count; it watches in the background and notifies — or auto-joins — when a matching server opens.</p></div>
-        <div class="card v"><div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg></div><h4><span data-en="Auto-Reconnect" data-tr="Auto-Reconnect">Auto-Reconnect</span><span class="chip plus">PLUS</span></h4><p data-en="Crashed? It detects the disconnect and puts you back in the exact same server — not a random one." data-tr="Atıldın mı? Kopmayı algılar ve seni tam aynı sunucuya geri sokar — rastgele birine değil.">Crashed? It detects the disconnect and puts you back in the exact same server — not a random one.</p></div>
+    <div class="moments">
+
+      <div class="moment reveal">
+        <div class="m-vis vis-auto" aria-hidden="true"><div class="al"><div class="ar best"><span class="ad"></span><span class="areg">eu-south-1</span><span class="ams">24ms</span><span class="aj" data-en="JOIN" data-tr="KATIL">JOIN</span></div><div class="ar"><span class="ad"></span><span class="areg">eu-central-1</span><span class="ams">41ms</span></div><div class="ar"><span class="ad"></span><span class="areg">us-east-1</span><span class="ams">118ms</span></div></div></div>
+        <div class="m-txt">
+          <span class="chip plus">PLUS</span>
+          <h3 data-en="One click to the best server" data-tr="Tek tıkla en iyi sunucuya">One click to the best server</h3>
+          <p data-en="Auto-Pilot ranks every open server by your real measured latency and drops you straight into the closest one — and tells you exactly where you landed." data-tr="Oto-Pilot her açık sunucuyu gerçek ölçülen gecikmene göre sıralar ve seni en yakınına sokar — üstelik nereye düştüğünü net söyler.">Auto-Pilot ranks every open server by your real measured latency and drops you straight into the closest one — and tells you exactly where you landed.</p>
+        </div>
       </div>
-    </div>
 
-    <!-- group 2 -->
-    <div class="grp reveal">
-      <div class="grp-bar"><span class="gnum">02</span><h3 data-en="Measure & detect" data-tr="Ölç & tespit et">Measure &amp; detect</h3><span class="rule"></span></div>
-      <div class="cards">
-        <div class="card"><div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg></div><h4><span data-en="Real regional ping" data-tr="Gerçek bölgesel ping">Real regional ping</span><span class="chip free" data-en="FREE" data-tr="ÜCRETSİZ">FREE</span></h4><p data-en="Median RTT to 20 global probes, measured automatically in the background — with a live history graph." data-tr="20 küresel proba median RTT, arka planda otomatik ölçülür — canlı geçmiş grafiğiyle.">Median RTT to 20 global probes, measured automatically in the background — with a live history graph.</p></div>
-        <div class="card"><div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 1 0 10 10"/><path d="M12 2v10l8-3"/></svg></div><h4><span data-en="Per-server region" data-tr="Sunucu başına bölge">Per-server region</span><span class="chip free" data-en="FREE" data-tr="ÜCRETSİZ">FREE</span></h4><p data-en="Shows each server's real datacenter city and country — even US-East vs US-West split apart by true distance." data-tr="Her sunucunun gerçek datacenter şehrini ve ülkesini gösterir — ABD-Doğu ile ABD-Batı bile gerçek mesafeyle ayrışır.">Shows each server's real datacenter city and country — even US-East vs US-West split apart by true distance.</p></div>
-        <div class="card"><div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a4 4 0 0 0-8 0v2"/></svg></div><h4><span data-en="VPN & proxy detection" data-tr="VPN & proxy tespiti">VPN &amp; proxy detection</span><span class="chip free" data-en="FREE" data-tr="ÜCRETSİZ">FREE</span></h4><p data-en="Detects your IP, ISP and country, and flags a likely VPN by comparing your timezone to your IP." data-tr="IP, ISP ve ülkeni tespit eder; saat dilimini IP'nle karşılaştırıp olası VPN'i işaretler.">Detects your IP, ISP and country, and flags a likely VPN by comparing your timezone to your IP.</p></div>
+      <div class="moment reveal">
+        <div class="m-vis vis-watch" aria-hidden="true"><div class="wc"><div class="wt"><span class="wp"></span>WATCHING · ≥ 1</div><div class="wr"></div><div class="wr s"></div><span class="wbadge">auto-join</span></div></div>
+        <div class="m-txt">
+          <span class="chip plus">PLUS</span>
+          <h3 data-en="It waits so you don’t have to" data-tr="Senin yerine o bekler">It waits so you don’t have to</h3>
+          <p data-en="Set a target player count and Server Watcher keeps an eye on the list in the background — then notifies you, or auto-joins, the moment a matching server opens." data-tr="Bir hedef oyuncu sayısı gir; Sunucu Bekçisi listeyi arka planda izler — uygun sunucu açıldığı an bildirir ya da otomatik katılır.">Set a target player count and Server Watcher keeps an eye on the list in the background — then notifies you, or auto-joins, the moment a matching server opens.</p>
+        </div>
       </div>
-    </div>
 
-    <!-- group 3 -->
-    <div class="grp reveal">
-      <div class="grp-bar"><span class="gnum">03</span><h3 data-en="Items & economy" data-tr="Item & ekonomi">Items &amp; economy</h3><span class="rule"></span></div>
-      <div class="cards">
-        <div class="card b"><div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18l-2 13H5z"/><path d="M3 6 2 3M16 11a4 4 0 0 1-8 0"/></svg></div><h4><span data-en="Inventory value" data-tr="Envanter değeri">Inventory value</span><span class="chip plus">PLUS</span></h4><p data-en="Totals an inventory's RAP and Rolimons value; on private profiles it honestly says so instead of leaking yours." data-tr="Bir envanterin RAP ve Rolimons değerini toplar; private profilde seninkini sızdırmaz, dürüstçe 'gizli' der.">Totals an inventory's RAP and Rolimons value; on private profiles it honestly says so instead of leaking yours.</p></div>
-        <div class="card b"><div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="m7 14 3-4 3 2 5-6"/></svg></div><h4><span data-en="Catalog insights" data-tr="Katalog içgörüleri">Catalog insights</span><span class="chip free" data-en="FREE" data-tr="ÜCRETSİZ">FREE</span></h4><p data-en="Adds RAP, floor price, demand, trend and value to any item page — the trader data Roblox hides." data-tr="Her item sayfasına RAP, floor, talep, trend ve değer ekler — Roblox'un gizlediği trader verisi.">Adds RAP, floor price, demand, trend and value to any item page — the trader data Roblox hides.</p></div>
-        <div class="card b"><div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 12v9H4v-9M2 7h20v5H2zM12 22V7M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg></div><h4><span data-en="Free item radar" data-tr="Ücretsiz item radarı">Free item radar</span><span class="chip free" data-en="FREE" data-tr="ÜCRETSİZ">FREE</span></h4><p data-en="Detects genuinely claimable free catalog items and filters out the off-sale, expired and out-of-stock noise." data-tr="Gerçekten alınabilir ücretsiz katalog item'larını bulur; satışta olmayan/süresi geçmiş/stoksuz gürültüyü eler.">Detects genuinely claimable free catalog items and filters out the off-sale, expired and out-of-stock noise.</p></div>
-        <div class="card b"><div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg></div><h4><span data-en="Player Insight" data-tr="Oyuncu İçgörü">Player Insight</span><span class="chip free" data-en="FREE" data-tr="ÜCRETSİZ">FREE</span></h4><p data-en="On any profile: account age, verified badge, total value, social counts, mutual friends and honest trust signals." data-tr="Herhangi bir profilde: hesap yaşı, doğrulanmış rozet, toplam değer, sosyal sayımlar, ortak arkadaş ve dürüst güven sinyalleri.">On any profile: account age, verified badge, total value, social counts, mutual friends and honest trust signals.</p></div>
+      <div class="moment reveal">
+        <div class="m-vis vis-ping" aria-hidden="true"><svg viewBox="0 0 200 78" preserveAspectRatio="none"><line class="pgg" x1="0" y1="18" x2="200" y2="18"/><line class="pgg" x1="0" y1="39" x2="200" y2="39"/><line class="pgg" x1="0" y1="60" x2="200" y2="60"/><polyline class="pgl" style="stroke:#ff5f57" points="6,30 44,36 82,26 120,34 158,28 196,32"/><polyline class="pgl" style="stroke:#22e0a1" points="6,52 44,46 82,50 120,42 158,46 196,40"/><polyline class="pgl" style="stroke:#4d8dff" points="6,64 44,60 82,66 120,58 158,62 196,56"/></svg><div class="pgleg"><span><i style="background:#22e0a1"></i>24ms</span><span><i style="background:#4d8dff"></i>41ms</span><span><i style="background:#ff5f57"></i>72ms</span></div></div>
+        <div class="m-txt">
+          <span class="chip" data-en="FREE" data-tr="ÜCRETSİZ">FREE</span>
+          <h3 data-en="Real latency, measured live" data-tr="Gerçek gecikme, canlı ölçülür">Real latency, measured live</h3>
+          <p data-en="Median round-trip time to 20 global probes, sampled automatically in the background — with a live history graph. The truth Roblox’s single average hides." data-tr="20 küresel proba median gidiş-dönüş süresi, arka planda otomatik örneklenir — canlı geçmiş grafiğiyle. Roblox’un tek ortalamasının gizlediği gerçek.">Median round-trip time to 20 global probes, sampled automatically in the background — with a live history graph. The truth Roblox’s single average hides.</p>
+        </div>
       </div>
-    </div>
 
-    <!-- group 4 -->
-    <div class="grp reveal">
-      <div class="grp-bar"><span class="gnum">04</span><h3 data-en="Make it yours" data-tr="Kendine göre yap">Make it yours</h3><span class="rule"></span></div>
-      <div class="cards">
-        <div class="card"><div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div><h4><span data-en="Now Playing widget" data-tr="Şu An Çalıyor widget'ı">Now Playing widget</span><span class="chip free" data-en="FREE" data-tr="ÜCRETSİZ">FREE</span></h4><p data-en="Shows what's playing on Spotify, YouTube or YT Music right on Roblox — play, pause, skip and seek without leaving." data-tr="Spotify, YouTube veya YT Music'te çalanı Roblox'ta gösterir — sayfadan çıkmadan oynat, duraklat, geç ve sar.">Shows what's playing on Spotify, YouTube or YT Music right on Roblox — play, pause, skip and seek without leaving.</p></div>
-        <div class="card v"><div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="13.5" cy="6.5" r="2.5"/><circle cx="18" cy="12" r="2"/><circle cx="6" cy="12" r="2.5"/><circle cx="9" cy="18" r="2"/><path d="M12 2a10 10 0 1 0 0 20c1.5 0 2-1 2-2s-1-1.5-1-2.5 1-1.5 2-1.5h2a3 3 0 0 0 3-3 8 8 0 0 0-8-8z"/></svg></div><h4><span data-en="Themes" data-tr="Temalar">Themes</span><span class="chip plus">PLUS</span></h4><p data-en="Reskin Roblox: wallpaper, frosted-glass panels, custom colors and fonts — or flip back to default in one switch." data-tr="Roblox'u yeniden giydir: wallpaper, buzlu cam paneller, özel renk ve fontlar — ya da tek anahtarla varsayılana dön.">Reskin Roblox: wallpaper, frosted-glass panels, custom colors and fonts — or flip back to default in one switch.</p></div>
-        <div class="card"><div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 7 9 18l-5-5"/></svg></div><h4><span data-en="Avatar Try-On" data-tr="Avatar Try-On">Avatar Try-On</span><span class="chip free" data-en="FREE" data-tr="ÜCRETSİZ">FREE</span></h4><p data-en="Try marketplace and owned items on your avatar in 2D or 3D before spending a single Robux." data-tr="Tek Robux harcamadan marketplace ve sahip olduğun item'ları avatarında 2B veya 3B dene.">Try marketplace and owned items on your avatar in 2D or 3D before spending a single Robux.</p></div>
-        <div class="card v"><div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v12H4z"/><path d="M8 20h8M12 16v4M8 9l2 2 2-3 2 4 2-2"/></svg></div><h4><span data-en="Game codes" data-tr="Oyun kodları">Game codes</span><span class="chip plus">PLUS</span></h4><p data-en="Pulls a game's codes from curated sources, its description and official socials — every entry labeled, nothing faked." data-tr="Bir oyunun kodlarını küratörlü kaynaklardan, açıklamasından ve resmi sosyallerden çeker — her giriş etiketli, uydurma yok.">Pulls a game's codes from curated sources, its description and official socials — every entry labeled, nothing faked.</p></div>
-        <div class="card v"><div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4"/><circle cx="12" cy="12" r="3"/></svg></div><h4><span data-en="Event analysis" data-tr="Etkinlik analizi">Event analysis</span><span class="chip plus">PLUS</span></h4><p data-en="Shows a game's official Roblox events first — exact times, live or upcoming — and only estimates when there are none." data-tr="Bir oyunun resmi Roblox etkinliklerini önce gösterir — kesin saatler, canlı ya da yakında — yoksa sadece tahmin eder.">Shows a game's official Roblox events first — exact times, live or upcoming — and only estimates when there are none.</p></div>
-        <div class="card"><div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></div><h4><span data-en="Library & side panel" data-tr="Kütüphane & yan panel">Library &amp; side panel</span><span class="chip free" data-en="FREE" data-tr="ÜCRETSİZ">FREE</span></h4><p data-en="A game library with favorites and comfort/compact views, plus a pinnable side panel and recent-games tracking." data-tr="Favoriler ve geniş/kompakt görünümlü oyun kütüphanesi, pinlenebilir yan panel ve son-oyun takibi.">A game library with favorites and comfort/compact views, plus a pinnable side panel and recent-games tracking.</p></div>
+      <div class="moment reveal">
+        <div class="m-vis vis-theme" aria-hidden="true"><div class="tw"></div><div class="tp"><div class="tb"></div><div class="tb s"></div><div class="tsw"><i></i><i></i><i></i><i></i></div></div></div>
+        <div class="m-txt">
+          <span class="chip plus">PLUS</span>
+          <h3 data-en="Make Roblox yours" data-tr="Roblox’u kendine ait yap">Make Roblox yours</h3>
+          <p data-en="Drop in a wallpaper, frost the panels, and pick your own colors and fonts — then flip the whole thing back to default in a single switch." data-tr="Wallpaper koy, panelleri buzlandır, kendi renk ve fontlarını seç — sonra tek anahtarla her şeyi varsayılana döndür.">Drop in a wallpaper, frost the panels, and pick your own colors and fonts — then flip the whole thing back to default in a single switch.</p>
+        </div>
       </div>
-    </div>
-  </section>
 
-  <!-- GALLERY -->
-  <section class="sec">
-    <div class="sec-head reveal">
-      <span class="eyebrow" data-en="// the same tools, on screen" data-tr="// aynı araçlar, ekranda">// the same tools, on screen</span>
-      <h2 data-en="Now see them in action" data-tr="Şimdi onları iş başında gör">Now see them in action</h2>
-      <p data-en="The tools above, previewed as you'll actually see them inside the extension." data-tr="Yukarıdaki araçlar, eklentide tam göreceğin haliyle önizlendi.">The tools above, previewed as you'll actually see them inside the extension.</p>
-    </div>
-    <div class="gallery">
+      <div class="moment reveal">
+        <div class="m-vis vis-music" aria-hidden="true"><div class="mc"><div class="ma"></div><div class="mm"><div class="mt"></div><div class="mar"></div><div class="meq"><i></i><i></i><i></i><i></i><i></i></div></div></div></div>
+        <div class="m-txt">
+          <span class="chip" data-en="FREE" data-tr="ÜCRETSİZ">FREE</span>
+          <h3 data-en="Your music, right on Roblox" data-tr="Müziğin, tam Roblox’ta">Your music, right on Roblox</h3>
+          <p data-en="See what’s playing on Spotify, YouTube or YT Music and control it — play, pause, skip and seek — without ever leaving your game." data-tr="Spotify, YouTube veya YT Music’te çalanı gör ve kontrol et — oynat, duraklat, geç ve sar — oyundan hiç çıkmadan.">See what’s playing on Spotify, YouTube or YT Music and control it — play, pause, skip and seek — without ever leaving your game.</p>
+        </div>
+      </div>
 
-      <div class="gcard reveal"><div class="gvis vis-ping" aria-hidden="true"><svg viewBox="0 0 200 78" preserveAspectRatio="none"><line class="pgg" x1="0" y1="18" x2="200" y2="18"/><line class="pgg" x1="0" y1="39" x2="200" y2="39"/><line class="pgg" x1="0" y1="60" x2="200" y2="60"/><polyline class="pgl" style="stroke:#ff5f57" points="6,30 44,36 82,26 120,34 158,28 196,32"/><polyline class="pgl" style="stroke:#22e0a1" points="6,52 44,46 82,50 120,42 158,46 196,40"/><polyline class="pgl" style="stroke:#4d8dff" points="6,64 44,60 82,66 120,58 158,62 196,56"/></svg><div class="pgleg"><span><i style="background:#22e0a1"></i>24ms</span><span><i style="background:#4d8dff"></i>41ms</span><span><i style="background:#ff5f57"></i>72ms</span></div></div><div class="gmeta"><h4 data-en="Regional ping" data-tr="Bölgesel ping">Regional ping</h4><span class="chip" data-en="FREE" data-tr="ÜCRETSİZ">FREE</span></div></div>
+      <div class="moment reveal">
+        <div class="m-vis vis-insight" aria-hidden="true"><div class="ic"><div class="ih"><span class="iav"></span><span class="inm"></span></div><div class="irow"><span data-en="Account age" data-tr="Hesap yaşı">Account age</span><b>4.2y</b></div><div class="irow"><span data-en="Total value" data-tr="Toplam değer">Total value</span><b>128K</b></div><div class="irow"><span data-en="Mutual friends" data-tr="Ortak arkadaş">Mutual friends</span><b>7</b></div></div></div>
+        <div class="m-txt">
+          <span class="chip" data-en="FREE" data-tr="ÜCRETSİZ">FREE</span>
+          <h3 data-en="Know who you’re dealing with" data-tr="Kiminle muhatap olduğunu bil">Know who you’re dealing with</h3>
+          <p data-en="Account age, verified badge, total value, mutual friends and honest trust signals on any profile — and private profiles stay private, never leaked." data-tr="Herhangi bir profilde hesap yaşı, doğrulanmış rozet, toplam değer, ortak arkadaş ve dürüst güven sinyalleri — private profiller gizli kalır, sızdırılmaz.">Account age, verified badge, total value, mutual friends and honest trust signals on any profile — and private profiles stay private, never leaked.</p>
+        </div>
+      </div>
 
-      <div class="gcard reveal"><div class="gvis vis-bar" aria-hidden="true"><div class="bp"><span class="bo"></span><span class="bb">Yeni</span><span class="bb">Derin</span><span class="bb">ID</span><span class="bb on">Oto-Pilot</span><span class="bb">Bekçi</span></div></div><div class="gmeta"><h4 data-en="In-game toolbar" data-tr="Oyun-içi bar">In-game toolbar</h4><span class="chip" data-en="FREE" data-tr="ÜCRETSİZ">FREE</span></div></div>
-
-      <div class="gcard reveal"><div class="gvis vis-auto" aria-hidden="true"><div class="al"><div class="ar best"><span class="ad"></span><span class="areg">eu-south-1</span><span class="ams">24ms</span><span class="aj" data-en="JOIN" data-tr="KATIL">JOIN</span></div><div class="ar"><span class="ad"></span><span class="areg">eu-central-1</span><span class="ams">41ms</span></div><div class="ar"><span class="ad"></span><span class="areg">us-east-1</span><span class="ams">118ms</span></div></div></div><div class="gmeta"><h4 data-en="Auto-Pilot" data-tr="Oto-Pilot">Auto-Pilot</h4><span class="chip plus">PLUS</span></div></div>
-
-      <div class="gcard reveal"><div class="gvis vis-watch" aria-hidden="true"><div class="wc"><div class="wt"><span class="wp"></span>WATCHING · ≥ 1</div><div class="wr"></div><div class="wr s"></div><span class="wbadge">auto-join</span></div></div><div class="gmeta"><h4 data-en="Server Watcher" data-tr="Sunucu Bekçisi">Server Watcher</h4><span class="chip plus">PLUS</span></div></div>
-
-      <div class="gcard reveal"><div class="gvis vis-reconnect" aria-hidden="true"><div class="rc"><div class="rt"><b>Disconnected.</b> Jump back into the exact same server?</div><div class="rb" data-en="Rejoin same server" data-tr="Aynı sunucuya dön">Rejoin same server</div></div></div><div class="gmeta"><h4 data-en="Auto-Reconnect" data-tr="Auto-Reconnect">Auto-Reconnect</h4><span class="chip plus">PLUS</span></div></div>
-
-      <div class="gcard reveal"><div class="gvis vis-music" aria-hidden="true"><div class="mc"><div class="ma"></div><div class="mm"><div class="mt"></div><div class="mar"></div><div class="meq"><i></i><i></i><i></i><i></i><i></i></div></div></div></div><div class="gmeta"><h4 data-en="Now Playing" data-tr="Şu An Çalıyor">Now Playing</h4><span class="chip" data-en="FREE" data-tr="ÜCRETSİZ">FREE</span></div></div>
-
-      <div class="gcard reveal"><div class="gvis vis-theme" aria-hidden="true"><div class="tw"></div><div class="tp"><div class="tb"></div><div class="tb s"></div><div class="tsw"><i></i><i></i><i></i><i></i></div></div></div><div class="gmeta"><h4 data-en="Themes" data-tr="Temalar">Themes</h4><span class="chip plus">PLUS</span></div></div>
-
-      <div class="gcard reveal"><div class="gvis vis-insight" aria-hidden="true"><div class="ic"><div class="ih"><span class="iav"></span><span class="inm"></span></div><div class="irow"><span data-en="Account age" data-tr="Hesap yaşı">Account age</span><b>4.2y</b></div><div class="irow"><span data-en="Total value" data-tr="Toplam değer">Total value</span><b>128K</b></div><div class="irow"><span data-en="Mutual friends" data-tr="Ortak arkadaş">Mutual friends</span><b>7</b></div></div></div><div class="gmeta"><h4 data-en="Player Insight" data-tr="Oyuncu İçgörü">Player Insight</h4><span class="chip" data-en="FREE" data-tr="ÜCRETSİZ">FREE</span></div></div>
-
-      <div class="gcard reveal"><div class="gvis vis-inv" aria-hidden="true"><div class="nc"><div class="nl" data-en="Inventory value" data-tr="Envanter değeri">Inventory value</div><div class="nv">412K</div><div class="ng"><i></i><i></i><i></i><i></i></div></div></div><div class="gmeta"><h4 data-en="Inventory value" data-tr="Envanter değeri">Inventory value</h4><span class="chip plus">PLUS</span></div></div>
-
-      <div class="gcard reveal"><div class="gvis vis-net" aria-hidden="true"><div class="cc"><div class="crow"><span>IP</span><b>·· · .84.12</b></div><div class="crow"><span>ISP</span><b>Turk Telekom</b></div><span class="vpn" data-en="VPN likely" data-tr="Muhtemel VPN">VPN likely</span></div></div><div class="gmeta"><h4 data-en="Network &amp; VPN" data-tr="Ağ &amp; VPN">Network &amp; VPN</h4><span class="chip" data-en="FREE" data-tr="ÜCRETSİZ">FREE</span></div></div>
-
-      <div class="gcard reveal"><div class="gvis vis-codes" aria-hidden="true"><div class="cl"><div class="cr"><span class="cv">RELEASE2024</span><span class="cp" data-en="Copy" data-tr="Kopyala">Copy</span></div><div class="cr"><span class="cv">FREESPINS</span><span class="cp" data-en="Copy" data-tr="Kopyala">Copy</span></div><div class="cr"><span class="cv">UPDATE25</span><span class="cp" data-en="Copy" data-tr="Kopyala">Copy</span></div></div></div><div class="gmeta"><h4 data-en="Game codes" data-tr="Oyun kodları">Game codes</h4><span class="chip plus">PLUS</span></div></div>
+      <div class="more-tools reveal">
+        <p class="ml" data-en="Also in the toolkit" data-tr="Araç setinde ayrıca">Also in the toolkit</p>
+        <div class="more-tags">
+          <span><span data-en="In-game toolbar" data-tr="Oyun-içi bar">In-game toolbar</span> <i>FREE</i></span>
+          <span><span data-en="Deep scan" data-tr="Derin tarama">Deep scan</span> <i class="p">PLUS</i></span>
+          <span><span data-en="Fresh server finder" data-tr="Yeni sunucu bulucu">Fresh server finder</span> <i class="p">PLUS</i></span>
+          <span><span data-en="Auto-Reconnect" data-tr="Auto-Reconnect">Auto-Reconnect</span> <i class="p">PLUS</i></span>
+          <span><span data-en="Per-server region" data-tr="Sunucu başına bölge">Per-server region</span> <i>FREE</i></span>
+          <span><span data-en="VPN &amp; proxy detection" data-tr="VPN &amp; proxy tespiti">VPN &amp; proxy detection</span> <i>FREE</i></span>
+          <span><span data-en="Inventory value" data-tr="Envanter değeri">Inventory value</span> <i class="p">PLUS</i></span>
+          <span><span data-en="Catalog insights" data-tr="Katalog içgörüleri">Catalog insights</span> <i>FREE</i></span>
+          <span><span data-en="Free item radar" data-tr="Ücretsiz item radarı">Free item radar</span> <i>FREE</i></span>
+          <span><span data-en="Avatar Try-On" data-tr="Avatar Try-On">Avatar Try-On</span> <i>FREE</i></span>
+          <span><span data-en="Game codes" data-tr="Oyun kodları">Game codes</span> <i class="p">PLUS</i></span>
+          <span><span data-en="Event analysis" data-tr="Etkinlik analizi">Event analysis</span> <i class="p">PLUS</i></span>
+          <span><span data-en="Library &amp; side panel" data-tr="Kütüphane &amp; yan panel">Library &amp; side panel</span> <i>FREE</i></span>
+        </div>
+      </div>
 
     </div>
   </section>
