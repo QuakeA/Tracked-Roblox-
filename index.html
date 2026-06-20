@@ -12,7 +12,7 @@
 <style>
   :root{
     --abyss:#0a0b0d; --abyss2:#0f1116; --surface:#15181d; --surface2:#1d2026; --edge:#2a2e35;
-    --ink:#f3f5f8; --mute:#9aa1ab; --faint:#5e646c;
+    --ink:#f3f5f8; --mute:#9aa1ab; --faint:#767d87;
     --signal:#3f82ff; --pulse:#868fa0; --violet:#3f82ff; --warm:#8a93a0;
     --gold:#3f82ff; --gold-2:#7aa6ff; --accent:#3f82ff; --accent-2:#7aa6ff;
     --spectrum:linear-gradient(100deg,#3f82ff,#6c9cff);
@@ -301,7 +301,7 @@
 
   .reveal{opacity:0;transform:translateY(26px);transition:opacity .7s cubic-bezier(.2,.7,.2,1),transform .7s cubic-bezier(.2,.7,.2,1);}
   .reveal.in{opacity:1;transform:none;}
-  :focus-visible{outline:2px solid var(--pulse);outline-offset:3px;border-radius:4px;}
+  :focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:4px;}
 
   @keyframes spin{to{transform:rotate(360deg);}}
   @keyframes ping{0%{box-shadow:0 0 0 0 rgba(63,130,255,.5);}70%{box-shadow:0 0 0 9px rgba(63,130,255,0);}100%{box-shadow:0 0 0 0 rgba(63,130,255,0);}}
