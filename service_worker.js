@@ -1556,6 +1556,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
               name: l.name || '',
               cards: (byList[l.id] || []).sort((a, b) => (a.pos || 0) - (b.pos || 0)).slice(0, 60).map(c => ({
                 name: c.name || '', due: c.due || null, cover: coverOf(c),
+                desc: String(c.desc || '').slice(0, 4000),
                 labels: (Array.isArray(c.labels) ? c.labels : []).map(x => ({ color: x.color || null, name: x.name || '' }))
               }))
             }));
@@ -1572,7 +1573,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         const base = `https://api.trello.com/1/boards/${encodeURIComponent(boardId)}`;
         const [bRes, lRes] = await Promise.all([
           fetch(`${base}?fields=name,url&${auth}`, { headers: { Accept: 'application/json' } }),
-          fetch(`${base}/lists?cards=open&card_fields=name,due,labels&fields=name&${auth}`, { headers: { Accept: 'application/json' } })
+          fetch(`${base}/lists?cards=open&card_fields=name,due,labels,desc&fields=name&${auth}`, { headers: { Accept: 'application/json' } })
         ]);
         if (bRes.status === 401 || lRes.status === 401) { sendResponse({ ok: false, error: 'auth', needSetup: true, private: true }); return; }
         if (!bRes.ok || !lRes.ok) { sendResponse({ ok: false, error: `HTTP ${bRes.status}/${lRes.status}` }); return; }
@@ -1581,7 +1582,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         const out = (Array.isArray(lists) ? lists : []).map(l => ({
           name: l.name || '',
           cards: (Array.isArray(l.cards) ? l.cards : []).slice(0, 60).map(c => ({
-            name: c.name || '', due: c.due || null,
+            name: c.name || '', due: c.due || null, desc: String(c.desc || '').slice(0, 4000),
             labels: (Array.isArray(c.labels) ? c.labels : []).map(x => ({ color: x.color || null, name: x.name || '' }))
           }))
         }));
