@@ -216,9 +216,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     loadFriends();
 
     // v1.9.0: Friends panelini periyodik yenile — panel/sidepanel uzun açık kalınca
-    // eski/boş veri kalmasın (bug: 1 saat sonra arkadaşlar boş). 45sn'de bir, yalnızca
-    // sayfa GÖRÜNÜRken (gizliyken boşa istek atma). Cache TTL 60sn → spinner flicker yok.
-    setInterval(() => { if (document.visibilityState === 'visible') loadFriends(); }, 45000);
+    // eski/boş veri kalmasın. 45sn'de bir, yalnızca sayfa GÖRÜNÜRken. SESSİZ (arka plan):
+    // mevcut listeye dokunmaz, yalnız veride gerçek değişiklik olursa günceller → kart oynamaz.
+    setInterval(() => { if (document.visibilityState === 'visible') loadFriends(true); }, 45000);
 
     // Refresh friends button — spin while loading, re-enable on completion
     const btnRefreshFriends = document.getElementById('btn-refresh-friends');
@@ -2655,28 +2655,47 @@ function applyListFadeIn(el) {
     el.classList.add('friends-fade-in');
 }
 
-async function loadFriends() {
+// Arkadaş listesinin "imzası" — yalnız RENDER'i etkileyen alanlar (avatar HARİÇ; avatar
+// gecikmeli yer-değiştirme ile çözülür). İki yenileme arası imza aynıysa DOM'a hiç dokunulmaz.
+let _lastFriendsSig = '';
+function friendsSig(presences, friendsData, nameFixes) {
+    return JSON.stringify(presences.map(p => {
+        const fi = friendsData.find(f => f.id === p.userId);
+        const fix = nameFixes[p.userId];
+        return [p.userId,
+            (fi && fi.displayName) || (fix && fix.displayName) || '',
+            (fi && fi.name) || (fix && fix.name) || '',
+            p.lastLocation || '', p.placeId || 0, p.gameId || ''];
+    }));
+}
+
+async function loadFriends(silent = false) {
     const container = document.getElementById('friends-list');
     if (!container) return;
+    // Liste zaten görünüyorsa bu bir ARKA PLAN yenilemesi → mevcut DOM'a dokunmadan,
+    // yalnız veride değişiklik olursa güncellenir (kart asla "oynamaz"/kaymaz/flicker etmez).
+    const firstPaint = !container.querySelector('.recent-game-item');
 
-    // 1) CACHE HIT — fresh fetch beklerken anında göster (60sn TTL)
+    // 1) CACHE — yalnız İLK boyamada anında göster (arka plan yenilemede listeyi yeniden BASMA)
     let cacheRendered = false;
-    try {
-        const stored = await chrome.storage.local.get('rota_friends_cache');
-        const cache = stored.rota_friends_cache;
-        if (cache?.html && cache?.timestamp && (Date.now() - cache.timestamp < 60 * 1000)) {
-            container.innerHTML = cache.html;
-            rebindFriendClickHandlers(container);
-            applyListFadeIn(container); // popup açılışında liste tek blok yumuşak belirir
-            // Header text'i de restore et
-            const headerSpan = document.querySelector('#friends-panel .module-header h2 span');
-            if (headerSpan && cache.headerText) headerSpan.textContent = cache.headerText;
-            cacheRendered = true;
-        }
-    } catch (_) {}
+    if (firstPaint && !silent) {
+        try {
+            const stored = await chrome.storage.local.get('rota_friends_cache');
+            const cache = stored.rota_friends_cache;
+            if (cache?.html && cache?.timestamp && (Date.now() - cache.timestamp < 30 * 60 * 1000)) {
+                container.innerHTML = cache.html;
+                rebindFriendClickHandlers(container);
+                applyListFadeIn(container); // ilk açılışta tek blok yumuşak belirir
+                const headerSpan = document.querySelector('#friends-panel .module-header h2 span');
+                if (headerSpan && cache.headerText) headerSpan.textContent = cache.headerText;
+                _lastFriendsSig = cache.sig || '';
+                cacheRendered = true;
+            }
+        } catch (_) {}
+    }
 
-    // 2) Loading state SADECE cache yoksa göster
-    if (!cacheRendered) {
+    // 2) Spinner SADECE ilk boyamada + cache yokken. Arka plan yenilemede liste yerinde kalır.
+    if (firstPaint && !cacheRendered) {
         container.innerHTML = '<div class="empty-state"><div class="spinner" style="width:16px;height:16px;border-width:2px;"></div></div>';
     }
 
@@ -2684,7 +2703,7 @@ async function loadFriends() {
         // 1. Get authenticated user ID
         const userRes = await fetch('https://users.roblox.com/v1/users/authenticated', { credentials: 'include' });
         if (!userRes.ok) {
-            container.innerHTML = `<div class="empty-state"><div class="empty-icon" style="margin-bottom:8px;"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.7"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><line x1="18" y1="8" x2="23" y2="13"></line><line x1="23" y1="8" x2="18" y2="13"></line></svg></div><div class="empty-desc">${TrackedI18n.t('friendsNotLoggedIn')}</div></div>`;
+            if (firstPaint && !cacheRendered) container.innerHTML = `<div class="empty-state"><div class="empty-icon" style="margin-bottom:8px;"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.7"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><line x1="18" y1="8" x2="23" y2="13"></line><line x1="23" y1="8" x2="18" y2="13"></line></svg></div><div class="empty-desc">${TrackedI18n.t('friendsNotLoggedIn')}</div></div>`;
             return;
         }
         const userData = await userRes.json();
@@ -2695,7 +2714,7 @@ async function loadFriends() {
         const friendsData = await friendsListRes.json();
 
         if (!friendsData.data || friendsData.data.length === 0) {
-            container.innerHTML = `<div class="empty-state"><div class="empty-desc">${TrackedI18n.t('noFriends')}</div></div>`;
+            if (_lastFriendsSig !== 'NO_FRIENDS') { container.innerHTML = `<div class="empty-state"><div class="empty-desc">${TrackedI18n.t('noFriends')}</div></div>`; _lastFriendsSig = 'NO_FRIENDS'; }
             return;
         }
 
@@ -2721,16 +2740,15 @@ async function loadFriends() {
         
         const onlinePresences = presenceData.userPresences.filter(p => p.userPresenceType === 2); // 2 = InGame
 
-        // Online count badge in header
+        // Online count badge in header (yalnız değiştiyse yaz → gereksiz repaint yok)
         const friendsHeader = document.querySelector('#friends-panel .module-header h2 span');
-        if (friendsHeader) {
-            friendsHeader.textContent = onlinePresences.length > 0
-                ? `${TrackedI18n.t('friendsOnline') || 'Arkadaşlar'} (${onlinePresences.length})`
-                : TrackedI18n.t('friendsOnline') || 'Arkadaşlar';
-        }
+        const headerText = onlinePresences.length > 0
+            ? `${TrackedI18n.t('friendsOnline') || 'Arkadaşlar'} (${onlinePresences.length})`
+            : (TrackedI18n.t('friendsOnline') || 'Arkadaşlar');
+        if (friendsHeader && friendsHeader.textContent !== headerText) friendsHeader.textContent = headerText;
 
         if (onlinePresences.length === 0) {
-            container.innerHTML = `<div class="empty-state"><div class="empty-icon" style="margin-bottom:8px;"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.7"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg></div><div class="empty-desc">${TrackedI18n.t('friendsEmpty')}</div></div>`;
+            if (_lastFriendsSig !== 'NO_ONLINE') { container.innerHTML = `<div class="empty-state"><div class="empty-icon" style="margin-bottom:8px;"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.7"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg></div><div class="empty-desc">${TrackedI18n.t('friendsEmpty')}</div></div>`; _lastFriendsSig = 'NO_ONLINE'; }
             return;
         }
 
@@ -2777,6 +2795,11 @@ async function loadFriends() {
                 }
             }));
         }
+
+        // DEĞİŞİKLİK YOK MU? → DOM'a HİÇ dokunma. Arka plan yenilemesinde liste yerinde kalır,
+        // kart oynamaz/kaymaz, avatar yeniden yüklenmez, marquee sıfırlanmaz. (Profesyonel his.)
+        const newSig = friendsSig(onlinePresences, friendsData.data, nameFixes);
+        if (newSig === _lastFriendsSig && container.querySelector('.recent-game-item')) return;
 
         // 4. Map back to friend data and render — TEK SEFERDE (DocumentFragment → tek paint, dümdüz görünüm)
         const frag = document.createDocumentFragment();
@@ -2827,8 +2850,9 @@ async function loadFriends() {
         // Tüm kartları TEK operasyonda DOM'a bas → aynı frame'de, sıralı/kart-kart değil.
         container.innerHTML = '';
         container.appendChild(frag);
-        // Cache zaten gösterildiyse sessiz güncelle; ilk görünümse tek blok yumuşak belir.
-        if (!cacheRendered) applyListFadeIn(container);
+        _lastFriendsSig = newSig;
+        // Animasyon YALNIZ gerçek ilk boyamada (boş container). Arka plan/periyodik yenilemede YOK.
+        if (firstPaint && !cacheRendered) applyListFadeIn(container);
 
         // RETRY: Pending thumbnail'leri 1.5sn sonra tekrar dene. Roblox bu süre
         // içinde avatar render'ı tamamlar; fallback initial harfler asıl resimlerle
@@ -2868,6 +2892,7 @@ async function loadFriends() {
                                 rota_friends_cache: {
                                     html: container.innerHTML,
                                     headerText: headerSpan ? headerSpan.textContent : '',
+                                    sig: newSig,
                                     timestamp: Date.now()
                                 }
                             }).catch(() => {});
@@ -2884,6 +2909,7 @@ async function loadFriends() {
                 rota_friends_cache: {
                     html: container.innerHTML,
                     headerText: headerSpan ? headerSpan.textContent : '',
+                    sig: newSig,
                     timestamp: Date.now()
                 }
             }).catch(() => {});
@@ -2897,8 +2923,9 @@ async function loadFriends() {
             err.message?.includes('NetworkError') ||
             err.message?.includes('ERR_BLOCKED')
         );
-        // Cache zaten render edildiyse, hata durumunda eski veriyi koru (stale-but-better-than-nothing)
-        if (cacheRendered) return;
+        // Cache gösterildiyse YA DA bu bir arka plan yenilemesiyse (liste zaten duruyor), hatada
+        // mevcut listeyi KORU — wipe etme (eski veri > boş/hata; kart oynamaz).
+        if (cacheRendered || !firstPaint) return;
 
         if (isNetworkBlock) {
             // Sessizce geç — UI'da kullanıcıya empty state gösteriliyor
