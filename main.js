@@ -152,10 +152,16 @@ const TrackedRegion = {
     // Tek sunucuyu çöz + uygula (tıkla-çöz ve Yeni/Bekçi için).
     async resolveAndApply(placeId, server) {
         if (!server || !server.id) return server;
-        await Promise.all([this._loadPingMap(), this.ensureRegionalPings()]);
-        server.regionPending = true;
-        const info = await this.resolveOne(placeId, server.id);
-        return this.apply(server, info);
+        try {
+            await Promise.all([this._loadPingMap(), this.ensureRegionalPings()]);
+            server.regionPending = true;
+            const info = await this.resolveOne(placeId, server.id);
+            return this.apply(server, info);
+        } catch (_) {
+            // Ağ/çözümleme hatası hücreyi "yükleniyor"da BIRAKMASIN — apply()'ın başarısızlık semantiğiyle aynı.
+            server.regionFailed = true; server.regionResolved = true; server.regionPending = false;
+            return server;
+        }
     },
 
     // Üst N sunucuyu sıralı/aşamalı çöz. onUpdate(server, index) UI'ı günceller.
@@ -168,8 +174,13 @@ const TrackedRegion = {
         for (let i = 0; i < limit; i++) {
             const s = servers[i];
             if (!s || s.regionResolved) continue;
-            const info = await this.resolveOne(placeId, s.id);
-            this.apply(s, info);
+            try {
+                const info = await this.resolveOne(placeId, s.id);
+                this.apply(s, info);
+            } catch (_) {
+                // Tek sunucunun hatası döngüyü kesip kalanları "yükleniyor"da bırakmasın.
+                s.regionFailed = true; s.regionResolved = true; s.regionPending = false;
+            }
             if (typeof onUpdate === 'function') { try { onUpdate(s, i); } catch (_) {} }
             if (i < limit - 1) await new Promise(r => setTimeout(r, this.STEP_MS));
         }

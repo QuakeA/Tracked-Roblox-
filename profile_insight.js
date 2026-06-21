@@ -278,10 +278,11 @@
     if (!panel) {
       panel = document.createElement('div');
       panel.id = PANEL_ID;
-      document.body.appendChild(panel);
+      (document.body || document.documentElement).appendChild(panel);   // body henüz yoksa patlamasın
       // Küçükken panele tıklayınca büyüt (panel-level, kalıcı dinleyici)
       panel.addEventListener('click', () => { if (_minimized) { _minimized = false; panel.classList.remove('tpi-min'); saveMin(false); } });
     }
+    try {
     panel.innerHTML = `
       <div class="tpi-head">
         <div class="tpi-title">${ICON_USER}<span>${t('piTitle', 'Oyuncu İçgörüsü')}</span></div>
@@ -305,6 +306,7 @@
         ? `roblox://experiences/start?placeId=${pid}&gameInstanceId=${encodeURIComponent(gid)}`
         : `https://www.roblox.com/games/${pid}/`;
     });
+    } catch (_) {}   // render DOM hatası paneli/akışı bozmasın (bir sonraki navigasyon/veri yeniden render eder)
   }
 
   // ── Akış ──
