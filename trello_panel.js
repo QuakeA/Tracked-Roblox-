@@ -47,12 +47,12 @@
   }
   const curPlace = () => (location.pathname.match(/\/games\/(\d+)/) || [])[1] || '';
 
-  // Kapak proxy kuyruğu — çok sayıda kapak aynı anda SW'yi boğmasın (4 eşzamanlı)
+  // Kapak proxy kuyruğu — 20 eşzamanlı (SW Cache API ile birlikte: ilk yükleme hızlı, reload anında)
   const _pq = []; let _pqActive = 0;
   function dropCover(img) { const c = img && img.closest('.tk-cover'); if (c) c.remove(); }
   function enqueueProxy(img) { _pq.push(img); pumpProxy(); }
   function pumpProxy() {
-    while (_pqActive < 10 && _pq.length) {
+    while (_pqActive < 20 && _pq.length) {
       const img = _pq.shift(); _pqActive++;
       swMsg({ action: 'trelloImg', url: img.getAttribute('src') }).then(r => {
         _pqActive--;
@@ -214,7 +214,7 @@
 
   // ── Render ──
   function cardHtml(c, li, ci) {
-    const cover = c.cover ? `<div class="tk-cover"><img src="${esc(c.cover)}" alt="" referrerpolicy="no-referrer" loading="lazy"></div>` : '';
+    const cover = c.cover ? `<div class="tk-cover"><img src="${esc(c.cover)}" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async"></div>` : '';
     const labs = (c.labels || []).filter(l => l.color).map(l => `<span class="tk-lab" style="background:${LABEL_COLORS[l.color] || '#5e6c84'}" title="${esc(l.name || l.color)}"></span>`).join('');
     const due = c.due ? `<span class="tk-due">${ICON_CAL}${esc(fmtDue(c.due))}</span>` : '';
     return `<div class="tk-card" data-li="${li}" data-ci="${ci}" tabindex="0" role="button">${cover}<div class="tk-card-b">${labs ? `<div class="tk-labels">${labs}</div>` : ''}<div class="tk-card-t">${esc(c.name || '')}</div>${due}</div></div>`;
@@ -289,7 +289,7 @@
     }));
     if (!hits.length) return `<div class="tk-msg">${ICON_EMPTY}<br>${t('trelloNoResult', 'Sonuç yok')}: "${esc(q)}"</div>`;
     const grid = hits.slice(0, 150).map(h => {
-      const cover = h.c.cover ? `<div class="tk-cover"><img src="${esc(h.c.cover)}" alt="" referrerpolicy="no-referrer" loading="lazy"></div>` : '';
+      const cover = h.c.cover ? `<div class="tk-cover"><img src="${esc(h.c.cover)}" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async"></div>` : '';
       const labs = (h.c.labels || []).filter(l => l.color).map(l => `<span class="tk-lab" style="background:${LABEL_COLORS[l.color] || '#5e6c84'}"></span>`).join('');
       return `<div class="tk-rcard" data-li="${h.li}" data-ci="${h.ci}" tabindex="0" role="button">${cover}<div class="tk-card-b"><div class="tk-rlist">${esc(h.list)}</div>${labs ? `<div class="tk-labels">${labs}</div>` : ''}<div class="tk-card-t">${esc(h.c.name || '')}</div></div></div>`;
     }).join('');

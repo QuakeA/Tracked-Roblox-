@@ -1470,16 +1470,28 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         const u = String(request.url || '');
         if (!/^https:\/\/([a-z0-9.-]+\.)?(trello\.com|trellousercontent\.com|amazonaws\.com)\//i.test(u)) { sendResponse({ ok: false }); return; }
         self._trelloImg = self._trelloImg || {};
-        if (self._trelloImg[u]) { sendResponse({ ok: true, dataUrl: self._trelloImg[u] }); return; }
+        if (self._trelloImg[u]) { sendResponse({ ok: true, dataUrl: self._trelloImg[u] }); return; }   // L1: RAM
+        // ArrayBuffer → data URL (parçalı; byte-byte'tan hızlı)
+        const toDataUrl = (buf, ct) => {
+          const b = new Uint8Array(buf); let bin = ''; const CH = 0x8000;
+          for (let i = 0; i < b.length; i += CH) bin += String.fromCharCode.apply(null, b.subarray(i, i + CH));
+          return `data:${ct || 'image/webp'};base64,${btoa(bin)}`;
+        };
+        const remember = (dataUrl) => { const keys = Object.keys(self._trelloImg); if (keys.length > 300) delete self._trelloImg[keys[0]]; self._trelloImg[u] = dataUrl; };
+        // L2: kalıcı Cache API → sayfa yenilense bile AĞA GİTMEZ (kapaklar anında gelir)
+        let cache = null; try { cache = await caches.open('tk-trello-img-v1'); } catch (_) {}
+        if (cache) {
+          const hit = await cache.match(u);
+          if (hit) { const dataUrl = toDataUrl(await hit.arrayBuffer(), hit.headers.get('content-type')); remember(dataUrl); sendResponse({ ok: true, dataUrl }); return; }
+        }
         const r = await fetch(u);
         if (!r.ok) { sendResponse({ ok: false }); return; }
         const buf = await r.arrayBuffer();
         if (buf.byteLength > 700000) { sendResponse({ ok: false }); return; }   // çok büyük → atla
-        let bin = ''; const b = new Uint8Array(buf);
-        for (let i = 0; i < b.length; i++) bin += String.fromCharCode(b[i]);
-        const dataUrl = `data:${r.headers.get('content-type') || 'image/webp'};base64,${btoa(bin)}`;
-        const keys = Object.keys(self._trelloImg); if (keys.length > 250) delete self._trelloImg[keys[0]];   // önbellek tavanı
-        self._trelloImg[u] = dataUrl;
+        const ct = r.headers.get('content-type') || 'image/webp';
+        if (cache) { try { await cache.put(u, new Response(buf.slice(0), { headers: { 'content-type': ct } })); } catch (_) {} }
+        const dataUrl = toDataUrl(buf, ct);
+        remember(dataUrl);
         sendResponse({ ok: true, dataUrl });
       } catch (_) { sendResponse({ ok: false }); }
     })();
