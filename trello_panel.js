@@ -63,7 +63,34 @@
     }
   }
 
-  let _enabled = false, _loading = false, _place = '', _board = null;
+  let _enabled = false, _loading = false, _place = '', _board = null, _q = '';
+
+  // Eşleşen metni (Ctrl/Alt+F gibi) vurgula — DOM text-node'larında, HTML etiketlerini bozmadan
+  function highlightNodes(root, q) {
+    if (!root || !q) return;
+    const ql = q.toLowerCase();
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+    const nodes = []; while (walker.nextNode()) { const n = walker.currentNode; if (n.parentNode && n.parentNode.nodeName !== 'MARK' && n.nodeValue.toLowerCase().indexOf(ql) >= 0) nodes.push(n); }
+    nodes.forEach(node => {
+      const text = node.nodeValue, tl = text.toLowerCase(), frag = document.createDocumentFragment();
+      let i = 0, idx;
+      while ((idx = tl.indexOf(ql, i)) >= 0) {
+        if (idx > i) frag.appendChild(document.createTextNode(text.slice(i, idx)));
+        const m = document.createElement('mark'); m.className = 'tk-hl'; m.textContent = text.slice(idx, idx + q.length);
+        frag.appendChild(m); i = idx + q.length;
+      }
+      if (i < text.length) frag.appendChild(document.createTextNode(text.slice(i)));
+      node.parentNode.replaceChild(frag, node);
+    });
+  }
+  // Açıklamada eşleşme varsa çevresinden kısa bağlam (snippet) çıkar
+  function descSnippet(desc, q) {
+    const flat = String(desc || '').replace(/\s+/g, ' ').trim();
+    const idx = flat.toLowerCase().indexOf(String(q || '').toLowerCase());
+    if (idx < 0) return '';
+    const start = Math.max(0, idx - 45), end = Math.min(flat.length, idx + q.length + 95);
+    return (start > 0 ? '… ' : '') + flat.slice(start, end) + (end < flat.length ? ' …' : '');
+  }
 
   // Trello açıklaması (markdown) → güvenli basit HTML (önce escape, sonra link/bold/satır)
   function mdToHtml(s) {
@@ -145,6 +172,9 @@
       #${PANE_ID} .tk-rcard:hover{transform:translateY(-2px);border-color:rgba(255,255,255,.2);box-shadow:0 10px 26px rgba(0,0,0,.3);}
       #${PANE_ID} .tk-rcard:focus-visible{outline:2px solid #4d8bf0;outline-offset:2px;}
       #${PANE_ID} .tk-rlist{font-size:10px;color:#5e9bff;font-weight:750;text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+      #${PANE_ID} .tk-rsnip{font-size:12px;line-height:1.5;color:#aeb4c0;margin-top:7px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}
+      /* Eşleşme vurgusu (Ctrl/Alt+F gibi) */
+      #${PANE_ID} .tk-hl{background:#ffd54a;color:#15171c;border-radius:3px;padding:0 1.5px;font-weight:700;}
       /* Kart detay modalı */
       #${PANE_ID} .tk-modal{position:absolute;inset:0;z-index:20;display:flex;align-items:flex-start;justify-content:center;padding:34px 18px;overflow-y:auto;background:rgba(0,0,0,.62);backdrop-filter:blur(3px);animation:tk-fade .15s ease both;}
       @keyframes tk-fade{from{opacity:0;}to{opacity:1;}}
@@ -261,6 +291,7 @@
         <div class="tk-m-body"><h3>${esc(c.name || '')}</h3>${meta}${desc}</div>
       </div>`;
     pane.appendChild(modal);
+    if (_q) { highlightNodes(modal.querySelector('.tk-m-body h3'), _q); highlightNodes(modal.querySelector('.tk-m-desc'), _q); }   // aramadan açıldıysa eşleşeni vurgula
     const close = () => { modal.remove(); document.removeEventListener('keydown', onKey); };
     const onKey = (e) => { if (e.key === 'Escape') close(); };
     modal.querySelector('.tk-m-close').addEventListener('click', close);
@@ -291,14 +322,19 @@
     const grid = hits.slice(0, 150).map(h => {
       const cover = h.c.cover ? `<div class="tk-cover"><img src="${esc(h.c.cover)}" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async"></div>` : '';
       const labs = (h.c.labels || []).filter(l => l.color).map(l => `<span class="tk-lab" style="background:${LABEL_COLORS[l.color] || '#5e6c84'}"></span>`).join('');
-      return `<div class="tk-rcard" data-li="${h.li}" data-ci="${h.ci}" tabindex="0" role="button">${cover}<div class="tk-card-b"><div class="tk-rlist">${esc(h.list)}</div>${labs ? `<div class="tk-labels">${labs}</div>` : ''}<div class="tk-card-t">${esc(h.c.name || '')}</div></div></div>`;
+      // Başlıkta eşleşme yoksa açıklamadan bağlam göster (nerede eşleştiği görünsün)
+      const titleHit = (h.c.name || '').toLowerCase().indexOf(ql) >= 0;
+      const snip = !titleHit ? descSnippet(h.c.desc, q) : '';
+      return `<div class="tk-rcard" data-li="${h.li}" data-ci="${h.ci}" tabindex="0" role="button">${cover}<div class="tk-card-b"><div class="tk-rlist">${esc(h.list)}</div>${labs ? `<div class="tk-labels">${labs}</div>` : ''}<div class="tk-card-t">${esc(h.c.name || '')}</div>${snip ? `<div class="tk-rsnip">${esc(snip)}</div>` : ''}</div></div>`;
     }).join('');
     return `<div class="tk-results-head">${hits.length} ${t('trelloHits', 'sonuç')}${hits.length > 150 ? ' (ilk 150)' : ''}</div><div class="tk-results">${grid}</div>`;
   }
   function renderContent(q) {
     const pane = document.getElementById(PANE_ID); const content = pane && pane.querySelector('.tk-content'); if (!content) return;
-    content.innerHTML = (q && q.trim()) ? resultsHtml(q.trim()) : boardHtml();
+    _q = (q || '').trim();
+    content.innerHTML = _q ? resultsHtml(_q) : boardHtml();
     wireCards(content);
+    if (_q) { content.querySelectorAll('.tk-card-t,.tk-rsnip,.tk-rlist').forEach(el => highlightNodes(el, _q)); }   // eşleşeni vurgula
   }
 
   function renderInto(pane, st) {
@@ -314,7 +350,7 @@
       renderContent('');
       const inp = pane.querySelector('.tk-search'), xb = pane.querySelector('.tk-search-x');
       let dt;
-      inp?.addEventListener('input', () => { clearTimeout(dt); const v = inp.value; if (xb) xb.style.display = v ? '' : 'none'; dt = setTimeout(() => renderContent(v), 140); });
+      inp?.addEventListener('input', () => { clearTimeout(dt); const v = inp.value; if (xb) xb.style.display = v ? '' : 'none'; dt = setTimeout(() => renderContent(v), 90); });
       inp?.addEventListener('keydown', e => { if (e.key === 'Escape' && inp.value) { inp.value = ''; if (xb) xb.style.display = 'none'; renderContent(''); } });
       xb?.addEventListener('click', () => { inp.value = ''; xb.style.display = 'none'; renderContent(''); inp.focus(); });
       return;
