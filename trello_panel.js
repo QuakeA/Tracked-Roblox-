@@ -95,8 +95,8 @@
       #${PANE_ID} .tk-col-cards::-webkit-scrollbar-thumb{background:rgba(255,255,255,.18);border-radius:8px;border:2px solid transparent;background-clip:content-box;}
       #${PANE_ID} .tk-card{background:rgba(46,50,61,.97);border:1px solid rgba(255,255,255,.08);border-radius:12px;overflow:hidden;transition:transform .12s,box-shadow .15s,border-color .15s;}
       #${PANE_ID} .tk-card:hover{transform:translateY(-2px);border-color:rgba(255,255,255,.2);box-shadow:0 12px 26px rgba(0,0,0,.45);}
-      #${PANE_ID} .tk-cover{width:100%;height:178px;background:rgba(0,0,0,.28);line-height:0;}
-      #${PANE_ID} .tk-cover img{display:block;width:100%;height:100%;object-fit:cover;}
+      #${PANE_ID} .tk-cover{width:100%;height:178px;min-height:178px;flex:0 0 178px;background:rgba(0,0,0,.28);line-height:0;overflow:hidden;}
+      #${PANE_ID} .tk-cover img{display:block!important;width:100%!important;height:178px!important;max-height:178px!important;object-fit:cover!important;}
       #${PANE_ID} .tk-card-b{padding:10px 12px;display:flex;flex-direction:column;gap:7px;}
       #${PANE_ID} .tk-labels{display:flex;flex-wrap:wrap;gap:5px;}
       #${PANE_ID} .tk-lab{height:8px;min-width:36px;border-radius:5px;}
