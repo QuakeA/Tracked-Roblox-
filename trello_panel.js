@@ -70,7 +70,7 @@
     const s = document.createElement('style');
     s.id = STYLE_ID;
     s.textContent = `
-      #${PANEL_ID}{position:fixed;right:16px;top:76px;width:330px;max-height:min(600px,calc(100vh - 160px));box-sizing:border-box;
+      #${PANEL_ID}{position:fixed;right:16px;bottom:74px;width:330px;max-height:min(440px,calc(100vh - 200px));box-sizing:border-box;
         display:flex;flex-direction:column;overflow:hidden;z-index:8800;
         background:linear-gradient(180deg,rgba(20,21,26,.95),rgba(13,14,18,.985));
         backdrop-filter:blur(28px) saturate(1.4);-webkit-backdrop-filter:blur(28px) saturate(1.4);

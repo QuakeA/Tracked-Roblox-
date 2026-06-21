@@ -1474,7 +1474,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         // ── Board ID çözümü (AUTH GEREKMEDEN): DOM → API tam açıklama → web araması → manuel ──
         const trelloWebSearch = async (name) => {
           try {
-            const r = await fetch(`https://html.duckduckgo.com/html/?q=${encodeURIComponent(name + ' roblox trello')}`, { headers: { Accept: 'text/html' } });
+            const r = await fetch(`https://lite.duckduckgo.com/lite/?q=${encodeURIComponent(name + ' roblox trello')}`, { headers: { Accept: 'text/html' } });
             if (!r.ok) return '';
             const m = (await r.text()).match(/trello\.com(?:%2[Ff]|\/)b(?:%2[Ff]|\/)([A-Za-z0-9]+)/i);
             return m ? m[1] : '';
@@ -1509,6 +1509,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         if (!boardId) { boardId = String(cfg.boardId || '').trim(); if (boardId) source = 'manual'; }
         if (!boardId) { sendResponse({ ok: false, noBoard: true }); return; }
 
+        // ── Board veri önbelleği: board JSON 15+ MB olabilir (1500+ kart) → 60sn'de bir indirme; 3 dk önbellek ──
+        self._trelloData = self._trelloData || {};
+        const dc = self._trelloData[boardId];
+        if (dc && (Date.now() - dc.at) < 180000) { sendResponse({ ok: true, source, board: dc.board, lists: dc.lists }); return; }
+
         // ── 1) PUBLIC board JSON — auth YOK (oyun panolarının çoğu public) ──
         try {
           const pr = await fetch(`https://trello.com/b/${encodeURIComponent(boardId)}.json`, { headers: { Accept: 'application/json' } });
@@ -1530,7 +1535,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 labels: (Array.isArray(c.labels) ? c.labels : []).map(x => ({ color: x.color || null, name: x.name || '' }))
               }))
             }));
-            sendResponse({ ok: true, source, board: { name: d.name || 'Trello', url: d.url || '' }, lists: out });
+            const board = { name: d.name || 'Trello', url: d.url || '' };
+            self._trelloData[boardId] = { at: Date.now(), board, lists: out };   // 3 dk önbellek
+            sendResponse({ ok: true, source, board, lists: out });
             return;
           }
         } catch (_) {}
