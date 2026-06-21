@@ -1462,26 +1462,24 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true;
   }
 
-  // ── Trello canlı pano (oyun sayfası): read-only Trello API. Kimlik bilgileri storage'da; yalnız api.trello.com'a gider. ──
+  // ── Trello canlı pano (oyun sayfası). ÇOĞU oyun panosu PUBLIC → trello.com/b/<id>.json'dan AUTH'SUZ okunur
+  //    (kullanıcı hiçbir şey girmez). Yalnız PRIVATE pano için key+token (API) fallback. Veri yalnız Trello'ya gider. ──
   if (request.action === "trelloFetchBoard") {
     (async () => {
       try {
         const st = await chrome.storage.local.get('rota_settings');
         const cfg = (st.rota_settings && st.rota_settings.trello) || {};
         const key = String(cfg.key || '').trim(), token = String(cfg.token || '').trim();
-        if (!key || !token) { sendResponse({ ok: false, needSetup: true }); return; }
-        // Web araması (best-effort, TAHMİN): oyun adıyla "roblox trello" ara, sonuç HTML'inde board linki yakala.
+
+        // ── Board ID çözümü (AUTH GEREKMEDEN): DOM → API tam açıklama → web araması → manuel ──
         const trelloWebSearch = async (name) => {
           try {
             const r = await fetch(`https://html.duckduckgo.com/html/?q=${encodeURIComponent(name + ' roblox trello')}`, { headers: { Accept: 'text/html' } });
             if (!r.ok) return '';
-            const html = await r.text();
-            const m = html.match(/trello\.com(?:%2[Ff]|\/)b(?:%2[Ff]|\/)([A-Za-z0-9]+)/i);   // düz ya da URL-encoded
+            const m = (await r.text()).match(/trello\.com(?:%2[Ff]|\/)b(?:%2[Ff]|\/)([A-Za-z0-9]+)/i);
             return m ? m[1] : '';
           } catch (_) { return ''; }
         };
-        // Pano çözümü: (1) sayfa DOM tespiti [kesin], (2) oyunun TAM açıklaması/API [kesin],
-        // (3) WEB araması [TAHMİN — etiketli], (4) kullanıcının manuel fallback'i.
         let boardId = String(request.boardId || '').trim();
         let source = boardId ? 'page' : '';
         if (!boardId && request.placeId) {
@@ -1503,28 +1501,50 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 if (m) { found = m[1]; src = 'page'; }
               }
               if (!found && name) { const w = await trelloWebSearch(name); if (w) { found = w; src = 'web'; } }
-              self._trelloBoardCache[pid] = { id: found, src };   // bulunamasa da boş önbellek → her tazelemede ağ dövmez
+              self._trelloBoardCache[pid] = { id: found, src };
               boardId = found; source = src;
             }
           } catch (_) {}
         }
-        if (!boardId) { boardId = String(cfg.boardId || '').trim(); if (boardId) source = 'manual'; }   // manuel fallback
+        if (!boardId) { boardId = String(cfg.boardId || '').trim(); if (boardId) source = 'manual'; }
         if (!boardId) { sendResponse({ ok: false, noBoard: true }); return; }
+
+        // ── 1) PUBLIC board JSON — auth YOK (oyun panolarının çoğu public) ──
+        try {
+          const pr = await fetch(`https://trello.com/b/${encodeURIComponent(boardId)}.json`, { headers: { Accept: 'application/json' } });
+          if (pr.ok && (pr.headers.get('content-type') || '').indexOf('json') >= 0) {
+            const d = await pr.json();
+            const lists = (Array.isArray(d.lists) ? d.lists : []).filter(l => l && !l.closed).sort((a, b) => (a.pos || 0) - (b.pos || 0));
+            const byList = {};
+            for (const c of (Array.isArray(d.cards) ? d.cards : [])) { if (c && !c.closed) (byList[c.idList] = byList[c.idList] || []).push(c); }
+            const out = lists.map(l => ({
+              name: l.name || '',
+              cards: (byList[l.id] || []).sort((a, b) => (a.pos || 0) - (b.pos || 0)).slice(0, 60).map(c => ({
+                name: c.name || '', due: c.due || null,
+                labels: (Array.isArray(c.labels) ? c.labels : []).map(x => ({ color: x.color || null, name: x.name || '' }))
+              }))
+            }));
+            sendResponse({ ok: true, source, board: { name: d.name || 'Trello', url: d.url || '' }, lists: out });
+            return;
+          }
+        } catch (_) {}
+
+        // ── 2) PRIVATE board → API (key+token gerekli) ──
+        if (!key || !token) { sendResponse({ ok: false, needSetup: true, private: true }); return; }
         const auth = `key=${encodeURIComponent(key)}&token=${encodeURIComponent(token)}`;
         const base = `https://api.trello.com/1/boards/${encodeURIComponent(boardId)}`;
         const [bRes, lRes] = await Promise.all([
           fetch(`${base}?fields=name,url&${auth}`, { headers: { Accept: 'application/json' } }),
           fetch(`${base}/lists?cards=open&card_fields=name,due,labels&fields=name&${auth}`, { headers: { Accept: 'application/json' } })
         ]);
-        if (bRes.status === 401 || lRes.status === 401) { sendResponse({ ok: false, error: 'auth', needSetup: true }); return; }
+        if (bRes.status === 401 || lRes.status === 401) { sendResponse({ ok: false, error: 'auth', needSetup: true, private: true }); return; }
         if (!bRes.ok || !lRes.ok) { sendResponse({ ok: false, error: `HTTP ${bRes.status}/${lRes.status}` }); return; }
         const board = await bRes.json();
         const lists = await lRes.json();
         const out = (Array.isArray(lists) ? lists : []).map(l => ({
           name: l.name || '',
           cards: (Array.isArray(l.cards) ? l.cards : []).slice(0, 60).map(c => ({
-            name: c.name || '',
-            due: c.due || null,
+            name: c.name || '', due: c.due || null,
             labels: (Array.isArray(c.labels) ? c.labels : []).map(x => ({ color: x.color || null, name: x.name || '' }))
           }))
         }));

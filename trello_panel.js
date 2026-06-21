@@ -69,7 +69,7 @@
     const s = document.createElement('style');
     s.id = STYLE_ID;
     s.textContent = `
-      #${PANEL_ID}{position:fixed;right:16px;bottom:16px;width:330px;max-height:min(560px,calc(100vh - 120px));box-sizing:border-box;
+      #${PANEL_ID}{position:fixed;right:16px;top:76px;width:330px;max-height:min(600px,calc(100vh - 160px));box-sizing:border-box;
         display:flex;flex-direction:column;overflow:hidden;z-index:8800;
         background:linear-gradient(180deg,rgba(20,21,26,.95),rgba(13,14,18,.985));
         backdrop-filter:blur(28px) saturate(1.4);-webkit-backdrop-filter:blur(28px) saturate(1.4);
@@ -152,7 +152,7 @@
     p.classList.remove('tt-min'); _minimized = false;   // kurulumda açık dursun
     p.innerHTML = headHtml('Trello', false) + `
       <div class="tt-setup">
-        <p>${t('trelloSetupHint', 'Bir kez bağla: API key + token. Pano her oyunda açıklamasındaki Trello linkinden OTOMATİK bulunur. Veriler tarayıcında kalır, yalnız Trello\'ya gider.')}</p>
+        <p>${t('trelloSetupHint', 'Public panolar otomatik açılır — giriş gerekmez. Bu pano GİZLİ olduğundan okumak için API key + token gir (bir kez). Veriler tarayıcında kalır, yalnız Trello\'ya gider.')}</p>
         <div><label>API key</label><input class="tt-key" type="text" placeholder="32 haneli key" autocomplete="off" spellcheck="false"></div>
         <button class="tt-btn ghost tt-gettoken">${t('trelloGetToken', 'Token al (key gir → tıkla)')}</button>
         <div><label>Token</label><input class="tt-token" type="text" placeholder="Token'ı yapıştır" autocomplete="off" spellcheck="false"></div>
@@ -259,7 +259,13 @@
       // Auto-refresh, AÇIK bir formu (setup/manuel) yeniden çizip kullanıcının yazdığını SİLMESİN.
       const hasForm = !!document.querySelector(`#${PANEL_ID} .tt-setup`);
       if (r && r.ok) { renderBoard(r); }
-      else if (!r || r.needSetup) { if (!hasForm) renderSetup(r && r.error === 'auth' ? t('trelloAuthErr', 'Token geçersiz/süresi dolmuş. Yeniden bağla.') : ''); }
+      else if (!r || r.needSetup) {
+        if (!hasForm) renderSetup(
+          (r && r.error === 'auth') ? t('trelloAuthErr', 'Token geçersiz/süresi dolmuş. Yeniden bağla.')
+          : (r && r.private) ? t('trelloPrivate', 'Bu pano GİZLİ — okumak için API key + token gir (public panolar otomatik açılır).')
+          : ''
+        );
+      }
       else if (r.noBoard) { if (!hasForm) renderNoBoard(); }
       else { renderError(t('trelloLoadErr', 'Trello yüklenemedi.') + (r.error ? ' (' + r.error + ')' : '')); }
     } catch (_) {
