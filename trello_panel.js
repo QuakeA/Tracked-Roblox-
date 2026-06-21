@@ -44,6 +44,22 @@
   }
   const curPlace = () => (location.pathname.match(/\/games\/(\d+)/) || [])[1] || '';
 
+  // Kapak proxy kuyruğu — çok sayıda kapak aynı anda SW'yi boğmasın (4 eşzamanlı)
+  const _pq = []; let _pqActive = 0;
+  function dropCover(img) { const c = img && img.closest('.tk-cover'); if (c) c.remove(); }
+  function enqueueProxy(img) { _pq.push(img); pumpProxy(); }
+  function pumpProxy() {
+    while (_pqActive < 4 && _pq.length) {
+      const img = _pq.shift(); _pqActive++;
+      swMsg({ action: 'trelloImg', url: img.getAttribute('src') }).then(r => {
+        _pqActive--;
+        if (r && r.ok && r.dataUrl) { img.addEventListener('error', () => dropCover(img), { once: true }); img.src = r.dataUrl; }
+        else dropCover(img);
+        pumpProxy();
+      });
+    }
+  }
+
   let _enabled = false, _loading = false, _place = '';
 
   function injectStyles() {
@@ -66,7 +82,7 @@
       #${PANE_ID} .tk-board{display:flex;gap:16px;overflow-x:auto;overflow-y:hidden;padding:16px 4px 20px;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.26) transparent;}
       #${PANE_ID} .tk-board::-webkit-scrollbar{height:11px;}
       #${PANE_ID} .tk-board::-webkit-scrollbar-thumb{background:rgba(255,255,255,.22);border-radius:8px;border:2px solid transparent;background-clip:content-box;}
-      #${PANE_ID} .tk-col{flex:0 0 288px;max-width:288px;max-height:660px;display:flex;flex-direction:column;
+      #${PANE_ID} .tk-col{flex:0 0 345px;max-width:345px;max-height:920px;display:flex;flex-direction:column;
         background:linear-gradient(180deg,rgba(27,30,38,.975),rgba(20,22,29,.985));
         border:1px solid rgba(255,255,255,.09);border-radius:16px;padding:13px 11px 11px;
         box-shadow:0 12px 32px rgba(0,0,0,.42);backdrop-filter:blur(6px);}
@@ -90,7 +106,7 @@
       #${PANE_ID} .tk-empty{font-size:12px;color:#7e828c;padding:6px 4px;}
       #${PANE_ID} .tk-msg{padding:42px 16px;text-align:center;color:#b6bbc4;font-size:14px;line-height:1.7;}
       #${PANE_ID} .tk-link{color:#4d8bf0;cursor:pointer;text-decoration:underline;}
-      #${PANE_ID} .tk-sk{flex:0 0 288px;height:220px;border-radius:16px;background:linear-gradient(90deg,rgba(255,255,255,.05),rgba(255,255,255,.11),rgba(255,255,255,.05));background-size:200% 100%;animation:tk-sh 1.3s infinite;}
+      #${PANE_ID} .tk-sk{flex:0 0 345px;height:300px;border-radius:16px;background:linear-gradient(90deg,rgba(255,255,255,.05),rgba(255,255,255,.11),rgba(255,255,255,.05));background-size:200% 100%;animation:tk-sh 1.3s infinite;}
       @keyframes tk-sh{0%{background-position:200% 0;}100%{background-position:-200% 0;}}
       #${PANE_ID} .tk-setup{max-width:430px;margin:28px auto;display:flex;flex-direction:column;gap:11px;}
       #${PANE_ID} .tk-setup p{margin:0;font-size:13px;color:#b6bbc4;line-height:1.55;}
@@ -167,16 +183,13 @@
     pane.querySelector('.tk-refresh')?.addEventListener('click', () => refresh());
     pane.querySelector('.tk-manual')?.addEventListener('click', () => renderInto(pane, { kind: 'setup' }));
     // Kapak görseli: doğrudan trello.com URL'i önce denenir; Roblox img-CSP'si engellerse
-    // SW üzerinden data-URL'e çevrilip CSP bypass edilir (loading=lazy → yalnız görünür kapaklar).
+    // SW proxy KUYRUĞUNA alınır (data-URL → CSP bypass). Kuyruk eşzamanlılığı sınırlar → hepsi yüklenir.
     pane.querySelectorAll('.tk-cover img').forEach(img => {
       img.addEventListener('error', function onErr() {
         img.removeEventListener('error', onErr);
-        if (img.dataset.proxied) { const c = img.closest('.tk-cover'); if (c) c.remove(); return; }
+        if (img.dataset.proxied) { dropCover(img); return; }
         img.dataset.proxied = '1';
-        swMsg({ action: 'trelloImg', url: img.getAttribute('src') }).then(r => {
-          if (r && r.ok && r.dataUrl) { img.addEventListener('error', () => { const c = img.closest('.tk-cover'); if (c) c.remove(); }, { once: true }); img.src = r.dataUrl; }
-          else { const c = img.closest('.tk-cover'); if (c) c.remove(); }
-        });
+        enqueueProxy(img);
       });
     });
   }
