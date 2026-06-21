@@ -1468,8 +1468,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       try {
         const st = await chrome.storage.local.get('rota_settings');
         const cfg = (st.rota_settings && st.rota_settings.trello) || {};
-        const key = String(cfg.key || '').trim(), token = String(cfg.token || '').trim(), boardId = String(cfg.boardId || '').trim();
-        if (!key || !token || !boardId) { sendResponse({ ok: false, needSetup: true }); return; }
+        const key = String(cfg.key || '').trim(), token = String(cfg.token || '').trim();
+        // Pano: oyundan OTOMATİK bulunan (request.boardId) öncelikli; yoksa kullanıcının manuel fallback'i.
+        const boardId = String(request.boardId || cfg.boardId || '').trim();
+        if (!key || !token) { sendResponse({ ok: false, needSetup: true }); return; }
+        if (!boardId) { sendResponse({ ok: false, noBoard: true }); return; }
         const auth = `key=${encodeURIComponent(key)}&token=${encodeURIComponent(token)}`;
         const base = `https://api.trello.com/1/boards/${encodeURIComponent(boardId)}`;
         const [bRes, lRes] = await Promise.all([

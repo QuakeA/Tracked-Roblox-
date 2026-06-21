@@ -36,6 +36,25 @@
     if (/^[A-Za-z0-9]{6,32}$/.test(v)) return v;   // ham kısa-kod / id
     return '';
   }
+  // Oyun sayfasından Trello panosunu OTOMATİK bul (kullanıcı bir şey yazmaz):
+  // 1) açıklamadaki/sayfadaki trello.com/b/<id> linki (anchor ya da düz metin).
+  let _detectedFor = '', _boardId = '';
+  function detectBoardId() {
+    try {
+      const a = document.querySelector('a[href*="trello.com/b/"]');
+      if (a) { const id = parseBoardId(a.getAttribute('href') || ''); if (id) return id; }
+      const descEl = document.querySelector('.game-description, #game-description, [class*="escription"]');
+      const txt = (descEl && descEl.textContent) || (document.body && document.body.innerText) || '';
+      const m = txt.match(/trello\.com\/b\/([A-Za-z0-9]+)/i);
+      return m ? m[1] : '';
+    } catch (_) { return ''; }
+  }
+  function getBoardId() {
+    if (_detectedFor === location.href && _boardId) return _boardId;   // URL başına önbellek (SPA'da yeniden bulunur)
+    const id = detectBoardId();
+    if (id) { _detectedFor = location.href; _boardId = id; }            // bulunamazsa önbelleğe alma → sonraki tazelemede tekrar dener
+    return id;
+  }
   const LABEL_COLORS = { green:'#61bd4f', yellow:'#f2d600', orange:'#ff9f1a', red:'#eb5a46', purple:'#c377e0', blue:'#0079bf', sky:'#00c2e0', lime:'#51e898', pink:'#ff78cb', black:'#344563' };
   function fmtDue(iso) {
     try { const d = new Date(iso); if (isNaN(d)) return ''; return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' }); } catch (_) { return ''; }
@@ -125,21 +144,21 @@
     p.querySelector('.tt-minbtn')?.addEventListener('click', (e) => { e.stopPropagation(); _minimized = true; p.classList.add('tt-min'); saveMin(true); });
   }
 
+  // Kurulum: yalnız API key + token (BİR KEZ). Pano her oyunda otomatik bulunur — kullanıcı board yazmaz.
   function renderSetup(errMsg) {
-    const p = ensurePanel(); p.classList.toggle('tt-min', _minimized);
+    const p = ensurePanel();
+    p.classList.remove('tt-min'); _minimized = false;   // kurulumda açık dursun
     p.innerHTML = headHtml('Trello', false) + `
       <div class="tt-setup">
-        <p>${t('trelloSetupHint', 'Panonu bağla. Veriler yalnız tarayıcında kalır, yalnız Trello\'ya gider.')}</p>
+        <p>${t('trelloSetupHint', 'Bir kez bağla: API key + token. Pano her oyunda açıklamasındaki Trello linkinden OTOMATİK bulunur. Veriler tarayıcında kalır, yalnız Trello\'ya gider.')}</p>
         <div><label>API key</label><input class="tt-key" type="text" placeholder="32 haneli key" autocomplete="off" spellcheck="false"></div>
         <button class="tt-btn ghost tt-gettoken">${t('trelloGetToken', 'Token al (key gir → tıkla)')}</button>
         <div><label>Token</label><input class="tt-token" type="text" placeholder="Token'ı yapıştır" autocomplete="off" spellcheck="false"></div>
-        <div><label>${t('trelloBoardUrl', 'Pano URL / ID')}</label><input class="tt-board" type="text" placeholder="https://trello.com/b/XXXX/..." autocomplete="off" spellcheck="false"></div>
         ${errMsg ? `<div class="tt-err">${esc(errMsg)}</div>` : ''}
         <button class="tt-btn tt-save">${t('trelloSave', 'Bağla')}</button>
       </div>`;
-    p.classList.remove('tt-min'); _minimized = false; // kurulumda açık dursun
     wireHead(p);
-    const keyIn = p.querySelector('.tt-key'), tokIn = p.querySelector('.tt-token'), boardIn = p.querySelector('.tt-board');
+    const keyIn = p.querySelector('.tt-key'), tokIn = p.querySelector('.tt-token');
     p.querySelector('.tt-gettoken')?.addEventListener('click', (e) => {
       e.stopPropagation();
       const k = (keyIn.value || '').trim();
@@ -149,16 +168,47 @@
     });
     p.querySelector('.tt-save')?.addEventListener('click', async (e) => {
       e.stopPropagation();
-      const key = (keyIn.value || '').trim(), token = (tokIn.value || '').trim(), boardId = parseBoardId(boardIn.value);
-      if (!key || !token || !boardId) { renderSetup(t('trelloFillAll', 'Key, token ve geçerli pano URL\'si gerekli.')); return; }
+      const key = (keyIn.value || '').trim(), token = (tokIn.value || '').trim();
+      if (!key || !token) { renderSetup(t('trelloFillKT', 'API key ve token gerekli.')); return; }
       try {
         const cur = await chrome.storage.local.get('rota_settings');
         const rs = cur.rota_settings || {};
-        rs.trello = { key, token, boardId };
+        rs.trello = Object.assign({}, rs.trello, { key, token });   // varsa manuel board fallback'i koru
         await chrome.storage.local.set({ rota_settings: rs });
       } catch (_) {}
       refresh();
     });
+  }
+  // Otomatik bulunamadı: isteğe bağlı sabit pano gir (zorunlu değil; otomatik her zaman öncelikli)
+  function renderManual() {
+    const p = ensurePanel();
+    p.classList.remove('tt-min'); _minimized = false;
+    p.innerHTML = headHtml('Trello', false) + `
+      <div class="tt-setup">
+        <p>${t('trelloManualHint', 'Bu oyunda otomatik bulunamadı. İstersen sabit bir pano gir (otomatik bulunan her zaman önceliklidir).')}</p>
+        <div><label>${t('trelloBoardUrl', 'Pano URL / ID')}</label><input class="tt-board" type="text" placeholder="https://trello.com/b/XXXX/..." autocomplete="off" spellcheck="false"></div>
+        <button class="tt-btn tt-saveboard">${t('trelloSave', 'Bağla')}</button>
+      </div>`;
+    wireHead(p);
+    const boardIn = p.querySelector('.tt-board');
+    p.querySelector('.tt-saveboard')?.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const boardId = parseBoardId(boardIn.value);
+      if (!boardId) { boardIn.focus(); return; }
+      try {
+        const cur = await chrome.storage.local.get('rota_settings');
+        const rs = cur.rota_settings || {};
+        rs.trello = Object.assign({}, rs.trello, { boardId });
+        await chrome.storage.local.set({ rota_settings: rs });
+      } catch (_) {}
+      refresh();
+    });
+  }
+  function renderNoBoard() {
+    const p = ensurePanel(); p.classList.toggle('tt-min', _minimized);
+    p.innerHTML = headHtml('Trello', false) + `<div class="tt-msg">${t('trelloNoBoard', 'Bu oyunun açıklamasında Trello linki bulunamadı.')}<br><span class="tt-link tt-manual">${t('trelloManual', 'Pano linkini elle gir')}</span></div>`;
+    wireHead(p);
+    p.querySelector('.tt-manual')?.addEventListener('click', (e) => { e.stopPropagation(); renderManual(); });
   }
 
   function cardHtml(c) {
@@ -195,13 +245,14 @@
     _loading = true;
     if (!_minimized && !document.querySelector(`#${PANEL_ID} .tt-card, #${PANEL_ID} .tt-setup`)) renderLoading();
     try {
-      const r = await swMsg({ action: 'trelloFetchBoard' });
+      const boardId = getBoardId();   // oyundan otomatik bulunan pano (kullanıcı yazmaz)
+      const r = await swMsg({ action: 'trelloFetchBoard', boardId });
       if (!_enabled) return;
+      // Auto-refresh, AÇIK bir formu (setup/manuel) yeniden çizip kullanıcının yazdığını SİLMESİN.
+      const hasForm = !!document.querySelector(`#${PANEL_ID} .tt-setup`);
       if (r && r.ok) { renderBoard(r); }
-      else if (!r || r.needSetup) {
-        // Auto-refresh kurulum formunu yeniden çizip kullanıcının yazdığı key/token'ı SİLMESİN: yalnız form yoksa kur.
-        if (!document.querySelector(`#${PANEL_ID} .tt-setup`)) renderSetup(r && r.error === 'auth' ? t('trelloAuthErr', 'Token geçersiz/süresi dolmuş. Yeniden bağla.') : '');
-      }
+      else if (!r || r.needSetup) { if (!hasForm) renderSetup(r && r.error === 'auth' ? t('trelloAuthErr', 'Token geçersiz/süresi dolmuş. Yeniden bağla.') : ''); }
+      else if (r.noBoard) { if (!hasForm) renderNoBoard(); }
       else { renderError(t('trelloLoadErr', 'Trello yüklenemedi.') + (r.error ? ' (' + r.error + ')' : '')); }
     } catch (_) {
       if (_enabled) renderError(t('trelloLoadErr', 'Trello yüklenemedi.'));
