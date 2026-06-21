@@ -1462,6 +1462,30 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true;
   }
 
+  // ── Trello kart kapağı proxy: Roblox img-CSP'si trello.com görselini engellerse SW (host izinli)
+  //    görseli çekip data-URL döner → içerik script'i <img>'e koyar (CSP bypass). Önbellekli, boyut sınırlı. ──
+  if (request.action === "trelloImg") {
+    (async () => {
+      try {
+        const u = String(request.url || '');
+        if (!/^https:\/\/([a-z0-9.-]+\.)?(trello\.com|trellousercontent\.com|amazonaws\.com)\//i.test(u)) { sendResponse({ ok: false }); return; }
+        self._trelloImg = self._trelloImg || {};
+        if (self._trelloImg[u]) { sendResponse({ ok: true, dataUrl: self._trelloImg[u] }); return; }
+        const r = await fetch(u);
+        if (!r.ok) { sendResponse({ ok: false }); return; }
+        const buf = await r.arrayBuffer();
+        if (buf.byteLength > 700000) { sendResponse({ ok: false }); return; }   // çok büyük → atla
+        let bin = ''; const b = new Uint8Array(buf);
+        for (let i = 0; i < b.length; i++) bin += String.fromCharCode(b[i]);
+        const dataUrl = `data:${r.headers.get('content-type') || 'image/webp'};base64,${btoa(bin)}`;
+        const keys = Object.keys(self._trelloImg); if (keys.length > 250) delete self._trelloImg[keys[0]];   // önbellek tavanı
+        self._trelloImg[u] = dataUrl;
+        sendResponse({ ok: true, dataUrl });
+      } catch (_) { sendResponse({ ok: false }); }
+    })();
+    return true;
+  }
+
   // ── Trello canlı pano (oyun sayfası). ÇOĞU oyun panosu PUBLIC → trello.com/b/<id>.json'dan AUTH'SUZ okunur
   //    (kullanıcı hiçbir şey girmez). Yalnız PRIVATE pano için key+token (API) fallback. Veri yalnız Trello'ya gider. ──
   if (request.action === "trelloFetchBoard") {

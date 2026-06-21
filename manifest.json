@@ -42,6 +42,7 @@
     "https://raw.githubusercontent.com/*",
     "https://trello.com/*",
     "https://*.trello.com/*",
+    "https://*.trellousercontent.com/*",
     "https://*.duckduckgo.com/*"
   ],
   "background": {

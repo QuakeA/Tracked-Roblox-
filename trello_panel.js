@@ -16,6 +16,8 @@
   const ICON_TRELLO = '<svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor"><rect x="3" y="3" width="18" height="18" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><rect x="6.5" y="6.5" width="4" height="9.5" rx="1"/><rect x="13.5" y="6.5" width="4" height="6" rx="1"/></svg>';
   const ICON_REFRESH = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg>';
   const ICON_EDIT = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>';
+  const ICON_CAL = '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="17" rx="2.5"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/></svg>';
+  const ICON_EMPTY = '<svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="opacity:.5"><rect x="3" y="3" width="18" height="18" rx="3"/><rect x="6.5" y="6.5" width="3.5" height="9" rx="1"/><rect x="13.5" y="6.5" width="3.5" height="5.5" rx="1"/></svg>';
 
   const t = (k, fb) => { try { if (typeof TrackedI18n !== 'undefined') { const v = TrackedI18n.t(k); if (v && v !== k) return v; } } catch (_) {} return fb; };
   function swMsg(msg) { return new Promise(res => { try { chrome.runtime.sendMessage(msg, r => { if (chrome.runtime.lastError) { res(null); return; } res(r || null); }); } catch { res(null); } }); }
@@ -49,47 +51,54 @@
     const s = document.createElement('style');
     s.id = STYLE_ID;
     s.textContent = `
-      /* Sekme satırı: Trello eklenince ALT SATIRA kaymasın — hepsi tek satırda EŞİT dağılsın (native 5-sekmeli görünüm gibi) */
+      /* Sekme satırı: Trello eklenince ALT SATIRA kaymasın — tek satırda EŞİT dağılsın */
       #horizontal-tabs{display:flex!important;flex-wrap:nowrap!important;}
       #horizontal-tabs>li.rbx-tab{flex:1 1 0!important;width:auto!important;min-width:0!important;float:none!important;}
-      #${PANE_ID}{padding-top:6px;}
-      #${PANE_ID} .tk-bar{display:flex;align-items:center;gap:10px;padding:6px 2px 2px;}
-      #${PANE_ID} .tk-ttl{display:flex;align-items:center;gap:9px;font-size:18px;font-weight:700;}
-      #${PANE_ID} .tk-ttl svg{color:#3b82f6;flex-shrink:0;}
-      #${PANE_ID} .tk-act{margin-left:0;background:rgba(127,127,127,.12);border:1px solid rgba(127,127,127,.2);color:inherit;cursor:pointer;width:32px;height:32px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;opacity:.75;transition:opacity .15s,background .15s,transform .4s;}
-      #${PANE_ID} .tk-act:hover{opacity:1;background:rgba(127,127,127,.2);}
+      /* Koyu-opak, okunaklı board UI (sayfa temasından bağımsız) */
+      #${PANE_ID}{padding:6px 0 6px;color:#e8eaef;}
+      #${PANE_ID} .tk-bar{display:flex;align-items:center;gap:11px;padding:8px 4px 4px;}
+      #${PANE_ID} .tk-ttl{display:flex;align-items:center;gap:11px;font-size:19px;font-weight:750;color:#fff;letter-spacing:-.01em;}
+      #${PANE_ID} .tk-ttl svg{color:#4d8bf0;flex-shrink:0;}
+      #${PANE_ID} .tk-act{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.13);color:#cdd2da;cursor:pointer;width:34px;height:34px;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;transition:background .15s,color .15s,transform .4s;}
+      #${PANE_ID} .tk-act:hover{background:rgba(255,255,255,.16);color:#fff;}
       #${PANE_ID} .tk-refresh.spin svg{animation:tk-spin .8s linear infinite;}
       @keyframes tk-spin{to{transform:rotate(360deg);}}
-      #${PANE_ID} .tk-board{display:flex;gap:14px;overflow-x:auto;overflow-y:hidden;padding:16px 2px 18px;scrollbar-width:thin;}
-      #${PANE_ID} .tk-board::-webkit-scrollbar{height:10px;}
-      #${PANE_ID} .tk-board::-webkit-scrollbar-thumb{background:rgba(127,127,127,.35);border-radius:6px;}
-      #${PANE_ID} .tk-col{flex:0 0 270px;max-width:270px;background:rgba(127,127,127,.08);border:1px solid rgba(127,127,127,.14);border-radius:14px;padding:12px;max-height:640px;display:flex;flex-direction:column;}
-      #${PANE_ID} .tk-col-h{display:flex;align-items:center;justify-content:space-between;font-weight:700;font-size:14px;margin:1px 4px 10px;}
-      #${PANE_ID} .tk-col-h .cnt{font-size:11px;opacity:.55;font-weight:600;background:rgba(127,127,127,.16);border-radius:10px;padding:1px 8px;}
-      #${PANE_ID} .tk-col-cards{overflow-y:auto;display:flex;flex-direction:column;gap:9px;padding-right:3px;scrollbar-width:thin;}
-      #${PANE_ID} .tk-col-cards::-webkit-scrollbar{width:7px;}
-      #${PANE_ID} .tk-col-cards::-webkit-scrollbar-thumb{background:rgba(127,127,127,.3);border-radius:6px;}
-      #${PANE_ID} .tk-card{background:rgba(127,127,127,.1);border:1px solid rgba(127,127,127,.16);border-radius:11px;overflow:hidden;transition:transform .12s,box-shadow .15s;}
-      #${PANE_ID} .tk-card:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(0,0,0,.2);}
-      #${PANE_ID} .tk-cover{width:100%;background:rgba(127,127,127,.1);}
-      #${PANE_ID} .tk-cover img{display:block;width:100%;max-height:150px;object-fit:cover;}
-      #${PANE_ID} .tk-card-b{padding:9px 11px;display:flex;flex-direction:column;gap:6px;}
-      #${PANE_ID} .tk-labels{display:flex;flex-wrap:wrap;gap:4px;}
-      #${PANE_ID} .tk-lab{height:7px;min-width:32px;border-radius:4px;}
-      #${PANE_ID} .tk-card-t{font-size:13.5px;line-height:1.4;word-break:break-word;}
-      #${PANE_ID} .tk-due{align-self:flex-start;font-size:11px;opacity:.7;background:rgba(127,127,127,.16);border-radius:6px;padding:2px 8px;}
-      #${PANE_ID} .tk-empty{font-size:12px;opacity:.45;padding:4px;}
-      #${PANE_ID} .tk-msg{padding:34px 16px;text-align:center;opacity:.75;font-size:14px;line-height:1.7;}
-      #${PANE_ID} .tk-link{color:#3b82f6;cursor:pointer;text-decoration:underline;}
-      #${PANE_ID} .tk-sk{flex:0 0 270px;height:200px;border-radius:14px;background:linear-gradient(90deg,rgba(127,127,127,.08),rgba(127,127,127,.16),rgba(127,127,127,.08));background-size:200% 100%;animation:tk-sh 1.3s infinite;}
+      #${PANE_ID} .tk-board{display:flex;gap:16px;overflow-x:auto;overflow-y:hidden;padding:16px 4px 20px;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.26) transparent;}
+      #${PANE_ID} .tk-board::-webkit-scrollbar{height:11px;}
+      #${PANE_ID} .tk-board::-webkit-scrollbar-thumb{background:rgba(255,255,255,.22);border-radius:8px;border:2px solid transparent;background-clip:content-box;}
+      #${PANE_ID} .tk-col{flex:0 0 288px;max-width:288px;max-height:660px;display:flex;flex-direction:column;
+        background:linear-gradient(180deg,rgba(27,30,38,.975),rgba(20,22,29,.985));
+        border:1px solid rgba(255,255,255,.09);border-radius:16px;padding:13px 11px 11px;
+        box-shadow:0 12px 32px rgba(0,0,0,.42);backdrop-filter:blur(6px);}
+      #${PANE_ID} .tk-col-h{display:flex;align-items:center;gap:9px;font-weight:750;font-size:14.5px;color:#fff;margin:0 4px 12px;}
+      #${PANE_ID} .tk-col-h .tk-dot{width:9px;height:9px;border-radius:3px;background:#4d8bf0;flex-shrink:0;box-shadow:0 0 8px rgba(77,139,240,.6);}
+      #${PANE_ID} .tk-col-h .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+      #${PANE_ID} .tk-col-h .cnt{font-size:11px;color:#aeb4c0;font-weight:700;background:rgba(255,255,255,.1);border-radius:20px;padding:2px 9px;flex-shrink:0;}
+      #${PANE_ID} .tk-col-cards{overflow-y:auto;display:flex;flex-direction:column;gap:9px;padding-right:4px;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.2) transparent;}
+      #${PANE_ID} .tk-col-cards::-webkit-scrollbar{width:8px;}
+      #${PANE_ID} .tk-col-cards::-webkit-scrollbar-thumb{background:rgba(255,255,255,.18);border-radius:8px;border:2px solid transparent;background-clip:content-box;}
+      #${PANE_ID} .tk-card{background:rgba(46,50,61,.97);border:1px solid rgba(255,255,255,.08);border-radius:12px;overflow:hidden;transition:transform .12s,box-shadow .15s,border-color .15s;}
+      #${PANE_ID} .tk-card:hover{transform:translateY(-2px);border-color:rgba(255,255,255,.2);box-shadow:0 12px 26px rgba(0,0,0,.45);}
+      #${PANE_ID} .tk-cover{width:100%;background:rgba(0,0,0,.3);line-height:0;}
+      #${PANE_ID} .tk-cover img{display:block;width:100%;max-height:165px;object-fit:cover;}
+      #${PANE_ID} .tk-card-b{padding:10px 12px;display:flex;flex-direction:column;gap:7px;}
+      #${PANE_ID} .tk-labels{display:flex;flex-wrap:wrap;gap:5px;}
+      #${PANE_ID} .tk-lab{height:8px;min-width:36px;border-radius:5px;}
+      #${PANE_ID} .tk-card-t{font-size:13.5px;line-height:1.42;color:#edeff3;word-break:break-word;}
+      #${PANE_ID} .tk-due{align-self:flex-start;display:inline-flex;align-items:center;gap:5px;font-size:11px;color:#c4c9d2;background:rgba(255,255,255,.08);border-radius:7px;padding:3px 8px;}
+      #${PANE_ID} .tk-due svg{opacity:.85;}
+      #${PANE_ID} .tk-empty{font-size:12px;color:#7e828c;padding:6px 4px;}
+      #${PANE_ID} .tk-msg{padding:42px 16px;text-align:center;color:#b6bbc4;font-size:14px;line-height:1.7;}
+      #${PANE_ID} .tk-link{color:#4d8bf0;cursor:pointer;text-decoration:underline;}
+      #${PANE_ID} .tk-sk{flex:0 0 288px;height:220px;border-radius:16px;background:linear-gradient(90deg,rgba(255,255,255,.05),rgba(255,255,255,.11),rgba(255,255,255,.05));background-size:200% 100%;animation:tk-sh 1.3s infinite;}
       @keyframes tk-sh{0%{background-position:200% 0;}100%{background-position:-200% 0;}}
-      #${PANE_ID} .tk-setup{max-width:420px;margin:24px auto;display:flex;flex-direction:column;gap:10px;}
-      #${PANE_ID} .tk-setup p{margin:0;font-size:13px;opacity:.8;line-height:1.55;}
-      #${PANE_ID} .tk-setup input{box-sizing:border-box;background:rgba(127,127,127,.1);border:1px solid rgba(127,127,127,.25);border-radius:8px;color:inherit;font:inherit;font-size:13.5px;padding:10px 12px;outline:none;}
-      #${PANE_ID} .tk-setup input:focus{border-color:#3b82f6;}
-      #${PANE_ID} .tk-btn{background:#0079bf;border:none;color:#fff;font-weight:700;font-size:13.5px;padding:10px;border-radius:8px;cursor:pointer;font-family:inherit;transition:filter .15s;}
-      #${PANE_ID} .tk-btn:hover{filter:brightness(1.1);}
-      #${PANE_ID} .tk-btn.ghost{background:rgba(127,127,127,.18);color:inherit;font-weight:600;}
+      #${PANE_ID} .tk-setup{max-width:430px;margin:28px auto;display:flex;flex-direction:column;gap:11px;}
+      #${PANE_ID} .tk-setup p{margin:0;font-size:13px;color:#b6bbc4;line-height:1.55;}
+      #${PANE_ID} .tk-setup input{box-sizing:border-box;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.16);border-radius:9px;color:#fff;font:inherit;font-size:13.5px;padding:11px 13px;outline:none;}
+      #${PANE_ID} .tk-setup input:focus{border-color:#4d8bf0;}
+      #${PANE_ID} .tk-btn{background:linear-gradient(180deg,#4d8bf0,#2f6fe0);border:none;color:#fff;font-weight:750;font-size:13.5px;padding:11px;border-radius:9px;cursor:pointer;font-family:inherit;transition:filter .15s;}
+      #${PANE_ID} .tk-btn:hover{filter:brightness(1.08);}
+      #${PANE_ID} .tk-btn.ghost{background:rgba(255,255,255,.1);color:#dfe3ea;font-weight:650;}
       @media (prefers-reduced-motion: reduce){#${PANE_ID} *{animation:none!important;}}
     `;
     (document.head || document.documentElement).appendChild(s);
@@ -145,7 +154,7 @@
   function cardHtml(c) {
     const cover = c.cover ? `<div class="tk-cover"><img src="${esc(c.cover)}" alt="" referrerpolicy="no-referrer" loading="lazy"></div>` : '';
     const labs = (c.labels || []).filter(l => l.color).map(l => `<span class="tk-lab" style="background:${LABEL_COLORS[l.color] || '#5e6c84'}" title="${esc(l.name || l.color)}"></span>`).join('');
-    const due = c.due ? `<span class="tk-due">${esc(fmtDue(c.due))}</span>` : '';
+    const due = c.due ? `<span class="tk-due">${ICON_CAL}${esc(fmtDue(c.due))}</span>` : '';
     return `<div class="tk-card">${cover}<div class="tk-card-b">${labs ? `<div class="tk-labels">${labs}</div>` : ''}<div class="tk-card-t">${esc(c.name || '')}</div>${due}</div></div>`;
   }
   function barHtml(title, busy) {
@@ -157,7 +166,19 @@
     pane.querySelector('.tk-edit')?.addEventListener('click', () => renderInto(pane, { kind: 'setup' }));
     pane.querySelector('.tk-refresh')?.addEventListener('click', () => refresh());
     pane.querySelector('.tk-manual')?.addEventListener('click', () => renderInto(pane, { kind: 'setup' }));
-    pane.querySelectorAll('.tk-cover img').forEach(img => img.addEventListener('error', () => { const c = img.closest('.tk-cover'); if (c) c.remove(); }, { once: true }));
+    // Kapak görseli: doğrudan trello.com URL'i önce denenir; Roblox img-CSP'si engellerse
+    // SW üzerinden data-URL'e çevrilip CSP bypass edilir (loading=lazy → yalnız görünür kapaklar).
+    pane.querySelectorAll('.tk-cover img').forEach(img => {
+      img.addEventListener('error', function onErr() {
+        img.removeEventListener('error', onErr);
+        if (img.dataset.proxied) { const c = img.closest('.tk-cover'); if (c) c.remove(); return; }
+        img.dataset.proxied = '1';
+        swMsg({ action: 'trelloImg', url: img.getAttribute('src') }).then(r => {
+          if (r && r.ok && r.dataUrl) { img.addEventListener('error', () => { const c = img.closest('.tk-cover'); if (c) c.remove(); }, { once: true }); img.src = r.dataUrl; }
+          else { const c = img.closest('.tk-cover'); if (c) c.remove(); }
+        });
+      });
+    });
   }
   function renderInto(pane, st) {
     if (!pane) return;
@@ -166,8 +187,8 @@
     if (k === 'board') {
       const d = st.data, lists = Array.isArray(d.lists) ? d.lists : [];
       const board = lists.length
-        ? `<div class="tk-board">${lists.map(l => `<div class="tk-col"><div class="tk-col-h"><span>${esc(l.name || '')}</span><span class="cnt">${(l.cards || []).length}</span></div><div class="tk-col-cards">${(l.cards || []).length ? (l.cards || []).map(cardHtml).join('') : `<div class="tk-empty">—</div>`}</div></div>`).join('')}</div>`
-        : `<div class="tk-msg">${t('trelloEmpty', 'Bu panoda liste yok.')}</div>`;
+        ? `<div class="tk-board">${lists.map(l => `<div class="tk-col"><div class="tk-col-h"><span class="tk-dot"></span><span class="nm">${esc(l.name || '')}</span><span class="cnt">${(l.cards || []).length}</span></div><div class="tk-col-cards">${(l.cards || []).length ? (l.cards || []).map(cardHtml).join('') : `<div class="tk-empty">—</div>`}</div></div>`).join('')}</div>`
+        : `<div class="tk-msg">${ICON_EMPTY}<br>${t('trelloEmpty', 'Bu panoda liste yok.')}</div>`;
       pane.innerHTML = barHtml((d.board && d.board.name) || 'Trello', false) + board;
       wire(pane); return;
     }
