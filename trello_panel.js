@@ -90,10 +90,10 @@
       #${PANE_ID} .tk-col-h .tk-dot{width:9px;height:9px;border-radius:3px;background:#4d8bf0;flex-shrink:0;box-shadow:0 0 8px rgba(77,139,240,.6);}
       #${PANE_ID} .tk-col-h .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
       #${PANE_ID} .tk-col-h .cnt{font-size:11px;color:#aeb4c0;font-weight:700;background:rgba(255,255,255,.1);border-radius:20px;padding:2px 9px;flex-shrink:0;}
-      #${PANE_ID} .tk-col-cards{overflow-y:auto;display:flex;flex-direction:column;gap:9px;padding-right:4px;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.2) transparent;}
+      #${PANE_ID} .tk-col-cards{overflow-y:auto;min-height:0;flex:1 1 auto;display:flex;flex-direction:column;gap:9px;padding-right:4px;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.2) transparent;}
       #${PANE_ID} .tk-col-cards::-webkit-scrollbar{width:8px;}
       #${PANE_ID} .tk-col-cards::-webkit-scrollbar-thumb{background:rgba(255,255,255,.18);border-radius:8px;border:2px solid transparent;background-clip:content-box;}
-      #${PANE_ID} .tk-card{background:rgba(46,50,61,.97);border:1px solid rgba(255,255,255,.08);border-radius:12px;overflow:hidden;transition:transform .12s,box-shadow .15s,border-color .15s;}
+      #${PANE_ID} .tk-card{flex:0 0 auto;flex-shrink:0;background:rgba(46,50,61,.97);border:1px solid rgba(255,255,255,.08);border-radius:12px;overflow:hidden;transition:transform .12s,box-shadow .15s,border-color .15s;}
       #${PANE_ID} .tk-card:hover{transform:translateY(-2px);border-color:rgba(255,255,255,.2);box-shadow:0 12px 26px rgba(0,0,0,.45);}
       #${PANE_ID} .tk-cover{width:100%;height:178px;min-height:178px;flex:0 0 178px;background:rgba(0,0,0,.28);line-height:0;overflow:hidden;}
       #${PANE_ID} .tk-cover img{display:block!important;width:100%!important;height:178px!important;max-height:178px!important;object-fit:cover!important;}
