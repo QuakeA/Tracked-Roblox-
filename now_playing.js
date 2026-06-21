@@ -360,6 +360,7 @@
     if (!url) { setAccent(null); return; }
     const img = new Image(); img.crossOrigin = 'anonymous';
     img.onload = () => {
+      if (url !== _accentUrl) return;   // kapak bu arada değişti → eski şarkının rengini uygulama
       try {
         const n = 14, c = document.createElement('canvas'); c.width = n; c.height = n;
         const ctx = c.getContext('2d', { willReadFrequently: true }); ctx.drawImage(img, 0, 0, n, n);
@@ -369,7 +370,7 @@
         setAccent(vibrant(r / cnt, g / cnt, b / cnt));
       } catch (_) { setAccent(null); } // CORS tainted → dürüst geri dönüş (varsayılan accent)
     };
-    img.onerror = () => setAccent(null);
+    img.onerror = () => { if (url === _accentUrl) setAccent(null); };
     img.src = url;
   }
 
@@ -386,8 +387,10 @@
   function ensureWidget() {
     let w = document.getElementById(WIDGET_ID);
     if (!w) {
-      w = document.createElement('div'); w.id = WIDGET_ID; document.body.appendChild(w);
+      w = document.createElement('div'); w.id = WIDGET_ID;
+      (document.body || document.documentElement).appendChild(w);   // body henüz yoksa patlamasın
       w.addEventListener('click', () => { if (_dragMoved) { _dragMoved = false; return; } if (_minimized) expand(); });
+      _dragWired = false;   // taze element → sürükleme yeniden bağlanmalı (aç/kapa sonrası drag bozulmasın)
       wireDrag(w);
     }
     return w;
@@ -540,6 +543,10 @@
     applyMarquee();
     applyArtAccent(_media.artwork);
     syncVol();
+    // Kapak URL'i yüklenemezse (404/ağ/CORS) kırık resim gösterme → nota fallback'ine düş
+    w.querySelector('img.np-art')?.addEventListener('error', function () {
+      try { this.outerHTML = `<div class="np-art fb">${ICON_NOTE}</div>`; } catch (_) {}
+    }, { once: true });
 
     // Aksiyonlar
     w.querySelector('.np-search-btn')?.addEventListener('click', (e) => { e.stopPropagation(); openSearch(); });
@@ -639,8 +646,8 @@
     if (_mode === 'search') return; // arama overlay açık — oynatıcıyı render etme (durum saklandı)
     // Yalnız ŞARKI değişince tam render (taze animasyon + accent); aksi halde durum/ilerleme güncelle (titreme yok)
     const tk = (media.host || '') + '|' + (media.title || '') + '|' + (media.artist || '');
-    if (tk !== _trackKey) { const firstOrNew = _trackKey !== ''; _trackKey = tk; render(firstOrNew); }
-    else { syncPlayUI(); updateProg(); syncVol(); }
+    if (tk !== _trackKey) { const firstOrNew = _trackKey !== ''; _trackKey = tk; try { render(firstOrNew); } catch (_) { _trackKey = ''; } }
+    else { try { syncPlayUI(); updateProg(); syncVol(); } catch (_) {} }
   }
 
   // ── Yoklama (görünürlük-kapılı + backoff) ──
@@ -653,18 +660,29 @@
   async function poll() {
     if (!_enabled) return;
     if (document.hidden) { scheduleNext(); return; }
-    const r = await swMsg({ action: 'mediaGetNowPlaying' });
-    if (!_enabled) return;
-    const media = (r && r.ok) ? r.media : null;
-    // Şarkı geçişinde metadata anlık boşalabilir → tek seferlik null'ı yut (idle'a düşüp geri dönerek titremesin)
-    if (!media && _media && _nullMiss < 1) { _nullMiss++; scheduleNext(); return; }
-    _nullMiss = 0;
-    applyMedia(media, media ? media.tabId : null);
-    scheduleNext();
+    try {
+      const r = await swMsg({ action: 'mediaGetNowPlaying' });
+      if (!_enabled) return;
+      const media = (r && r.ok) ? r.media : null;
+      // Şarkı geçişinde metadata anlık boşalabilir → tek seferlik null'ı yut (idle'a düşüp geri dönerek titremesin)
+      if (!media && _media && _nullMiss < 1) { _nullMiss++; return; }   // finally bir sonraki yoklamayı kurar
+      _nullMiss = 0;
+      applyMedia(media, media ? media.tabId : null);
+    } catch (_) {
+      // Beklenmedik bir hata (DOM/render) yoklama döngüsünü ASLA öldürmemeli — bir sonraki turda toparlanır.
+    } finally {
+      if (_enabled) scheduleNext();
+    }
   }
 
   function start() { if (_enabled) return; _enabled = true; injectStyles(); poll(); }
-  function stop() { _enabled = false; clearTimeout(_pollTimer); clearTimeout(_searchTimer); stopProg(); document.getElementById(WIDGET_ID)?.remove(); _media = null; _trackKey = ''; _accentUrl = ''; _mode = null; }
+  function stop() {
+    _enabled = false;
+    clearTimeout(_pollTimer); clearTimeout(_searchTimer); stopProg();
+    document.getElementById(WIDGET_ID)?.remove();
+    _media = null; _tabId = null; _trackKey = ''; _accentUrl = ''; _mode = null;
+    _pendPlay = null; _nullMiss = 0; _dragWired = false;   // temiz yeniden başlatma
+  }
 
   const saveMin = (v) => { try { chrome.storage.local.set({ [MIN_KEY]: !!v }); } catch (_) {} };
 
