@@ -1462,6 +1462,38 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true;
   }
 
+  // ── Trello canlı pano (oyun sayfası): read-only Trello API. Kimlik bilgileri storage'da; yalnız api.trello.com'a gider. ──
+  if (request.action === "trelloFetchBoard") {
+    (async () => {
+      try {
+        const st = await chrome.storage.local.get('rota_settings');
+        const cfg = (st.rota_settings && st.rota_settings.trello) || {};
+        const key = String(cfg.key || '').trim(), token = String(cfg.token || '').trim(), boardId = String(cfg.boardId || '').trim();
+        if (!key || !token || !boardId) { sendResponse({ ok: false, needSetup: true }); return; }
+        const auth = `key=${encodeURIComponent(key)}&token=${encodeURIComponent(token)}`;
+        const base = `https://api.trello.com/1/boards/${encodeURIComponent(boardId)}`;
+        const [bRes, lRes] = await Promise.all([
+          fetch(`${base}?fields=name,url&${auth}`, { headers: { Accept: 'application/json' } }),
+          fetch(`${base}/lists?cards=open&card_fields=name,due,labels&fields=name&${auth}`, { headers: { Accept: 'application/json' } })
+        ]);
+        if (bRes.status === 401 || lRes.status === 401) { sendResponse({ ok: false, error: 'auth', needSetup: true }); return; }
+        if (!bRes.ok || !lRes.ok) { sendResponse({ ok: false, error: `HTTP ${bRes.status}/${lRes.status}` }); return; }
+        const board = await bRes.json();
+        const lists = await lRes.json();
+        const out = (Array.isArray(lists) ? lists : []).map(l => ({
+          name: l.name || '',
+          cards: (Array.isArray(l.cards) ? l.cards : []).slice(0, 60).map(c => ({
+            name: c.name || '',
+            due: c.due || null,
+            labels: (Array.isArray(c.labels) ? c.labels : []).map(x => ({ color: x.color || null, name: x.name || '' }))
+          }))
+        }));
+        sendResponse({ ok: true, board: { name: board.name || 'Trello', url: board.url || '' }, lists: out });
+      } catch (e) { sendResponse({ ok: false, error: (e && e.message) || 'fetch' }); }
+    })();
+    return true;
+  }
+
   // Envanter RAC: Rolimons player assets — kullanıcının Rolimons'ta izlenen limited envanteri
   if (request.action === "fetchRolimonsPlayerAssets") {
     const { userId } = request;

@@ -39,7 +39,8 @@
     "https://*.youtube.com/*",
     "https://*.spotify.com/*",
     "https://api.github.com/*",
-    "https://raw.githubusercontent.com/*"
+    "https://raw.githubusercontent.com/*",
+    "https://*.trello.com/*"
   ],
   "background": {
     "service_worker": "service_worker.js"
@@ -139,7 +140,8 @@
         "license_client.js",
         "reconnect_overlay.js",
         "now_playing.js",
-        "codes_content.js"
+        "codes_content.js",
+        "trello_panel.js"
       ],
       "run_at": "document_end"
     },

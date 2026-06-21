@@ -6,6 +6,7 @@ const DEFAULT_SETTINGS = {
     silentMode: false,
     reducedMotion: false,
     nowPlaying: false,
+    trelloEnabled: false,
     gameCodes: true,
     language: 'tr',
     // Auto-Reconnect
@@ -36,6 +37,7 @@ const ui = {
     plusKeyRow: document.getElementById('plus-key-row'),
     // Appearance
     chkNowPlaying: document.getElementById('chk-now-playing'),
+    chkTrello: document.getElementById('chk-trello'),
     chkGameCodes: document.getElementById('chk-game-codes'),
     // Performance
     // Auto-Reconnect
@@ -171,7 +173,7 @@ updateOtopilotBlInfo(); // ilk yüklemede count göster
 // Change listeners (everything that affects settings)
 [
     ui.inpTimeout, ui.inpCache,
-    ui.chkNowPlaying, ui.chkGameCodes, ui.selLanguage,
+    ui.chkNowPlaying, ui.chkTrello, ui.chkGameCodes, ui.selLanguage,
     ui.chkAutoReconnect, ui.chkAutoReconnectNative
 ].forEach(el => {
     if (el) {
@@ -403,6 +405,7 @@ async function loadSettings() {
     if (ui.inpTimeout) ui.inpTimeout.value = settings.timeoutMs;
     if (ui.inpCache) ui.inpCache.value = settings.cacheMinutes;
     if (ui.chkNowPlaying) ui.chkNowPlaying.checked = settings.nowPlaying === true;
+    if (ui.chkTrello) ui.chkTrello.checked = settings.trelloEnabled === true;
     if (ui.chkGameCodes) ui.chkGameCodes.checked = settings.gameCodes !== false;
     if (ui.chkAutoReconnect) ui.chkAutoReconnect.checked = settings.autoReconnectEnabled !== false;
     if (ui.chkAutoReconnectNative) ui.chkAutoReconnectNative.checked = settings.autoReconnectNative === true;
@@ -748,18 +751,22 @@ async function saveSettings() {
         TrackedI18n.setLocale(selectedLanguage);
     }
 
+    const existingRS = (await chrome.storage.local.get('rota_settings')).rota_settings || {};
     const newSettings = {
         timeoutMs: parseInt(ui.inpTimeout?.value) || 3000,
         cacheMinutes: parseInt(ui.inpCache?.value) || 10,
         silentMode: false,
         reducedMotion: false,
         nowPlaying: !!ui.chkNowPlaying?.checked,
+        trelloEnabled: !!ui.chkTrello?.checked,
         gameCodes: ui.chkGameCodes ? !!ui.chkGameCodes.checked : true,
         language: selectedLanguage,
         autoReconnectEnabled: ui.chkAutoReconnect ? !!ui.chkAutoReconnect.checked : true,
         autoReconnectNative: !!ui.chkAutoReconnectNative?.checked,
         probes: Object.keys(newProbes).length > 0 ? newProbes : DEFAULT_SETTINGS.probes
     };
+    // Trello kimlik bilgileri (key/token/board) panelin kurulum formunda ayarlanır → kaydederken KORU (silme).
+    if (existingRS.trello) newSettings.trello = existingRS.trello;
 
     await chrome.storage.local.set({ 'rota_settings': newSettings });
     currentSettings = newSettings;
