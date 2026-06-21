@@ -245,8 +245,9 @@
     _loading = true;
     if (!_minimized && !document.querySelector(`#${PANEL_ID} .tt-card, #${PANEL_ID} .tt-setup`)) renderLoading();
     try {
-      const boardId = getBoardId();   // oyundan otomatik bulunan pano (kullanıcı yazmaz)
-      const r = await swMsg({ action: 'trelloFetchBoard', boardId });
+      const boardId = getBoardId();   // sayfadan hızlı tespit (anchor/açıklama metni)
+      const placeId = (location.pathname.match(/\/games\/(\d+)/) || [])[1] || '';
+      const r = await swMsg({ action: 'trelloFetchBoard', boardId, placeId });   // bulamazsa SW tam açıklamadan (API) bulur
       if (!_enabled) return;
       // Auto-refresh, AÇIK bir formu (setup/manuel) yeniden çizip kullanıcının yazdığını SİLMESİN.
       const hasForm = !!document.querySelector(`#${PANEL_ID} .tt-setup`);

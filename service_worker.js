@@ -1469,9 +1469,33 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         const st = await chrome.storage.local.get('rota_settings');
         const cfg = (st.rota_settings && st.rota_settings.trello) || {};
         const key = String(cfg.key || '').trim(), token = String(cfg.token || '').trim();
-        // Pano: oyundan OTOMATİK bulunan (request.boardId) öncelikli; yoksa kullanıcının manuel fallback'i.
-        const boardId = String(request.boardId || cfg.boardId || '').trim();
         if (!key || !token) { sendResponse({ ok: false, needSetup: true }); return; }
+        // Pano çözümü: (1) içerik script'inin sayfadan bulduğu, (2) oyunun TAM açıklamasından (Roblox API —
+        // DOM kısaltmasını aşar), (3) kullanıcının manuel fallback'i. Hiçbiri yoksa "bu oyunda pano yok".
+        let boardId = String(request.boardId || '').trim();
+        if (!boardId && request.placeId) {
+          try {
+            self._trelloBoardCache = self._trelloBoardCache || {};
+            const pid = String(request.placeId);
+            if (self._trelloBoardCache[pid] !== undefined) {
+              boardId = self._trelloBoardCache[pid] || '';
+            } else {
+              const uRes = await fetch(`https://apis.roblox.com/universes/v1/places/${pid}/universe`, { headers: { Accept: 'application/json' } });
+              const uId = uRes.ok ? ((await uRes.json()) || {}).universeId : null;
+              let found = '';
+              if (uId) {
+                const gRes = await fetch(`https://games.roblox.com/v1/games?universeIds=${uId}`, { headers: { Accept: 'application/json' } });
+                const gJson = gRes.ok ? await gRes.json() : null;
+                const desc = (gJson && gJson.data && gJson.data[0] && gJson.data[0].description) || '';
+                const m = String(desc).match(/trello\.com\/b\/([A-Za-z0-9]+)/i);
+                if (m) found = m[1];
+              }
+              self._trelloBoardCache[pid] = found;   // bulunamadıysa da önbelleğe al (boş) → her tazelemede API'yi dövmesin
+              boardId = found;
+            }
+          } catch (_) {}
+        }
+        if (!boardId) boardId = String(cfg.boardId || '').trim();   // manuel fallback
         if (!boardId) { sendResponse({ ok: false, noBoard: true }); return; }
         const auth = `key=${encodeURIComponent(key)}&token=${encodeURIComponent(token)}`;
         const base = `https://api.trello.com/1/boards/${encodeURIComponent(boardId)}`;
