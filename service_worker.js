@@ -1470,32 +1470,45 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         const cfg = (st.rota_settings && st.rota_settings.trello) || {};
         const key = String(cfg.key || '').trim(), token = String(cfg.token || '').trim();
         if (!key || !token) { sendResponse({ ok: false, needSetup: true }); return; }
-        // Pano çözümü: (1) içerik script'inin sayfadan bulduğu, (2) oyunun TAM açıklamasından (Roblox API —
-        // DOM kısaltmasını aşar), (3) kullanıcının manuel fallback'i. Hiçbiri yoksa "bu oyunda pano yok".
+        // Web araması (best-effort, TAHMİN): oyun adıyla "roblox trello" ara, sonuç HTML'inde board linki yakala.
+        const trelloWebSearch = async (name) => {
+          try {
+            const r = await fetch(`https://html.duckduckgo.com/html/?q=${encodeURIComponent(name + ' roblox trello')}`, { headers: { Accept: 'text/html' } });
+            if (!r.ok) return '';
+            const html = await r.text();
+            const m = html.match(/trello\.com(?:%2[Ff]|\/)b(?:%2[Ff]|\/)([A-Za-z0-9]+)/i);   // düz ya da URL-encoded
+            return m ? m[1] : '';
+          } catch (_) { return ''; }
+        };
+        // Pano çözümü: (1) sayfa DOM tespiti [kesin], (2) oyunun TAM açıklaması/API [kesin],
+        // (3) WEB araması [TAHMİN — etiketli], (4) kullanıcının manuel fallback'i.
         let boardId = String(request.boardId || '').trim();
+        let source = boardId ? 'page' : '';
         if (!boardId && request.placeId) {
           try {
             self._trelloBoardCache = self._trelloBoardCache || {};
             const pid = String(request.placeId);
-            if (self._trelloBoardCache[pid] !== undefined) {
-              boardId = self._trelloBoardCache[pid] || '';
-            } else {
+            const hit = self._trelloBoardCache[pid];
+            if (hit !== undefined) { boardId = hit.id || ''; source = hit.src || ''; }
+            else {
+              let found = '', src = '', name = '';
               const uRes = await fetch(`https://apis.roblox.com/universes/v1/places/${pid}/universe`, { headers: { Accept: 'application/json' } });
               const uId = uRes.ok ? ((await uRes.json()) || {}).universeId : null;
-              let found = '';
               if (uId) {
                 const gRes = await fetch(`https://games.roblox.com/v1/games?universeIds=${uId}`, { headers: { Accept: 'application/json' } });
-                const gJson = gRes.ok ? await gRes.json() : null;
-                const desc = (gJson && gJson.data && gJson.data[0] && gJson.data[0].description) || '';
+                const g = gRes.ok ? (((await gRes.json()).data) || [])[0] : null;
+                name = (g && (g.name || g.sourceName)) || '';
+                const desc = (g && g.description) || '';
                 const m = String(desc).match(/trello\.com\/b\/([A-Za-z0-9]+)/i);
-                if (m) found = m[1];
+                if (m) { found = m[1]; src = 'page'; }
               }
-              self._trelloBoardCache[pid] = found;   // bulunamadıysa da önbelleğe al (boş) → her tazelemede API'yi dövmesin
-              boardId = found;
+              if (!found && name) { const w = await trelloWebSearch(name); if (w) { found = w; src = 'web'; } }
+              self._trelloBoardCache[pid] = { id: found, src };   // bulunamasa da boş önbellek → her tazelemede ağ dövmez
+              boardId = found; source = src;
             }
           } catch (_) {}
         }
-        if (!boardId) boardId = String(cfg.boardId || '').trim();   // manuel fallback
+        if (!boardId) { boardId = String(cfg.boardId || '').trim(); if (boardId) source = 'manual'; }   // manuel fallback
         if (!boardId) { sendResponse({ ok: false, noBoard: true }); return; }
         const auth = `key=${encodeURIComponent(key)}&token=${encodeURIComponent(token)}`;
         const base = `https://api.trello.com/1/boards/${encodeURIComponent(boardId)}`;
@@ -1515,7 +1528,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             labels: (Array.isArray(c.labels) ? c.labels : []).map(x => ({ color: x.color || null, name: x.name || '' }))
           }))
         }));
-        sendResponse({ ok: true, board: { name: board.name || 'Trello', url: board.url || '' }, lists: out });
+        sendResponse({ ok: true, source, board: { name: board.name || 'Trello', url: board.url || '' }, lists: out });
       } catch (e) { sendResponse({ ok: false, error: (e && e.message) || 'fetch' }); }
     })();
     return true;

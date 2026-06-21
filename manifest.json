@@ -40,7 +40,8 @@
     "https://*.spotify.com/*",
     "https://api.github.com/*",
     "https://raw.githubusercontent.com/*",
-    "https://*.trello.com/*"
+    "https://*.trello.com/*",
+    "https://*.duckduckgo.com/*"
   ],
   "background": {
     "service_worker": "service_worker.js"

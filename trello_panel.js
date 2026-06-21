@@ -101,6 +101,8 @@
       .tt-lab{height:6px;min-width:26px;border-radius:4px;}
       .tt-due{align-self:flex-start;font-size:10px;color:rgba(255,255,255,.6);background:rgba(255,255,255,.06);border-radius:6px;padding:2px 7px;font-variant-numeric:tabular-nums;}
       .tt-empty{color:rgba(255,255,255,.4);font-size:11px;padding:4px 2px 8px;}
+      .tt-webnote{font-size:10.5px;color:#e0b44a;background:rgba(224,180,74,.1);border:1px solid rgba(224,180,74,.25);border-radius:8px;padding:6px 9px;margin-bottom:10px;line-height:1.45;}
+      .tt-webnote .tt-link{color:#e0b44a;}
       .tt-msg{padding:18px 14px;text-align:center;color:rgba(255,255,255,.6);font-size:12px;line-height:1.6;}
       .tt-msg .tt-link{color:#5aa6ff;cursor:pointer;text-decoration:underline;}
       .tt-sk{height:34px;border-radius:9px;margin-bottom:6px;background:linear-gradient(90deg,rgba(255,255,255,.05),rgba(255,255,255,.1),rgba(255,255,255,.05));background-size:200% 100%;animation:tt-sh 1.3s infinite;}
@@ -224,8 +226,13 @@
           (l.cards || []).length ? (l.cards || []).map(cardHtml).join('') : `<div class="tt-empty">—</div>`
         }</div>`).join('')
       : `<div class="tt-msg">${t('trelloEmpty', 'Bu panoda liste yok.')}</div>`;
-    p.innerHTML = headHtml((data.board && data.board.name) || 'Trello', false) + `<div class="tt-body">${body}</div>`;
+    // Web aramasıyla bulunan pano TAHMİNDİR → dürüstçe etiketle + düzeltme yolu sun (sayfa/manuel kaynakta etiket yok).
+    const note = data.source === 'web'
+      ? `<div class="tt-webnote">${t('trelloWebGuess', 'Web\'den otomatik bulundu — yanlış olabilir.')} <span class="tt-link tt-manual">${t('trelloFix', 'Düzelt')}</span></div>`
+      : '';
+    p.innerHTML = headHtml((data.board && data.board.name) || 'Trello', false) + `<div class="tt-body">${note}${body}</div>`;
     wireHead(p);
+    p.querySelector('.tt-manual')?.addEventListener('click', (e) => { e.stopPropagation(); renderManual(); });
   }
   function renderLoading() {
     const p = ensurePanel(); p.classList.toggle('tt-min', _minimized);
