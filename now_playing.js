@@ -50,7 +50,7 @@
   let _accentUrl = '';  // accent'i tekrar hesaplamamak için son kapak url'i
   let _pollTimer = null, _progTimer = null;
   let _pendPlay = null, _pendUntil = 0;   // çal/duraklat sonrası iyimser durum (poll'un titremesini önler)
-  let _nullMiss = 0;                      // şarkı geçişinde anlık metadata boşluğunu yutmak için
+  let _lastSeenAt = 0, _endTries = 0;     // oto-geçiş yumuşatma: son gerçek medya zamanı + parça-sonu hızlı yoklama sayacı
   let _mode = null;                       // 'player' | 'idle' | 'search' — idle/search her poll'da yeniden kurulmasın
   let _idleSource = 'youtube';            // arama kaynağı
   let _searchTimer = null;                // canlı arama debounce
@@ -660,18 +660,24 @@
   async function poll() {
     if (!_enabled) return;
     if (document.hidden) { scheduleNext(); return; }
+    let fast = false;   // oto-geçiş penceresinde 700ms'de hızlı yokla
     try {
       const r = await swMsg({ action: 'mediaGetNowPlaying' });
       if (!_enabled) return;
       const media = (r && r.ok) ? r.media : null;
-      // Şarkı geçişinde metadata anlık boşalabilir → tek seferlik null'ı yut (idle'a düşüp geri dönerek titremesin)
-      if (!media && _media && _nullMiss < 1) { _nullMiss++; return; }   // finally bir sonraki yoklamayı kurar
-      _nullMiss = 0;
+      if (media) _lastSeenAt = Date.now();
+      // OTO-GEÇİŞ (b): metadata 1–6sn boşalabilir (SPA geçişi) → oynatıcıyı idle'a DÜŞÜRME, geçişi hızlı yakala.
+      // Sekme gerçekten kapanırsa 6sn sonra idle'a düşer (dürüst).
+      if (!media && _media && (Date.now() - _lastSeenAt) < 6000) { fast = true; return; }   // finally hızlı yoklamayı kurar
       applyMedia(media, media ? media.tabId : null);
+      // OTO-GEÇİŞ (a): parça SONUNDA duraklamışsa (oto-geçiş başlıyor) → 700ms'de yokla ki yeni parça anında çıksın,
+      // 3sn "durdu" görünmesin. Sınırlı (~4sn): autoplay kapalıysa normale döner, sonsuz hızlı-yoklama olmaz.
+      if (_media && !_playing && _dur && _pos >= _dur - 2 && _endTries < 6) { _endTries++; fast = true; }
+      else if (_playing || !_media) _endTries = 0;
     } catch (_) {
       // Beklenmedik bir hata (DOM/render) yoklama döngüsünü ASLA öldürmemeli — bir sonraki turda toparlanır.
     } finally {
-      if (_enabled) scheduleNext();
+      if (_enabled) { if (fast) { clearTimeout(_pollTimer); _pollTimer = setTimeout(poll, 700); } else scheduleNext(); }
     }
   }
 
@@ -681,7 +687,7 @@
     clearTimeout(_pollTimer); clearTimeout(_searchTimer); stopProg();
     document.getElementById(WIDGET_ID)?.remove();
     _media = null; _tabId = null; _trackKey = ''; _accentUrl = ''; _mode = null;
-    _pendPlay = null; _nullMiss = 0; _dragWired = false;   // temiz yeniden başlatma
+    _pendPlay = null; _lastSeenAt = 0; _endTries = 0; _dragWired = false;   // temiz yeniden başlatma
   }
 
   const saveMin = (v) => { try { chrome.storage.local.set({ [MIN_KEY]: !!v }); } catch (_) {} };
