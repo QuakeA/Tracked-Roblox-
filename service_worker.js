@@ -1507,24 +1507,48 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         const cfg = (st.rota_settings && st.rota_settings.trello) || {};
         const key = String(cfg.key || '').trim(), token = String(cfg.token || '').trim();
 
-        // ── Board ID çözümü (AUTH GEREKMEDEN): DOM → API tam açıklama → web araması → manuel ──
+        // ── Board ID çözümü (TAM OTOMATİK, AUTH'SUZ, AKILLI): DOM → açıklama → sosyal linkler → web ──
+        //    Manuel giriş YOK. Bulunamazsa noBoard döner.
+        const RX_TRELLO = /trello\.com(?:%2[Ff]|\/)b(?:%2[Ff]|\/)([A-Za-z0-9]+)/i;
+        const findId = (text) => { const m = String(text || '').match(RX_TRELLO); return m ? m[1] : ''; };
+        const cleanName = (name) => String(name || '')
+          .replace(/:\/\//g, ' ').replace(/[\[\(\{][^\]\)\}]*[\]\)\}]/g, ' ')
+          .replace(/[^\p{L}\p{N} ]+/gu, ' ').replace(/\s+/g, ' ').trim();
         const trelloWebSearch = async (name) => {
+          const clean = cleanName(name);
+          const seen = new Set();
+          for (const q of [clean + ' roblox trello', clean + ' trello board', String(name || '') + ' roblox trello']) {
+            const qq = q.trim(); if (!qq || seen.has(qq)) continue; seen.add(qq);
+            try {
+              const r = await fetch(`https://lite.duckduckgo.com/lite/?q=${encodeURIComponent(qq)}`, { headers: { Accept: 'text/html' } });
+              if (!r.ok) continue;
+              const id = findId(await r.text()); if (id) return id;
+            } catch (_) {}
+          }
+          return '';
+        };
+        const socialLinksId = async (uId) => {   // geliştiricilerin eklediği sosyal linkler (Trello sık burada)
           try {
-            const r = await fetch(`https://lite.duckduckgo.com/lite/?q=${encodeURIComponent(name + ' roblox trello')}`, { headers: { Accept: 'text/html' } });
+            const r = await fetch(`https://games.roblox.com/v1/games/${uId}/social-links/list`, { headers: { Accept: 'application/json' } });
             if (!r.ok) return '';
-            const m = (await r.text()).match(/trello\.com(?:%2[Ff]|\/)b(?:%2[Ff]|\/)([A-Za-z0-9]+)/i);
-            return m ? m[1] : '';
+            for (const l of (((await r.json()) || {}).data || [])) { const id = findId(l && (l.url || l.title)); if (id) return id; }
+            return '';
           } catch (_) { return ''; }
         };
+
         let boardId = String(request.boardId || '').trim();
         let source = boardId ? 'page' : '';
         if (!boardId && request.placeId) {
-          try {
-            self._trelloBoardCache = self._trelloBoardCache || {};
-            const pid = String(request.placeId);
-            const hit = self._trelloBoardCache[pid];
-            if (hit !== undefined) { boardId = hit.id || ''; source = hit.src || ''; }
-            else {
+          const pid = String(request.placeId);
+          self._trelloBoardCache = self._trelloBoardCache || {};
+          let hit = self._trelloBoardCache[pid];
+          // Kalıcı board-ID önbelleği (storage, 24s) → tespit bir daha çalışmaz, ANINDA gelir
+          if (hit === undefined) {
+            try { const s = await chrome.storage.local.get('tracked_trello_boards'); const m = (s.tracked_trello_boards || {})[pid]; if (m && m.id && (Date.now() - (m.at || 0) < 86400000)) { hit = { id: m.id, src: m.src }; self._trelloBoardCache[pid] = hit; } } catch (_) {}
+          }
+          if (hit && hit.id) { boardId = hit.id; source = hit.src || 'auto'; }
+          else {
+            try {
               let found = '', src = '', name = '';
               const uRes = await fetch(`https://apis.roblox.com/universes/v1/places/${pid}/universe`, { headers: { Accept: 'application/json' } });
               const uId = uRes.ok ? ((await uRes.json()) || {}).universeId : null;
@@ -1532,23 +1556,33 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 const gRes = await fetch(`https://games.roblox.com/v1/games?universeIds=${uId}`, { headers: { Accept: 'application/json' } });
                 const g = gRes.ok ? (((await gRes.json()).data) || [])[0] : null;
                 name = (g && (g.name || g.sourceName)) || '';
-                const desc = (g && g.description) || '';
-                const m = String(desc).match(/trello\.com\/b\/([A-Za-z0-9]+)/i);
-                if (m) { found = m[1]; src = 'page'; }
+                found = findId((g && g.description) || ''); if (found) src = 'page';
+                if (!found) {   // açıklamada yok → sosyal linkler + web PARALEL (hızlı)
+                  const [sl, ws] = await Promise.all([socialLinksId(uId), trelloWebSearch(name)]);
+                  if (sl) { found = sl; src = 'social'; } else if (ws) { found = ws; src = 'web'; }
+                }
               }
-              if (!found && name) { const w = await trelloWebSearch(name); if (w) { found = w; src = 'web'; } }
-              self._trelloBoardCache[pid] = { id: found, src };
               boardId = found; source = src;
-            }
-          } catch (_) {}
+              self._trelloBoardCache[pid] = { id: found, src };
+              if (found) { try { const s = await chrome.storage.local.get('tracked_trello_boards'); const m = s.tracked_trello_boards || {}; m[pid] = { id: found, src, at: Date.now() }; chrome.storage.local.set({ tracked_trello_boards: m }); } catch (_) {} }
+            } catch (_) {}
+          }
         }
-        if (!boardId) { boardId = String(cfg.boardId || '').trim(); if (boardId) source = 'manual'; }
         if (!boardId) { sendResponse({ ok: false, noBoard: true }); return; }
 
-        // ── Board veri önbelleği: board JSON 15+ MB olabilir (1500+ kart) → 60sn'de bir indirme; 3 dk önbellek ──
+        // ── Board veri önbelleği: RAM (3dk) → kalıcı storage (10dk) → ağ. Reload'da ANINDA gelir. ──
         self._trelloData = self._trelloData || {};
         const dc = self._trelloData[boardId];
         if (dc && (Date.now() - dc.at) < 180000) { sendResponse({ ok: true, source, board: dc.board, lists: dc.lists }); return; }
+        try {
+          const s = await chrome.storage.local.get('tracked_trello_data');
+          const slot = (s.tracked_trello_data || {})[boardId];
+          if (slot && slot.lists && (Date.now() - (slot.at || 0)) < 600000) {
+            self._trelloData[boardId] = { at: slot.at, board: slot.board, lists: slot.lists };
+            sendResponse({ ok: true, source, board: slot.board, lists: slot.lists });
+            return;
+          }
+        } catch (_) {}
 
         // ── 1) PUBLIC board JSON — auth YOK (oyun panolarının çoğu public) ──
         try {
@@ -1573,8 +1607,20 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
               }))
             }));
             const board = { name: d.name || 'Trello', url: d.url || '' };
-            self._trelloData[boardId] = { at: Date.now(), board, lists: out };   // 3 dk önbellek
+            self._trelloData[boardId] = { at: Date.now(), board, lists: out };   // RAM 3 dk
             sendResponse({ ok: true, source, board, lists: out });
+            // Arka planda kalıcı önbellek (yanıtı bloklamaz). Makul boyutlu board'lar (≤600 kart) için.
+            try {
+              const totalCards = out.reduce((n, l) => n + (l.cards ? l.cards.length : 0), 0);
+              if (totalCards <= 600) {
+                chrome.storage.local.get('tracked_trello_data').then(s => {
+                  const map = s.tracked_trello_data || {};
+                  map[boardId] = { at: Date.now(), board, lists: out };
+                  for (const id of Object.keys(map).sort((a, b) => (map[b].at || 0) - (map[a].at || 0)).slice(3)) delete map[id];
+                  chrome.storage.local.set({ tracked_trello_data: map });
+                }).catch(() => {});
+              }
+            } catch (_) {}
             return;
           }
         } catch (_) {}

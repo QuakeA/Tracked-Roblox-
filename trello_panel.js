@@ -250,14 +250,13 @@
     return `<div class="tk-card" data-li="${li}" data-ci="${ci}" tabindex="0" role="button">${cover}<div class="tk-card-b">${labs ? `<div class="tk-labels">${labs}</div>` : ''}<div class="tk-card-t">${esc(c.name || '')}</div>${due}</div></div>`;
   }
   function barHtml(title, busy) {
+    // Pano TAM OTOMATİK bulunur — manuel "pano değiştir" YOK. Yalnız yenile.
     return `<div class="tk-bar"><span class="tk-ttl">${ICON_TRELLO}${esc(title)}</span>
-      <button class="tk-act tk-edit" title="${t('trelloEdit', 'Pano değiştir')}" style="margin-left:auto">${ICON_EDIT}</button>
-      <button class="tk-act tk-refresh${busy ? ' spin' : ''}" title="${t('trelloRefresh', 'Yenile')}">${ICON_REFRESH}</button></div>`;
+      <button class="tk-act tk-refresh${busy ? ' spin' : ''}" title="${t('trelloRefresh', 'Yenile')}" style="margin-left:auto">${ICON_REFRESH}</button></div>`;
   }
-  function wire(pane) {   // yalnız bar düğmeleri
-    pane.querySelector('.tk-edit')?.addEventListener('click', () => renderInto(pane, { kind: 'setup' }));
+  function wire(pane) {   // yalnız yenile düğmesi
     pane.querySelector('.tk-refresh')?.addEventListener('click', () => refresh());
-    pane.querySelector('.tk-manual')?.addEventListener('click', () => renderInto(pane, { kind: 'setup' }));
+    pane.querySelector('.tk-retry')?.addEventListener('click', () => refresh());   // "Tekrar dene" = otomatik yeniden tara
   }
   function wireCards(scope) {   // kart tıklama + kapak proxy (board ve arama-sonuçları için)
     scope.querySelectorAll('.tk-card[data-li],.tk-rcard[data-li]').forEach(card => {
@@ -355,29 +354,11 @@
       xb?.addEventListener('click', () => { inp.value = ''; xb.style.display = 'none'; renderContent(''); inp.focus(); });
       return;
     }
-    if (k === 'noBoard') { pane.innerHTML = barHtml('Trello', false) + `<div class="tk-msg">${t('trelloNoBoard', 'Bu oyunun açıklamasında Trello linki bulunamadı.')} <span class="tk-link tk-manual">${t('trelloManual', 'Elle gir')}</span></div>`; wire(pane); return; }
-    if (k === 'error') { pane.innerHTML = barHtml('Trello', false) + `<div class="tk-msg">${t('trelloLoadErr', 'Trello yüklenemedi.')}${st.msg ? ' (' + esc(st.msg) + ')' : ''} <span class="tk-link tk-manual">${t('trelloRetry', 'Tekrar dene')}</span></div>`; wire(pane); pane.querySelector('.tk-manual')?.addEventListener('click', () => refresh()); return; }
-    // setup
-    const pv = st.private ? `<p>${t('trelloPrivate', 'Bu pano GİZLİ — okumak için API key + token gir (public panolar otomatik açılır).')}</p>` : `<p>${t('trelloManualHint', 'API key + token gir; pano otomatik bulunur (gerekiyorsa pano linkini de yazabilirsin).')}</p>`;
-    pane.innerHTML = barHtml('Trello', false) + `
-      <div class="tk-setup">
-        ${pv}
-        <input class="tk-key" type="text" placeholder="API key" autocomplete="off" spellcheck="false">
-        <button class="tk-btn ghost tk-gettoken">${t('trelloGetToken', 'Token al (key gir → tıkla)')}</button>
-        <input class="tk-token" type="text" placeholder="Token" autocomplete="off" spellcheck="false">
-        <input class="tk-board-in" type="text" placeholder="${t('trelloBoardUrl', 'Pano URL (otomatikse boş bırak)')}" autocomplete="off" spellcheck="false">
-        <button class="tk-btn tk-save">${t('trelloSave', 'Bağla')}</button>
-      </div>`;
+    if (k === 'noBoard') { pane.innerHTML = barHtml('Trello', false) + `<div class="tk-msg">${ICON_EMPTY}<br>${t('trelloNoBoard', 'Bu oyun için Trello panosu bulunamadı.')} <span class="tk-link tk-retry">${t('trelloRetry', 'Tekrar dene')}</span></div>`; wire(pane); return; }
+    if (k === 'private') { pane.innerHTML = barHtml('Trello', false) + `<div class="tk-msg">${ICON_EMPTY}<br>${t('trelloPrivateAuto', 'Bu oyunun panosu gizli — otomatik okunamıyor.')} <span class="tk-link tk-retry">${t('trelloRetry', 'Tekrar dene')}</span></div>`; wire(pane); return; }
+    // error
+    pane.innerHTML = barHtml('Trello', false) + `<div class="tk-msg">${ICON_EMPTY}<br>${t('trelloLoadErr', 'Trello yüklenemedi.')}${st.msg ? ' (' + esc(st.msg) + ')' : ''} <span class="tk-link tk-retry">${t('trelloRetry', 'Tekrar dene')}</span></div>`;
     wire(pane);
-    const keyIn = pane.querySelector('.tk-key'), tokIn = pane.querySelector('.tk-token'), boardIn = pane.querySelector('.tk-board-in');
-    pane.querySelector('.tk-gettoken')?.addEventListener('click', () => { const k2 = (keyIn.value || '').trim(); if (!k2) { keyIn.focus(); return; } try { window.open(`https://trello.com/1/authorize?expiration=never&scope=read&response_type=token&name=Tracked&key=${encodeURIComponent(k2)}`, '_blank', 'noopener'); } catch (_) {} });
-    pane.querySelector('.tk-save')?.addEventListener('click', async () => {
-      const key = (keyIn.value || '').trim(), token = (tokIn.value || '').trim(), bid = parseBoardId(boardIn.value);
-      if (!key || !token) { keyIn.focus(); return; }
-      try { const cur = await chrome.storage.local.get('rota_settings'); const rs = cur.rota_settings || {}; rs.trello = Object.assign({}, rs.trello, { key, token }); if (bid) rs.trello.boardId = bid; await chrome.storage.local.set({ rota_settings: rs }); } catch (_) {}
-      const pane2 = document.getElementById(PANE_ID); if (pane2) pane2.dataset.loadedFor = '';
-      refresh();
-    });
   }
 
   // ── Çekme ──
@@ -392,9 +373,9 @@
       if (!_enabled) return;
       const pane = document.getElementById(PANE_ID); if (!pane) return;
       if (r && r.ok) renderInto(pane, { kind: 'board', data: r });
-      else if (!r || r.needSetup) renderInto(pane, { kind: 'setup', private: r && r.private });
-      else if (r.noBoard) renderInto(pane, { kind: 'noBoard' });
-      else renderInto(pane, { kind: 'error', msg: r.error || '' });
+      else if (r && r.noBoard) renderInto(pane, { kind: 'noBoard' });
+      else if (r && (r.needSetup || r.private)) renderInto(pane, { kind: 'private' });
+      else renderInto(pane, { kind: 'error', msg: (r && r.error) || '' });
     } catch (_) { const pane = document.getElementById(PANE_ID); if (pane) renderInto(pane, { kind: 'error' }); }
     finally { _loading = false; const r2 = document.getElementById(PANE_ID)?.querySelector('.tk-refresh'); if (r2) r2.classList.remove('spin'); }
   }
