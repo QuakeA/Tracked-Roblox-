@@ -19,6 +19,8 @@
   const ICON_CAL = '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="17" rx="2.5"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/></svg>';
   const ICON_EMPTY = '<svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="opacity:.5"><rect x="3" y="3" width="18" height="18" rx="3"/><rect x="6.5" y="6.5" width="3.5" height="9" rx="1"/><rect x="13.5" y="6.5" width="3.5" height="5.5" rx="1"/></svg>';
   const ICON_X = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+  const ICON_SEARCH = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.6" y2="16.6"/></svg>';
+  const ICON_XS = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
 
   const t = (k, fb) => { try { if (typeof TrackedI18n !== 'undefined') { const v = TrackedI18n.t(k); if (v && v !== k) return v; } } catch (_) {} return fb; };
   function swMsg(msg) { return new Promise(res => { try { chrome.runtime.sendMessage(msg, r => { if (chrome.runtime.lastError) { res(null); return; } res(r || null); }); } catch { res(null); } }); }
@@ -127,6 +129,22 @@
       #${PANE_ID} .tk-btn{background:linear-gradient(180deg,#4d8bf0,#2f6fe0);border:none;color:#fff;font-weight:750;font-size:13.5px;padding:11px;border-radius:9px;cursor:pointer;font-family:inherit;transition:filter .15s;}
       #${PANE_ID} .tk-btn:hover{filter:brightness(1.08);}
       #${PANE_ID} .tk-btn.ghost{background:rgba(255,255,255,.1);color:#dfe3ea;font-weight:650;}
+      /* Arama */
+      #${PANE_ID} .tk-searchrow{display:flex;align-items:center;gap:9px;margin:2px 4px 8px;padding:10px 14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:12px;transition:border-color .15s,background .15s;}
+      #${PANE_ID} .tk-searchrow:focus-within{border-color:#4d8bf0;background:rgba(77,139,240,.08);}
+      #${PANE_ID} .tk-search-ic{color:#9aa1ab;display:inline-flex;flex-shrink:0;}
+      #${PANE_ID} .tk-searchrow:focus-within .tk-search-ic{color:#4d8bf0;}
+      #${PANE_ID} .tk-search{flex:1;min-width:0;background:none;border:none;outline:none;color:#fff;font:inherit;font-size:14px;padding:0;}
+      #${PANE_ID} .tk-search::placeholder{color:#8b909b;}
+      #${PANE_ID} .tk-search-x{background:none;border:none;color:#9aa1ab;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;padding:3px;border-radius:7px;flex-shrink:0;transition:color .15s,background .15s;}
+      #${PANE_ID} .tk-search-x:hover{color:#fff;background:rgba(255,255,255,.12);}
+      /* Arama sonuçları */
+      #${PANE_ID} .tk-results-head{font-size:12px;color:#9aa1ab;font-weight:650;margin:6px 6px 12px;}
+      #${PANE_ID} .tk-results{display:grid;grid-template-columns:repeat(auto-fill,minmax(236px,1fr));gap:14px;padding:0 4px 18px;align-content:start;}
+      #${PANE_ID} .tk-rcard{cursor:pointer;background:rgba(46,50,61,.97);border:1px solid rgba(255,255,255,.08);border-radius:12px;overflow:hidden;transition:transform .12s,box-shadow .15s,border-color .15s;}
+      #${PANE_ID} .tk-rcard:hover{transform:translateY(-2px);border-color:rgba(255,255,255,.2);box-shadow:0 10px 26px rgba(0,0,0,.3);}
+      #${PANE_ID} .tk-rcard:focus-visible{outline:2px solid #4d8bf0;outline-offset:2px;}
+      #${PANE_ID} .tk-rlist{font-size:10px;color:#5e9bff;font-weight:750;text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
       /* Kart detay modalı */
       #${PANE_ID} .tk-modal{position:absolute;inset:0;z-index:20;display:flex;align-items:flex-start;justify-content:center;padding:34px 18px;overflow-y:auto;background:rgba(0,0,0,.62);backdrop-filter:blur(3px);animation:tk-fade .15s ease both;}
       @keyframes tk-fade{from{opacity:0;}to{opacity:1;}}
@@ -206,19 +224,19 @@
       <button class="tk-act tk-edit" title="${t('trelloEdit', 'Pano değiştir')}" style="margin-left:auto">${ICON_EDIT}</button>
       <button class="tk-act tk-refresh${busy ? ' spin' : ''}" title="${t('trelloRefresh', 'Yenile')}">${ICON_REFRESH}</button></div>`;
   }
-  function wire(pane) {
+  function wire(pane) {   // yalnız bar düğmeleri
     pane.querySelector('.tk-edit')?.addEventListener('click', () => renderInto(pane, { kind: 'setup' }));
     pane.querySelector('.tk-refresh')?.addEventListener('click', () => refresh());
     pane.querySelector('.tk-manual')?.addEventListener('click', () => renderInto(pane, { kind: 'setup' }));
-    // Karta tıkla → detay (açıklama + büyük görsel)
-    pane.querySelectorAll('.tk-card[data-li]').forEach(card => {
+  }
+  function wireCards(scope) {   // kart tıklama + kapak proxy (board ve arama-sonuçları için)
+    scope.querySelectorAll('.tk-card[data-li],.tk-rcard[data-li]').forEach(card => {
       const open = () => { const l = _board && _board.lists[+card.dataset.li]; const c = l && l.cards[+card.dataset.ci]; if (c) showDetail(c); };
       card.addEventListener('click', open);
       card.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } });
     });
-    // Kapak görseli: doğrudan trello.com URL'i önce denenir; Roblox img-CSP'si engellerse
-    // SW proxy KUYRUĞUNA alınır (data-URL → CSP bypass). Kuyruk eşzamanlılığı sınırlar → hepsi yüklenir.
-    pane.querySelectorAll('.tk-cover img').forEach(img => {
+    // Kapak: trello.com CSP'de engellenirse SW proxy KUYRUĞUNA alınır (data-URL bypass)
+    scope.querySelectorAll('.tk-cover img').forEach(img => {
       img.addEventListener('error', function onErr() {
         img.removeEventListener('error', onErr);
         if (img.dataset.proxied) { dropCover(img); return; }
@@ -258,18 +276,48 @@
       swMsg({ action: 'trelloImg', url: img.getAttribute('src') }).then(r => { if (r && r.ok && r.dataUrl) img.src = r.dataUrl; else img.closest('.tk-m-cover')?.remove(); });
     });
   }
+  // ── İçerik: tam board ya da arama sonuçları ──
+  function boardHtml() {
+    const lists = (_board && _board.lists) || [];
+    if (!lists.length) return `<div class="tk-msg">${ICON_EMPTY}<br>${t('trelloEmpty', 'Bu panoda liste yok.')}</div>`;
+    return `<div class="tk-board">${lists.map((l, li) => `<div class="tk-col"><div class="tk-col-h"><span class="tk-dot"></span><span class="nm">${esc(l.name || '')}</span><span class="cnt">${(l.cards || []).length}</span></div><div class="tk-col-cards">${(l.cards || []).length ? (l.cards || []).map((c, ci) => cardHtml(c, li, ci)).join('') : `<div class="tk-empty">—</div>`}</div></div>`).join('')}</div>`;
+  }
+  function resultsHtml(q) {
+    const ql = q.toLowerCase(); const hits = [];
+    (_board && _board.lists || []).forEach((l, li) => (l.cards || []).forEach((c, ci) => {
+      if ((c.name || '').toLowerCase().indexOf(ql) >= 0 || (c.desc || '').toLowerCase().indexOf(ql) >= 0) hits.push({ c, li, ci, list: l.name || '' });
+    }));
+    if (!hits.length) return `<div class="tk-msg">${ICON_EMPTY}<br>${t('trelloNoResult', 'Sonuç yok')}: "${esc(q)}"</div>`;
+    const grid = hits.slice(0, 150).map(h => {
+      const cover = h.c.cover ? `<div class="tk-cover"><img src="${esc(h.c.cover)}" alt="" referrerpolicy="no-referrer" loading="lazy"></div>` : '';
+      const labs = (h.c.labels || []).filter(l => l.color).map(l => `<span class="tk-lab" style="background:${LABEL_COLORS[l.color] || '#5e6c84'}"></span>`).join('');
+      return `<div class="tk-rcard" data-li="${h.li}" data-ci="${h.ci}" tabindex="0" role="button">${cover}<div class="tk-card-b"><div class="tk-rlist">${esc(h.list)}</div>${labs ? `<div class="tk-labels">${labs}</div>` : ''}<div class="tk-card-t">${esc(h.c.name || '')}</div></div></div>`;
+    }).join('');
+    return `<div class="tk-results-head">${hits.length} ${t('trelloHits', 'sonuç')}${hits.length > 150 ? ' (ilk 150)' : ''}</div><div class="tk-results">${grid}</div>`;
+  }
+  function renderContent(q) {
+    const pane = document.getElementById(PANE_ID); const content = pane && pane.querySelector('.tk-content'); if (!content) return;
+    content.innerHTML = (q && q.trim()) ? resultsHtml(q.trim()) : boardHtml();
+    wireCards(content);
+  }
+
   function renderInto(pane, st) {
     if (!pane) return;
     const k = st.kind;
     if (k === 'loading') { pane.innerHTML = barHtml('Trello', true) + `<div class="tk-board">${'<div class="tk-sk"></div>'.repeat(5)}</div>`; wire(pane); return; }
     if (k === 'board') {
-      const d = st.data, lists = Array.isArray(d.lists) ? d.lists : [];
-      _board = d;   // tıklamada karta erişmek için sakla
-      const board = lists.length
-        ? `<div class="tk-board">${lists.map((l, li) => `<div class="tk-col"><div class="tk-col-h"><span class="tk-dot"></span><span class="nm">${esc(l.name || '')}</span><span class="cnt">${(l.cards || []).length}</span></div><div class="tk-col-cards">${(l.cards || []).length ? (l.cards || []).map((c, ci) => cardHtml(c, li, ci)).join('') : `<div class="tk-empty">—</div>`}</div></div>`).join('')}</div>`
-        : `<div class="tk-msg">${ICON_EMPTY}<br>${t('trelloEmpty', 'Bu panoda liste yok.')}</div>`;
-      pane.innerHTML = barHtml((d.board && d.board.name) || 'Trello', false) + board;
-      wire(pane); return;
+      _board = st.data;   // tıklama + arama için sakla
+      pane.innerHTML = barHtml((st.data.board && st.data.board.name) || 'Trello', false)
+        + `<div class="tk-searchrow"><span class="tk-search-ic">${ICON_SEARCH}</span><input class="tk-search" type="text" placeholder="${t('trelloSearch', "Trello'da ara… (kart/açıklama)")}" autocomplete="off" spellcheck="false"><button class="tk-search-x" title="${t('trelloClose', 'Temizle')}" style="display:none">${ICON_XS}</button></div>`
+        + `<div class="tk-content"></div>`;
+      wire(pane);
+      renderContent('');
+      const inp = pane.querySelector('.tk-search'), xb = pane.querySelector('.tk-search-x');
+      let dt;
+      inp?.addEventListener('input', () => { clearTimeout(dt); const v = inp.value; if (xb) xb.style.display = v ? '' : 'none'; dt = setTimeout(() => renderContent(v), 140); });
+      inp?.addEventListener('keydown', e => { if (e.key === 'Escape' && inp.value) { inp.value = ''; if (xb) xb.style.display = 'none'; renderContent(''); } });
+      xb?.addEventListener('click', () => { inp.value = ''; xb.style.display = 'none'; renderContent(''); inp.focus(); });
+      return;
     }
     if (k === 'noBoard') { pane.innerHTML = barHtml('Trello', false) + `<div class="tk-msg">${t('trelloNoBoard', 'Bu oyunun açıklamasında Trello linki bulunamadı.')} <span class="tk-link tk-manual">${t('trelloManual', 'Elle gir')}</span></div>`; wire(pane); return; }
     if (k === 'error') { pane.innerHTML = barHtml('Trello', false) + `<div class="tk-msg">${t('trelloLoadErr', 'Trello yüklenemedi.')}${st.msg ? ' (' + esc(st.msg) + ')' : ''} <span class="tk-link tk-manual">${t('trelloRetry', 'Tekrar dene')}</span></div>`; wire(pane); pane.querySelector('.tk-manual')?.addEventListener('click', () => refresh()); return; }
