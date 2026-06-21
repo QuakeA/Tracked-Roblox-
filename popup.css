@@ -1108,8 +1108,8 @@ body.light-mode .update-badge {
 }
 
 @keyframes eventPulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 59, 48, 0.2); }
-  50% { box-shadow: 0 0 20px 0 rgba(255, 59, 48, 0.3); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(48, 209, 88, 0.2); }
+  50% { box-shadow: 0 0 20px 0 rgba(48, 209, 88, 0.3); }
 }
 
 .event-header {
@@ -1486,8 +1486,8 @@ body.light-mode .close-analysis:hover {
 }
 
 .event-result-box.event-yes {
-  background: linear-gradient(135deg, rgba(255, 59, 48, 0.2) 0%, rgba(255, 59, 48, 0.05) 100%);
-  border: 2px solid rgba(255, 59, 48, 0.5);
+  background: linear-gradient(135deg, rgba(48, 209, 88, 0.2) 0%, rgba(48, 209, 88, 0.05) 100%);
+  border: 2px solid rgba(48, 209, 88, 0.5);
   animation: eventPulse 2s ease-in-out infinite;
 }
 
@@ -1519,7 +1519,7 @@ body.light-mode .close-analysis:hover {
 }
 
 .event-result-box.event-yes .event-result-text {
-  color: #FF453A;
+  color: #30D158;
 }
 
 .event-result-box.event-maybe .event-result-text {
@@ -1560,8 +1560,8 @@ body.light-mode .close-analysis:hover {
 }
 
 @keyframes eventPulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 59, 48, 0.3); }
-  50% { box-shadow: 0 0 20px 0 rgba(255, 59, 48, 0.5); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(48, 209, 88, 0.3); }
+  50% { box-shadow: 0 0 20px 0 rgba(48, 209, 88, 0.5); }
 }
 
 /* Eski analiz stillerini kaldır/güncelle */
