@@ -2825,21 +2825,21 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         const readFn = () => {
           try {
             const h = location.hostname;
+            const isYT = h.indexOf('youtube') >= 0, isYTM = h.indexOf('music.youtube') >= 0, isSpot = h.indexOf('spotify') >= 0;
             // PATH KAPISI: youtube.com'da yalnız gerçek izleme sayfaları — ana sayfa/arama/önizleme/masthead reklamı DEĞİL
-            if (h.indexOf('youtube') >= 0 && h.indexOf('music.youtube') < 0) {
+            if (isYT && !isYTM) {
               if (!/^\/(watch|shorts|embed)/.test(location.pathname)) return null;
             }
             const ms = navigator.mediaSession, md = ms && ms.metadata;
-            // GERÇEK now-playing sinyali: mediaSession.metadata + başlık ZORUNLU.
-            // Bu, tarayıcının OS medya kutusunu besleyen resmî sinyali — siteler bunu yalnız kullanıcının
-            // SEÇTİĞİ gerçek oynatma için doldurur; ana sayfa önizlemeleri ve reklamların çoğu doldurmaz.
-            if (!md || !md.title) return null;
-            // Ana oynatıcıyı seç (önizleme/reklam videolarını değil)
-            const el = (h.indexOf('youtube') >= 0)
+            const el = isYT
               ? (document.querySelector('.html5-main-video') || document.querySelector('video.video-stream') || document.querySelector('video'))
               : document.querySelector('video, audio');
+            const playing = el ? !el.paused : (ms && ms.playbackState === 'playing');
+            let title = (md && md.title) ? String(md.title).trim() : '';
+            let artist = (md && md.artist) ? String(md.artist).trim() : '';
+            let album = (md && md.album) ? md.album : '';
             let art = '';
-            if (md.artwork && md.artwork.length) {
+            if (md && md.artwork && md.artwork.length) {
               let best = md.artwork[0];
               for (const a of md.artwork) {
                 const s = parseInt((a.sizes || '0').split('x')[0], 10) || 0;
@@ -2848,10 +2848,28 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
               }
               art = best.src || '';
             }
-            const playing = el ? !el.paused : (ms.playbackState === 'playing');
+            // AKILLI DOM FALLBACK: mediaSession başlığı yoksa (YouTube bazen geç/hiç doldurmaz) gerçek oynatma
+            // sayfasında başlığı DOM'dan oku. Path kapısı (/watch|/shorts) + oynatıcı zaten sahte/önizlemeyi eler.
+            if (!title) {
+              if (isYTM) {
+                title = (document.querySelector('.title.ytmusic-player-bar')?.textContent || '').trim();
+                artist = (document.querySelector('.byline.ytmusic-player-bar')?.textContent || '').trim();
+              } else if (isYT) {
+                title = (document.querySelector('.ytp-title-link')?.textContent
+                      || document.querySelector('h1.ytd-watch-metadata')?.textContent || '').trim()
+                      || (document.title || '').replace(/\s*-\s*YouTube\s*$/i, '').replace(/^\(\d+\)\s*/, '').trim();
+                artist = (document.querySelector('ytd-channel-name a')?.textContent
+                       || document.querySelector('.ytd-video-owner-renderer a')?.textContent || '').trim();
+                if (!art) { const v = (location.search.match(/[?&]v=([\w-]+)/) || [])[1]; if (v) art = 'https://i.ytimg.com/vi/' + v + '/hqdefault.jpg'; }
+              } else if (isSpot) {
+                title = (document.querySelector('[data-testid="context-item-info-title"]')?.textContent
+                      || document.querySelector('[data-testid="now-playing-widget"] a[data-testid="context-item-link"]')?.textContent || '').trim();
+                artist = (document.querySelector('[data-testid="context-item-info-artist"]')?.textContent || '').trim();
+              }
+            }
+            if (!title) return null;   // gerçekten bir şey yoksa yok
             return {
-              title: String(md.title || '').trim(), artist: String(md.artist || '').trim(),
-              album: md.album || '', artwork: art, playing: !!playing,
+              title: title, artist: artist, album: album, artwork: art, playing: !!playing,
               position: el && isFinite(el.currentTime) ? el.currentTime : null,
               duration: el && isFinite(el.duration) ? el.duration : null, host: h,
               volume: el ? Math.round((el.volume != null ? el.volume : 1) * 100) : null,

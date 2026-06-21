@@ -654,7 +654,7 @@
   function scheduleNext() {
     clearTimeout(_pollTimer);
     let delay = 1500;
-    if (!_media) delay = 4000; else if (_minimized) delay = 3000; else if (!_media.playing) delay = 3000;
+    if (!_media) delay = 2500; else if (_minimized) delay = 3000; else if (!_media.playing) delay = 3000;
     _pollTimer = setTimeout(poll, delay);
   }
   async function poll() {
