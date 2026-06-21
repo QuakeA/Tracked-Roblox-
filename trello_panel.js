@@ -49,6 +49,9 @@
     const s = document.createElement('style');
     s.id = STYLE_ID;
     s.textContent = `
+      /* Sekme satırı: Trello eklenince ALT SATIRA kaymasın — hepsi tek satırda EŞİT dağılsın (native 5-sekmeli görünüm gibi) */
+      #horizontal-tabs{display:flex!important;flex-wrap:nowrap!important;}
+      #horizontal-tabs>li.rbx-tab{flex:1 1 0!important;width:auto!important;min-width:0!important;float:none!important;}
       #${PANE_ID}{padding-top:6px;}
       #${PANE_ID} .tk-bar{display:flex;align-items:center;gap:10px;padding:6px 2px 2px;}
       #${PANE_ID} .tk-ttl{display:flex;align-items:center;gap:9px;font-size:18px;font-weight:700;}
