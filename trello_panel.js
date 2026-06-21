@@ -12,6 +12,7 @@
   const PANEL_ID = 'tracked-trello';
   const STYLE_ID = 'tracked-trello-style';
   const MIN_KEY  = 'tracked_trello_min';
+  const POS_KEY  = 'tracked_trello_pos';   // sürüklenen konum (kalıcı)
   const REFRESH_MS = 60000;
 
   // ── İkonlar (inline SVG — emoji YOK) ──
@@ -61,7 +62,7 @@
   }
 
   // ── State ──
-  let _enabled = false, _minimized = false, _timer = null, _loading = false, _ents = false;
+  let _enabled = false, _minimized = false, _timer = null, _loading = false, _ents = false, _pos = null;
 
   // ── Stiller ──
   function injectStyles() {
@@ -82,7 +83,9 @@
       #${PANEL_ID}.tt-min .tt-body,#${PANEL_ID}.tt-min .tt-title span,#${PANEL_ID}.tt-min .tt-act{display:none!important;}
       #${PANEL_ID}.tt-min .tt-head{height:100%;justify-content:center;padding:0;border-bottom:none;}
       #${PANEL_ID}.tt-min .tt-title svg{width:20px;height:20px;}
-      .tt-head{display:flex;align-items:center;gap:7px;padding:11px 12px;border-bottom:1px solid rgba(255,255,255,.07);flex-shrink:0;}
+      .tt-head{display:flex;align-items:center;gap:7px;padding:11px 12px;border-bottom:1px solid rgba(255,255,255,.07);flex-shrink:0;cursor:grab;}
+      #${PANEL_ID}.tt-drag .tt-head{cursor:grabbing;}
+      #${PANEL_ID}.tt-min .tt-head{cursor:pointer;}
       .tt-title{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:650;color:#fff;min-width:0;flex:1;}
       .tt-title svg{color:#5aa6ff;flex-shrink:0;}
       .tt-title span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
@@ -96,6 +99,8 @@
       .tt-list-h{display:flex;align-items:center;justify-content:space-between;font-size:10.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:rgba(255,255,255,.55);margin:0 2px 6px;}
       .tt-list-h .cnt{color:rgba(255,255,255,.38);font-weight:600;}
       .tt-card{display:flex;flex-direction:column;gap:4px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.07);border-radius:9px;padding:8px 10px;margin-bottom:5px;}
+      .tt-cover{margin:-2px -3px 7px;border-radius:7px;overflow:hidden;background:rgba(255,255,255,.04);}
+      .tt-cover img{display:block;width:100%;max-height:130px;object-fit:cover;}
       .tt-card-t{font-size:12px;color:#fff;line-height:1.35;word-break:break-word;}
       .tt-labels{display:flex;flex-wrap:wrap;gap:4px;}
       .tt-lab{height:6px;min-width:26px;border-radius:4px;}
@@ -128,9 +133,41 @@
     if (!p) {
       p = document.createElement('div'); p.id = PANEL_ID;
       (document.body || document.documentElement).appendChild(p);
-      p.addEventListener('click', (e) => { if (_minimized && !e.target.closest('input,button,a')) { _minimized = false; p.classList.remove('tt-min'); saveMin(false); refresh(); } });
+      p.addEventListener('click', (e) => { if (_minimized && !e.target.closest('input,button,a')) { _minimized = false; p.classList.remove('tt-min'); saveMin(false); applyPos(p); refresh(); } });
+      wireDrag(p);
+      applyPos(p);
     }
     return p;
+  }
+  // Kaydedilmiş konumu uygula (varsa) — kullanıcı başlıktan sürükleyince hatırlanır.
+  function applyPos(p) {
+    if (!_pos || typeof _pos.left !== 'number') return;
+    const w = p.offsetWidth || 330;
+    p.style.left = Math.max(6, Math.min(window.innerWidth - w - 6, _pos.left)) + 'px';
+    p.style.top = Math.max(6, Math.min(window.innerHeight - 44, _pos.top)) + 'px';
+    p.style.right = 'auto'; p.style.bottom = 'auto';
+  }
+  function wireDrag(p) {
+    p.addEventListener('pointerdown', (e) => {
+      if (e.button !== 0 || p.classList.contains('tt-min')) return;             // küçükken sürükleme yok (tık=büyüt)
+      if (!e.target.closest('.tt-head') || e.target.closest('.tt-act')) return;  // yalnız başlıktan, butonlardan değil
+      e.preventDefault();
+      const r = p.getBoundingClientRect(); const sx = e.clientX, sy = e.clientY, sl = r.left, st = r.top;
+      p.style.transition = 'none'; p.classList.add('tt-drag');
+      try { p.setPointerCapture(e.pointerId); } catch (_) {}
+      const mv = (ev) => {
+        const l = Math.max(6, Math.min(window.innerWidth - p.offsetWidth - 6, sl + (ev.clientX - sx)));
+        const t = Math.max(6, Math.min(window.innerHeight - 44, st + (ev.clientY - sy)));
+        p.style.left = l + 'px'; p.style.top = t + 'px'; p.style.right = 'auto'; p.style.bottom = 'auto';
+      };
+      const up = () => {
+        p.removeEventListener('pointermove', mv); p.removeEventListener('pointerup', up); p.removeEventListener('pointercancel', up);
+        p.style.transition = ''; p.classList.remove('tt-drag');
+        const r2 = p.getBoundingClientRect(); _pos = { left: Math.round(r2.left), top: Math.round(r2.top) };
+        try { chrome.storage.local.set({ [POS_KEY]: _pos }); } catch (_) {}
+      };
+      p.addEventListener('pointermove', mv); p.addEventListener('pointerup', up); p.addEventListener('pointercancel', up);
+    });
   }
   const saveMin = (v) => { try { chrome.storage.local.set({ [MIN_KEY]: !!v }); } catch (_) {} };
 
@@ -214,9 +251,10 @@
   }
 
   function cardHtml(c) {
+    const cover = c.cover ? `<div class="tt-cover"><img src="${esc(c.cover)}" alt="" referrerpolicy="no-referrer" loading="lazy"></div>` : '';
     const labs = (c.labels || []).filter(l => l.color).map(l => `<span class="tt-lab" style="background:${LABEL_COLORS[l.color] || '#5e6c84'}" title="${esc(l.name || l.color)}"></span>`).join('');
     const due = c.due ? `<span class="tt-due">${esc(fmtDue(c.due))}</span>` : '';
-    return `<div class="tt-card">${labs ? `<div class="tt-labels">${labs}</div>` : ''}<div class="tt-card-t">${esc(c.name || '')}</div>${due}</div>`;
+    return `<div class="tt-card">${cover}${labs ? `<div class="tt-labels">${labs}</div>` : ''}<div class="tt-card-t">${esc(c.name || '')}</div>${due}</div>`;
   }
   function renderBoard(data) {
     const p = ensurePanel(); p.classList.toggle('tt-min', _minimized);
@@ -233,6 +271,8 @@
     p.innerHTML = headHtml((data.board && data.board.name) || 'Trello', false) + `<div class="tt-body">${note}${body}</div>`;
     wireHead(p);
     p.querySelector('.tt-manual')?.addEventListener('click', (e) => { e.stopPropagation(); renderManual(); });
+    // Kapak görseli yüklenemezse (CSP/erişim) kırık resim gösterme → o kapağı kaldır
+    p.querySelectorAll('.tt-cover img').forEach(img => img.addEventListener('error', () => { const c = img.closest('.tt-cover'); if (c) c.remove(); }, { once: true }));
   }
   function renderLoading() {
     const p = ensurePanel(); p.classList.toggle('tt-min', _minimized);
@@ -291,8 +331,9 @@
   // ── Başlat: ayar oku + canlı aç/kapa ──
   (async () => {
     try {
-      const d = await chrome.storage.local.get(['rota_settings', MIN_KEY]);
+      const d = await chrome.storage.local.get(['rota_settings', MIN_KEY, POS_KEY]);
       _minimized = !!d[MIN_KEY];
+      if (d[POS_KEY] && typeof d[POS_KEY].left === 'number') _pos = d[POS_KEY];
       applyState(d?.rota_settings?.trelloEnabled === true);
     } catch (_) {}
   })();

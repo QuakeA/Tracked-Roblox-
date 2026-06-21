@@ -1517,10 +1517,16 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             const lists = (Array.isArray(d.lists) ? d.lists : []).filter(l => l && !l.closed).sort((a, b) => (a.pos || 0) - (b.pos || 0));
             const byList = {};
             for (const c of (Array.isArray(d.cards) ? d.cards : [])) { if (c && !c.closed) (byList[c.idList] = byList[c.idList] || []).push(c); }
+            const coverOf = (c) => {
+              const sc = c && c.cover && Array.isArray(c.cover.scaled) ? c.cover.scaled.filter(s => s && s.url) : [];
+              if (!sc.length) return '';
+              const pick = sc.find(s => s.width >= 200 && s.width <= 520) || sc[sc.length - 1];
+              return pick ? pick.url : '';
+            };
             const out = lists.map(l => ({
               name: l.name || '',
               cards: (byList[l.id] || []).sort((a, b) => (a.pos || 0) - (b.pos || 0)).slice(0, 60).map(c => ({
-                name: c.name || '', due: c.due || null,
+                name: c.name || '', due: c.due || null, cover: coverOf(c),
                 labels: (Array.isArray(c.labels) ? c.labels : []).map(x => ({ color: x.color || null, name: x.name || '' }))
               }))
             }));
