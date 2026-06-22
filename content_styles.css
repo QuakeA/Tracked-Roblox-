@@ -2131,22 +2131,21 @@
 #tracked-game-bar.scanning::before {
   display: block !important;
   inset: auto !important; top: 0 !important; bottom: auto !important; left: -1.5px !important; right: auto !important;
-  width: 3px !important; height: 46% !important; padding: 0 !important; border-radius: 3px !important;
-  /* TEK temiz ışık huzmesi: yukarıdan aşağı süzülür, uçlarda (üst/alt) solarak sarılır →
-     görünür dikiş/sıçrama yok, dash/çoklu-segment yok. */
+  width: 3px !important; height: 42% !important; padding: 0 !important; border-radius: 3px !important;
+  /* TEK temiz ışık huzmesi. translateY HEP POZİTİF (5%–133%) → huzme ray'ın üstüne/altına
+     ASLA çıkmaz; sadece ray İÇİNDE süzülür, uçlarda solarak girip çıkar (dikiş yok). */
   background: linear-gradient(180deg, transparent, rgba(120,205,255,.85) 35%, #eaf5ff 50%, rgba(120,205,255,.85) 65%, transparent) !important;
   background-repeat: no-repeat !important;
   -webkit-mask: none !important; mask: none !important;
-  filter: drop-shadow(0 0 6px rgba(94,155,255,.85)) blur(.3px) !important;
+  filter: drop-shadow(0 0 4px rgba(94,155,255,.8)) blur(.3px) !important;
   animation: tk-flow 2s cubic-bezier(.45,.05,.55,.95) infinite !important;
   z-index: 2 !important;
 }
-/* Huzme ray İÇİNDE kalır (altına/dışına taşmaz): uçlarda solarak girip çıkar */
 @keyframes tk-flow {
-  0%   { transform: translateY(-90%);  opacity: 0; }
-  16%  { opacity: 1; }
-  84%  { opacity: 1; }
-  100% { transform: translateY(116%);  opacity: 0; }
+  0%   { transform: translateY(5%);    opacity: 0; }
+  12%  { opacity: 1; }
+  88%  { opacity: 1; }
+  100% { transform: translateY(133%);  opacity: 0; }
 }
 /* Tararken cam: yarı-şeffaf ama arkadaki görsel GÜÇLÜ blur + DESATURE + KOYULAŞIR
    → temiz koyu frosted cam (renkli DEĞİL), blur görünür kalır. İkonlar üstte net. */
@@ -2162,8 +2161,8 @@
   animation: tk-rail-aura 2s ease-in-out infinite !important;
 }
 @keyframes tk-rail-aura {
-  0%,100% { box-shadow: 0 0 4px rgba(63,130,255,.08), inset 0 0 10px rgba(63,130,255,.05); }
-  50%     { box-shadow: 0 0 26px rgba(63,130,255,.42), 0 0 56px rgba(63,130,255,.18), inset 0 0 16px rgba(63,130,255,.12); }
+  0%,100% { box-shadow: inset 0 0 10px rgba(63,130,255,.05); }
+  50%     { box-shadow: 0 0 20px rgba(63,130,255,.34), inset 0 0 16px rgba(63,130,255,.13); }
 }
 /* 3) Okuyan ışık dalgası — ray'da scan zaten meşgul gösteriyor → buton sönükleştirmeyi kaldır */
 #tracked-game-bar.scanning .tracked-bar-btn { opacity: 1 !important; }
