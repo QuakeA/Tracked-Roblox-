@@ -2130,8 +2130,21 @@
   display: block !important;
   inset: -1.5px !important;
   border-radius: 21px 0 0 21px !important;
-  filter: drop-shadow(0 0 4px rgba(94,155,255,.55)) !important;
+  filter: drop-shadow(0 0 4px rgba(94,155,255,.55)) blur(.4px) !important;
   z-index: 2 !important;
+  /* ÇİFT comet (180° karşılıklı): ray'ın sağ kenarı ekran-dışı olsa bile her an bir ışık
+     görünür kalır → loop'ta "ışık kaybolup geri geliyor" dikişi olmaz, akış kesintisiz. */
+  background: conic-gradient(from var(--tracked-comet-angle, 0deg),
+    rgba(120,200,255,0) 0deg,
+    rgba(10,132,255,.4) 36deg, rgba(120,205,255,.95) 64deg, #e2f2ff 78deg, rgba(120,205,255,.95) 92deg, rgba(10,132,255,.4) 120deg,
+    rgba(120,200,255,0) 156deg, rgba(120,200,255,0) 204deg,
+    rgba(10,132,255,.4) 216deg, rgba(120,205,255,.95) 244deg, #e2f2ff 258deg, rgba(120,205,255,.95) 272deg, rgba(10,132,255,.4) 300deg,
+    rgba(120,200,255,0) 336deg, rgba(120,200,255,0) 360deg) !important;
+}
+/* Tararken cam daha çok bulanıklaşır (odak/işlem hissi) */
+#tracked-game-bar.scanning {
+  backdrop-filter: blur(32px) saturate(1.55) !important;
+  -webkit-backdrop-filter: blur(32px) saturate(1.55) !important;
 }
 /* 2) Aura nabzı — ayrı ::after katmanı (kendi box-shadow'u; bar'ın !important gölgesiyle çakışmaz) */
 #tracked-game-bar.scanning::after {
