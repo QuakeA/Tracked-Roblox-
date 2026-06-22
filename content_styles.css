@@ -2147,11 +2147,12 @@
   86%  { opacity: 1; }
   100% { transform: translateY(212%);  opacity: 0; }
 }
-/* Tararken cam BELİRGİN bulanıklaşır (arkadaki oyun görseli buğulanır) + biraz şeffaflaşır */
+/* Tararken cam ŞEFFAFLAŞIR + arkadaki oyun görseli GÜÇLÜ frost'lanır → blur artık net görünür
+   (panel opak değil; frosted görsel camın içinden geçer). İkonlar üstte NET durur. */
 #tracked-game-bar.scanning {
-  background: rgba(18,21,28,.58) !important;
-  backdrop-filter: blur(54px) saturate(1.4) !important;
-  -webkit-backdrop-filter: blur(54px) saturate(1.4) !important;
+  background: rgba(16,19,26,.4) !important;
+  backdrop-filter: blur(72px) saturate(1.7) brightness(1.05) !important;
+  -webkit-backdrop-filter: blur(72px) saturate(1.7) brightness(1.05) !important;
 }
 /* 2) Aura nabzı — ayrı ::after katmanı (kendi box-shadow'u; bar'ın !important gölgesiyle çakışmaz) */
 #tracked-game-bar.scanning::after {
@@ -2173,8 +2174,8 @@
 #tracked-game-bar.scanning #btn-copy-id .tk-ico { animation-delay: .8s; }
 #tracked-game-bar.scanning .btn-watch .tk-ico { animation-delay: 1s; }
 @keyframes tk-scan-read {
-  0%, 22%, 100% { filter: blur(1.4px); transform: scale(1); }                                              /* dinlenme: HAFİF BLURLU (tararken buğulu) */
-  9% { filter: blur(0) drop-shadow(0 0 8px rgba(150,190,255,.95)) brightness(1.3); transform: scale(1.14); } /* dalga geçerken: NETLEŞ + parla */
+  0%, 22%, 100% { filter: none; transform: scale(1); }                                                /* ikon NET kalır */
+  9% { filter: drop-shadow(0 0 9px rgba(150,190,255,.95)) brightness(1.32); transform: scale(1.15); }  /* dalga geçerken parlar */
 }
 /* 4) Marka radar'ı hızlanır */
 #tracked-game-bar.scanning .tk-brand-rings { animation-duration: 1.4s !important; }
