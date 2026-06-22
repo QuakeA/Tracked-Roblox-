@@ -1656,7 +1656,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             };
             const out = lists.map(l => ({
               name: l.name || '',
-              cards: (byList[l.id] || []).sort((a, b) => (a.pos || 0) - (b.pos || 0)).slice(0, 60).map(c => ({
+              cards: (byList[l.id] || []).sort((a, b) => (a.pos || 0) - (b.pos || 0)).slice(0, 250).map(c => ({
                 name: c.name || '', due: c.due || null, cover: coverOf(c),
                 desc: String(c.desc || '').slice(0, 4000),
                 labels: (Array.isArray(c.labels) ? c.labels : []).map(x => ({ color: x.color || null, name: x.name || '' }))
@@ -1665,6 +1665,27 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             const board = { name: d.name || 'Trello', url: d.url || '' };
             self._trelloData[boardId] = { at: Date.now(), board, lists: out };   // RAM 3 dk
             sendResponse({ ok: true, source, board, lists: out });
+            // Kapakları ARKA PLANDA önceden ısıt (Cache API) → içerik scripti istediğinde AĞA gitmez, anında gelir.
+            (async () => {
+              try {
+                const cache = await caches.open('tk-trello-img-v1');
+                const urls = []; for (const l of out) for (const c of l.cards) if (c.cover) urls.push(c.cover);
+                self._trelloImg = self._trelloImg || {};
+                let i = 0;
+                const worker = async () => {
+                  while (i < urls.length && i < 400) {   // ilk 400 kapak (sınırlı)
+                    const u = urls[i++];
+                    try {
+                      if (self._trelloImg[u] || await cache.match(u)) continue;   // zaten var
+                      const r = await fetch(u); if (!r.ok) continue;
+                      const buf = await r.arrayBuffer(); if (buf.byteLength > 700000) continue;
+                      await cache.put(u, new Response(buf, { headers: { 'content-type': r.headers.get('content-type') || 'image/webp' } }));
+                    } catch (_) {}
+                  }
+                };
+                await Promise.all(Array.from({ length: 16 }, worker));   // 16 paralel ısıtma
+              } catch (_) {}
+            })();
             // Arka planda kalıcı önbellek (yanıtı bloklamaz). Makul boyutlu board'lar (≤600 kart) için.
             try {
               const totalCards = out.reduce((n, l) => n + (l.cards ? l.cards.length : 0), 0);
@@ -1695,7 +1716,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         const lists = await lRes.json();
         const out = (Array.isArray(lists) ? lists : []).map(l => ({
           name: l.name || '',
-          cards: (Array.isArray(l.cards) ? l.cards : []).slice(0, 60).map(c => ({
+          cards: (Array.isArray(l.cards) ? l.cards : []).slice(0, 250).map(c => ({
             name: c.name || '', due: c.due || null, desc: String(c.desc || '').slice(0, 4000),
             labels: (Array.isArray(c.labels) ? c.labels : []).map(x => ({ color: x.color || null, name: x.name || '' }))
           }))
