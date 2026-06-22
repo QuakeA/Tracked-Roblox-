@@ -63,7 +63,7 @@
     }
   }
 
-  let _enabled = false, _loading = false, _place = '', _board = null, _q = '';
+  let _enabled = false, _loading = false, _place = '', _board = null, _q = '', _wantActive = false;
 
   // Eşleşen metni (Ctrl/Alt+F gibi) vurgula — DOM text-node'larında, HTML etiketlerini bozmadan
   function highlightNodes(root, q) {
@@ -219,24 +219,55 @@
     pane.id = PANE_ID; pane.className = 'tab-pane';
     g.panes.appendChild(pane);
     // Sekme geçişi
-    tab.querySelector('.rbx-tab-heading').addEventListener('click', (e) => {
-      e.preventDefault();
-      g.ul.querySelectorAll('.rbx-tab').forEach(x => x.classList.remove('active'));
-      g.panes.querySelectorAll('.tab-pane').forEach(x => x.classList.remove('active'));
-      tab.classList.add('active'); pane.classList.add('active');
-      onShow();
-    });
-    // Native sekmeler tıklanınca bizimkini kapat (Roblox kendi pane'ini açar)
+    tab.querySelector('.rbx-tab-heading').addEventListener('click', (e) => { e.preventDefault(); activateOurs(); });
+    // Native sekmeler tıklanınca bizimkini kapat (Roblox kendi pane'ini açar). Dedupe (React tekrar render'ında birikmesin)
     g.ul.querySelectorAll('.rbx-tab:not(.tab-tracked-trello) .rbx-tab-heading').forEach(h => {
-      h.addEventListener('click', () => { tab.classList.remove('active'); pane.classList.remove('active'); });
+      if (h.dataset.tkWired) return; h.dataset.tkWired = '1';
+      h.addEventListener('click', () => { _wantActive = false; const t2 = document.getElementById(TAB_ID), p2 = document.getElementById(PANE_ID); if (t2) t2.classList.remove('active'); if (p2) p2.classList.remove('active'); });
     });
+    // Bizim sekmemizde olmamız gerekiyorsa (React pane'i yeni yarattıysa) hemen aktive et + doldur
+    if (_wantActive) activateOurs();
     return true;
+  }
+
+  // Bizim sekme/pane'i aktive et + içeriği yükle
+  function activateOurs() {
+    const g = tabGroup(); if (!g) return;
+    g.ul.querySelectorAll('.rbx-tab').forEach(x => x.classList.remove('active'));
+    g.panes.querySelectorAll('.tab-pane').forEach(x => x.classList.remove('active'));
+    const tab = document.getElementById(TAB_ID), pane = document.getElementById(PANE_ID);
+    if (tab) tab.classList.add('active');
+    if (pane) pane.classList.add('active');
+    _wantActive = true;
+    onShow();
+  }
+
+  // KENDİNİ ONARMA: Roblox'un React'i sekme alanını yeniden render edip pane'imizi boşaltır/pasifleştirirse,
+  // sayfa yenilemeye gerek kalmadan geri getirir (önbellekteki _board'dan ANINDA). tick'te çağrılır.
+  function healPane() {
+    const g = tabGroup(); if (!g) return;
+    const tab = document.getElementById(TAB_ID), pane = document.getElementById(PANE_ID);
+    if (!tab || !pane) return;
+    // Bir native sekme aktifse kullanıcı/Roblox başka sekmeye geçmiş → bizi pasif tut
+    if (g.ul.querySelector('.rbx-tab.active:not(.tab-tracked-trello)')) {
+      if (_wantActive) { _wantActive = false; tab.classList.remove('active'); pane.classList.remove('active'); }
+      return;
+    }
+    if (!_wantActive) return;
+    if (!pane.classList.contains('active')) { tab.classList.add('active'); pane.classList.add('active'); }
+    // İçerik boşalmışsa (React sildi ya da yükleme yarıda kaldı) geri doldur
+    if (!pane.querySelector('.tk-bar') && !_loading) {
+      if (_board) renderInto(pane, { kind: 'board', data: _board });
+      else { pane.dataset.loadedFor = ''; onShow(); }
+    }
   }
 
   function onShow() {
     const pane = document.getElementById(PANE_ID); if (!pane) return;
     const pid = curPlace();
-    if (pane.dataset.loadedFor === pid) return;   // bu oyun için zaten yüklendi (tembel yükleme)
+    // Zaten yüklendiyse ATLA — ama yalnız GERÇEKTEN içerik varsa. (Yükleme yarıda kaldıysa
+    // loadedFor=pid kalıp boş ekrana takılmayı önler → tekrar yükler.)
+    if (pane.dataset.loadedFor === pid && pane.querySelector('.tk-bar')) return;
     pane.dataset.loadedFor = pid;
     renderInto(pane, { kind: 'loading' });
     refresh();
@@ -382,14 +413,15 @@
 
   // ── Bekçi: sekmeyi enjekte tut; oyun değişince sıfırla ──
   function tick() {
-    if (!_enabled || !/\/games\/(\d+)/.test(location.pathname)) { document.getElementById(TAB_ID)?.remove(); document.getElementById(PANE_ID)?.remove(); _place = ''; return; }
+    if (!_enabled || !/\/games\/(\d+)/.test(location.pathname)) { document.getElementById(TAB_ID)?.remove(); document.getElementById(PANE_ID)?.remove(); _place = ''; _wantActive = false; return; }
     const pid = curPlace();
-    if (pid !== _place) { _place = pid; _boardId = ''; _detectedFor = ''; document.getElementById(TAB_ID)?.remove(); document.getElementById(PANE_ID)?.remove(); }
+    if (pid !== _place) { _place = pid; _boardId = ''; _detectedFor = ''; _board = null; _q = ''; _wantActive = false; document.getElementById(TAB_ID)?.remove(); document.getElementById(PANE_ID)?.remove(); }
     ensureTab();   // About/Store/Servers yüklendiyse sekmeyi ekler (yoksa bir sonraki tick'te)
+    healPane();    // React pane'i boşalttı/pasifleştirdi ise sayfa yenilemeden geri getir
   }
 
   let _timer = null;
-  function start() { injectStyles(); clearInterval(_timer); _timer = setInterval(tick, 1500); tick(); }
+  function start() { injectStyles(); clearInterval(_timer); _timer = setInterval(tick, 1000); tick(); }
   function stop() { clearInterval(_timer); _timer = null; _place = ''; document.getElementById(TAB_ID)?.remove(); document.getElementById(PANE_ID)?.remove(); }
   function applyState(on) { _enabled = !!on; if (_enabled) start(); else stop(); }
 
