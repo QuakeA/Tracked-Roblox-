@@ -1551,9 +1551,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 body: 'q=' + encodeURIComponent(qq)
               });
               if (r.ok) html = await r.text();
-            } catch (_) {}
+            } catch (e) { console.log('[trello] ddg ERR', e && e.message); }
+            console.log('[trello] ddg', JSON.stringify(qq), 'htmlLen', html.length);
             if (!html) continue;
-            const direct = findId(html); if (direct) return direct;   // board linki doğrudan sonuçta mı?
+            const direct = findId(html); if (direct) { console.log('[trello] ddg direct', direct); return direct; }   // board linki doğrudan sonuçta mı?
             // Sonuçlardan YALNIZ izinli rehber sitelerini topla. DDG bazen direkt, bazen
             // //duckduckgo.com/l/?uddg=<encoded> yönlendirmesi verir → uddg'yi çöz.
             const urls = []; const re = /href="([^"]+)"/gi; let m;
@@ -1562,7 +1563,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
               if (ud) { try { u = decodeURIComponent(ud[1]); } catch (_) { continue; } }
               if (/^https?:\/\//i.test(u) && allowedGuide(u) && urls.indexOf(u) < 0) urls.push(u);
             }
-            const id = await scanForBoard(urls.slice(0, 8)); if (id) return id;
+            console.log('[trello] ddg pages', urls.length, urls.map(u => { try { return new URL(u).hostname; } catch (_) { return u; } }));
+            const id = await scanForBoard(urls.slice(0, 8)); console.log('[trello] scan →', id || '(yok)'); if (id) return id;
           }
           return '';
         };
@@ -1573,6 +1575,18 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             for (const l of (((await r.json()) || {}).data || [])) { const id = findId(l && (l.url || l.title)); if (id) return id; }
             return '';
           } catch (_) { return ''; }
+        };
+        // DDG'ye bağımsız doğrudan yol: trellofinder.com/games/<slug> (oyun adı → slug)
+        const slugify = (name) => String(name || '').toLowerCase().replace(/:\/\//g, '-').replace(/['']/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+        const trellofinderId = async (name) => {
+          const slug = slugify(name); if (!slug) return '';
+          try {
+            const r = await fetch(`https://trellofinder.com/games/${slug}`, { headers: { Accept: 'text/html' } });
+            if (!r.ok) { console.log('[trello] finder', slug, 'HTTP', r.status); return ''; }
+            const m = (await r.text()).match(/trello\.com\/b\/([A-Za-z0-9]{6,})/i);
+            console.log('[trello] finder', slug, '→', m ? m[1] : '(yok)');
+            return m ? m[1] : '';
+          } catch (e) { console.log('[trello] finder ERR', e && e.message); return ''; }
         };
 
         let boardId = String(request.boardId || '').trim();
@@ -1596,12 +1610,15 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 const g = gRes.ok ? (((await gRes.json()).data) || [])[0] : null;
                 name = (g && (g.name || g.sourceName)) || '';
                 found = findId((g && g.description) || ''); if (found) src = 'page';
-                if (!found) {   // açıklamada yok → sosyal linkler + web PARALEL (hızlı)
-                  const [sl, ws] = await Promise.all([socialLinksId(uId), trelloWebSearch(name)]);
-                  if (sl) { found = sl; src = 'social'; } else if (ws) { found = ws; src = 'web'; }
+                console.log('[trello] detect', JSON.stringify(name), 'desc→', found || '(yok)');
+                if (!found) {   // açıklamada yok → sosyal + trellofinder + web PARALEL (hızlı)
+                  const [sl, tf, ws] = await Promise.all([socialLinksId(uId), trellofinderId(name), trelloWebSearch(name)]);
+                  console.log('[trello] social→', sl || '(yok)', '| finder→', tf || '(yok)', '| web→', ws || '(yok)');
+                  if (sl) { found = sl; src = 'social'; } else if (tf) { found = tf; src = 'finder'; } else if (ws) { found = ws; src = 'web'; }
                 }
               }
               boardId = found; source = src;
+              console.log('[trello] RESULT board=', found || '(BULUNAMADI)', 'src=', src);
               self._trelloBoardCache[pid] = { id: found, src };
               if (found) { try { const s = await chrome.storage.local.get('tracked_trello_boards'); const m = s.tracked_trello_boards || {}; m[pid] = { id: found, src, at: Date.now() }; chrome.storage.local.set({ tracked_trello_boards: m }); } catch (_) {} }
             } catch (_) {}
