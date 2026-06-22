@@ -34,9 +34,11 @@ const TrackedUI = {
             <div class="tracked-divider"></div>
             <button class="tracked-bar-btn btn-new-server tk-act" id="btn-find-new" title="Yeni açılmış sunucu bul">
                 <span class="tk-ico">
-                    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round">
-                        <path class="tk-spark tk-spark-a" d="M10.5 3.4Q11.5 7.8 15.9 8.8Q11.5 9.8 10.5 14.2Q9.5 9.8 5.1 8.8Q9.5 7.8 10.5 3.4Z"></path>
-                        <path class="tk-spark tk-spark-b" d="M17.8 12.4Q18.4 14.7 20.7 15.3Q18.4 15.9 17.8 18.2Q17.2 15.9 14.9 15.3Q17.2 14.7 17.8 12.4Z"></path>
+                    <svg width="21" height="21" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+                        <rect class="tk-sig tk-sig1" x="3" y="14" width="3.4" height="7" rx="1.5"></rect>
+                        <rect class="tk-sig tk-sig2" x="8" y="10.5" width="3.4" height="10.5" rx="1.5"></rect>
+                        <rect class="tk-sig tk-sig3" x="13" y="7" width="3.4" height="14" rx="1.5"></rect>
+                        <rect class="tk-sig tk-sig4" x="18" y="3.5" width="3.4" height="17.5" rx="1.5"></rect>
                     </svg>
                 </span>
                 <span class="tk-tip">Yeni</span>
@@ -600,9 +602,11 @@ const TrackedUI = {
         const content = `
             <div class="tracked-modal">
                 <div class="tracked-modal-icon warning" style="background: linear-gradient(135deg, rgba(77,139,240,0.2), rgba(77,139,240,0.05)); color: #5e9bff;">
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round">
-                        <path d="M10.5 3.4Q11.5 7.8 15.9 8.8Q11.5 9.8 10.5 14.2Q9.5 9.8 5.1 8.8Q9.5 7.8 10.5 3.4Z"></path>
-                        <path d="M17.8 12.4Q18.4 14.7 20.7 15.3Q18.4 15.9 17.8 18.2Q17.2 15.9 14.9 15.3Q17.2 14.7 17.8 12.4Z"></path>
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+                        <rect x="3" y="14" width="3.4" height="7" rx="1.5"></rect>
+                        <rect x="8" y="10.5" width="3.4" height="10.5" rx="1.5"></rect>
+                        <rect x="13" y="7" width="3.4" height="14" rx="1.5"></rect>
+                        <rect x="18" y="3.5" width="3.4" height="17.5" rx="1.5"></rect>
                     </svg>
                 </div>
                 <h3>${TrackedI18n.t('newServerFound')}</h3>
@@ -995,9 +999,11 @@ const TrackedUI = {
         const content = `
             <div class="tracked-modal" style="width: 440px;">
                 <div class="tracked-modal-icon" style="background: linear-gradient(135deg, rgba(77,139,240,0.2), rgba(77,139,240,0.05)); color: #5e9bff;">
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round">
-                        <path d="M10.5 3.4Q11.5 7.8 15.9 8.8Q11.5 9.8 10.5 14.2Q9.5 9.8 5.1 8.8Q9.5 7.8 10.5 3.4Z"></path>
-                        <path d="M17.8 12.4Q18.4 14.7 20.7 15.3Q18.4 15.9 17.8 18.2Q17.2 15.9 14.9 15.3Q17.2 14.7 17.8 12.4Z"></path>
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+                        <rect x="3" y="14" width="3.4" height="7" rx="1.5"></rect>
+                        <rect x="8" y="10.5" width="3.4" height="10.5" rx="1.5"></rect>
+                        <rect x="13" y="7" width="3.4" height="14" rx="1.5"></rect>
+                        <rect x="18" y="3.5" width="3.4" height="17.5" rx="1.5"></rect>
                     </svg>
                 </div>
                 <h3>${TrackedI18n.t('newServersFound')}</h3>

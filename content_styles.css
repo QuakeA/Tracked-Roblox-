@@ -2084,6 +2084,13 @@
 #tracked-game-bar .tk-act:hover .tk-spark-a{animation:tk-twinkle .9s ease both}
 #tracked-game-bar .tk-act:hover .tk-spark-b{animation:tk-twinkle .9s ease .12s both}
 @keyframes tk-twinkle{0%{transform:scale(1);opacity:1}40%{transform:scale(1.35);opacity:.55}100%{transform:scale(1);opacity:1}}
+/* Yeni = sinyal çubukları — hover'da çubuklar SIRAYLA yükselir (sinyal bağlanıyor gibi) */
+#tracked-game-bar .tk-sig{transform-box:fill-box;transform-origin:bottom}
+#tracked-game-bar .tk-act:hover .tk-sig1{animation:tk-signal .95s ease both}
+#tracked-game-bar .tk-act:hover .tk-sig2{animation:tk-signal .95s ease .09s both}
+#tracked-game-bar .tk-act:hover .tk-sig3{animation:tk-signal .95s ease .18s both}
+#tracked-game-bar .tk-act:hover .tk-sig4{animation:tk-signal .95s ease .27s both}
+@keyframes tk-signal{0%{transform:scaleY(.3);opacity:.45}45%{transform:scaleY(1);opacity:1}100%{transform:scaleY(1);opacity:1}}
 #tracked-game-bar .tk-lens{transform-box:fill-box;transform-origin:10.5px 10.5px}
 #tracked-game-bar .tk-act:hover .tk-lens{animation:tk-scan .8s ease both}
 @keyframes tk-scan{0%{transform:rotate(0)}45%{transform:rotate(-14deg)}100%{transform:rotate(0)}}
