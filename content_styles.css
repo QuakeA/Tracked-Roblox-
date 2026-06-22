@@ -2087,10 +2087,10 @@
 /* Yeni = sinyal çubukları — ARTAN sinyal: boy sabit, çubuklar 1→2→3→4 KÜMÜLATİF
    yanıp yanık kalır (sinyal güçleniyor gibi), sonra sıfırlanıp tekrarlar. Müzik/eşitleyici
    gibi boy zıplaması YOK — yalnız parlaklık. Dinlenmede tüm çubuklar tam. */
-#tracked-game-bar .tk-act:hover .tk-sig1{animation:tk-sig1 1.7s ease-in-out infinite}
-#tracked-game-bar .tk-act:hover .tk-sig2{animation:tk-sig2 1.7s ease-in-out infinite}
-#tracked-game-bar .tk-act:hover .tk-sig3{animation:tk-sig3 1.7s ease-in-out infinite}
-#tracked-game-bar .tk-act:hover .tk-sig4{animation:tk-sig4 1.7s ease-in-out infinite}
+#tracked-game-bar .tk-act:hover .tk-sig1{animation:tk-sig1 1s ease-in-out infinite}
+#tracked-game-bar .tk-act:hover .tk-sig2{animation:tk-sig2 1s ease-in-out infinite}
+#tracked-game-bar .tk-act:hover .tk-sig3{animation:tk-sig3 1s ease-in-out infinite}
+#tracked-game-bar .tk-act:hover .tk-sig4{animation:tk-sig4 1s ease-in-out infinite}
 @keyframes tk-sig1{0%,10%{opacity:.22}22%,90%{opacity:1}100%{opacity:.22}}
 @keyframes tk-sig2{0%,30%{opacity:.22}42%,90%{opacity:1}100%{opacity:.22}}
 @keyframes tk-sig3{0%,50%{opacity:.22}62%,90%{opacity:1}100%{opacity:.22}}
