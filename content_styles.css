@@ -2118,16 +2118,47 @@
 /* Durumları KORU: Bekçi izlerken yeşil; yatay tarama-sweep ray'da kapalı */
 #tracked-game-bar .tracked-bar-btn.btn-watch.watching { color:#30D158 !important; background: transparent !important; }
 #tracked-game-bar .tracked-bar-btn.btn-watch.watching::before { opacity:1; background: rgba(48,209,88,.16); border-color: rgba(48,209,88,.4); }
-#tracked-game-bar.scanning::before { display:none !important; }
-/* Tarama animasyonu — dikey mavi ışık ray boyunca süpürür + marka ping hızlanır */
-#tracked-game-bar.scanning::after {
-  content:""; position:absolute !important; left:6px; right:6px; top:0; height:42%; border-radius:18px; pointer-events:none; z-index:0;
-  background: linear-gradient(180deg, transparent, rgba(94,155,255,.22), transparent);
-  animation: tk-rail-scan 1.4s ease-in-out infinite;
+/* ══════════════════════════════════════════════════════════════════════════
+   TARAMA ANİMASYONU (premium, çok katmanlı) — "Sentinel sweep"
+   1) Kenar boyunca akan comet ışığı (mevcut @property conic efekti → rail şekline uyarlandı)
+   2) Yumuşak mavi aura nabzı (ayrı katman; ray'ın static gölgesine dokunmaz)
+   3) Işık dalgası ikonları YUKARIDAN AŞAĞI sırayla "okur" (her ikon ışıyıp söner)
+   4) Marka radar'ı hızlanıp parlar
+   ══════════════════════════════════════════════════════════════════════════ */
+/* 1) Comet ışığı — gizlemeyi kaldır, rail'in yuvarlak-sol şekline uyarla */
+#tracked-game-bar.scanning::before {
+  display: block !important;
+  inset: -1.5px !important;
+  border-radius: 21px 0 0 21px !important;
+  filter: drop-shadow(0 0 4px rgba(94,155,255,.55)) !important;
+  z-index: 2 !important;
 }
-@keyframes tk-rail-scan { 0%{top:-42%;opacity:0} 18%{opacity:1} 82%{opacity:1} 100%{top:100%;opacity:0} }
-#tracked-game-bar.scanning .tk-brand-rings { animation-duration: 1.5s !important; }
-#tracked-game-bar.scanning .tracked-bar-logo.brand::after, #tracked-game-bar.scanning .tk-ping { animation-duration: 1.8s !important; }
+/* 2) Aura nabzı — ayrı ::after katmanı (kendi box-shadow'u; bar'ın !important gölgesiyle çakışmaz) */
+#tracked-game-bar.scanning::after {
+  content:"" !important; position:absolute !important; inset:0 !important; border-radius:20px 0 0 20px !important;
+  pointer-events:none !important; z-index:0 !important; background:none !important;
+  animation: tk-rail-aura 2s ease-in-out infinite !important;
+}
+@keyframes tk-rail-aura {
+  0%,100% { box-shadow: 0 0 4px rgba(63,130,255,.08), inset 0 0 10px rgba(63,130,255,.05); }
+  50%     { box-shadow: 0 0 26px rgba(63,130,255,.42), 0 0 56px rgba(63,130,255,.18), inset 0 0 16px rgba(63,130,255,.12); }
+}
+/* 3) Okuyan ışık dalgası — ray'da scan zaten meşgul gösteriyor → buton sönükleştirmeyi kaldır */
+#tracked-game-bar.scanning .tracked-bar-btn { opacity: 1 !important; }
+#tracked-game-bar.scanning .tk-ico { animation: tk-scan-read 2.2s ease-in-out infinite; will-change: transform, filter; }
+#tracked-game-bar.scanning .tracked-bar-logo .tk-ico { animation-delay: 0s; }
+#tracked-game-bar.scanning .tk-play .tk-ico { animation-delay: .2s; }
+#tracked-game-bar.scanning .btn-new-server .tk-ico { animation-delay: .4s; }
+#tracked-game-bar.scanning #btn-deep-scan .tk-ico { animation-delay: .6s; }
+#tracked-game-bar.scanning #btn-copy-id .tk-ico { animation-delay: .8s; }
+#tracked-game-bar.scanning .btn-watch .tk-ico { animation-delay: 1s; }
+@keyframes tk-scan-read {
+  0%, 16%, 100% { filter: none; transform: scale(1); }
+  8% { filter: drop-shadow(0 0 8px rgba(150,190,255,.95)) brightness(1.35); transform: scale(1.14); }
+}
+/* 4) Marka radar'ı hızlanır */
+#tracked-game-bar.scanning .tk-brand-rings { animation-duration: 1.4s !important; }
+#tracked-game-bar.scanning .tracked-bar-logo.brand::after, #tracked-game-bar.scanning .tk-ping { animation-duration: 1.6s !important; }
 
 /* Lock — altta, mavi (fortnite moru yok) */
 #tracked-game-bar .tk-bar-lock {
