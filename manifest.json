@@ -67,7 +67,9 @@
     "https://pcgamesn.com/*",
     "https://*.pcgamesn.com/*",
     "https://ginx.tv/*",
-    "https://*.ginx.tv/*"
+    "https://*.ginx.tv/*",
+    "https://www.ecosia.org/*",
+    "https://*.ecosia.org/*"
   ],
   "background": {
     "service_worker": "service_worker.js"

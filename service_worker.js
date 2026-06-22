@@ -1576,7 +1576,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         // DDG'ye bağımsız doğrudan yol: trellofinder.com/games/<slug> (oyun adı → slug)
         const slugify = (name) => String(name || '').toLowerCase().replace(/:\/\//g, '-').replace(/['']/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
         const trellofinderId = async (name) => {
-          const slug = slugify(name); if (!slug) return '';
+          const slug = slugify(cleanName(name)); if (!slug) return '';   // "[SUMMER!] Stands Online" → "stands-online"
           try {
             const r = await fetch(`https://trellofinder.com/games/${slug}`, { headers: { Accept: 'text/html' } });
             if (!r.ok) { console.log('[trello] finder', slug, 'HTTP', r.status); return ''; }
@@ -1584,6 +1584,22 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             console.log('[trello] finder', slug, '→', m ? m[1] : '(yok)');
             return m ? m[1] : '';
           } catch (e) { console.log('[trello] finder ERR', e && e.message); return ''; }
+        };
+        // İkinci arama motoru — Ecosia (GET, Origin yok; testte board'u doğrudan verdi). DDG eklentiden engellenirse yedek.
+        const ecosiaId = async (name) => {
+          const clean = cleanName(name);
+          for (const q of [clean + ' roblox trello', String(name || '') + ' roblox trello']) {
+            const qq = q.trim(); if (!qq) continue;
+            try {
+              const r = await fetch('https://www.ecosia.org/search?q=' + encodeURIComponent(qq), { headers: { Accept: 'text/html' } });
+              if (!r.ok) { console.log('[trello] ecosia HTTP', r.status); continue; }
+              const html = await r.text();
+              const m = html.match(/trello\.com\/b\/([A-Za-z0-9]{6,})/i) || html.match(/trello\.com%2Fb%2F([A-Za-z0-9]{6,})/i);
+              console.log('[trello] ecosia', JSON.stringify(qq), 'len', html.length, '→', m ? m[1] : '(yok)');
+              if (m) return m[1];
+            } catch (e) { console.log('[trello] ecosia ERR', e && e.message); }
+          }
+          return '';
         };
 
         let boardId = String(request.boardId || '').trim();
@@ -1609,9 +1625,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 found = findId((g && g.description) || ''); if (found) src = 'page';
                 console.log('[trello] detect', JSON.stringify(name), 'desc→', found || '(yok)');
                 if (!found) {   // açıklamada yok → sosyal + trellofinder + web PARALEL (hızlı)
-                  const [sl, tf, ws] = await Promise.all([socialLinksId(uId), trellofinderId(name), trelloWebSearch(name)]);
-                  console.log('[trello] social→', sl || '(yok)', '| finder→', tf || '(yok)', '| web→', ws || '(yok)');
-                  if (sl) { found = sl; src = 'social'; } else if (tf) { found = tf; src = 'finder'; } else if (ws) { found = ws; src = 'web'; }
+                  const [sl, tf, ws, ec] = await Promise.all([socialLinksId(uId), trellofinderId(name), trelloWebSearch(name), ecosiaId(name)]);
+                  console.log('[trello] social→', sl || '(yok)', '| finder→', tf || '(yok)', '| web→', ws || '(yok)', '| ecosia→', ec || '(yok)');
+                  if (sl) { found = sl; src = 'social'; } else if (ws) { found = ws; src = 'web'; } else if (ec) { found = ec; src = 'ecosia'; } else if (tf) { found = tf; src = 'finder'; }
                 }
               }
               boardId = found; source = src;
