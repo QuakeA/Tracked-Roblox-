@@ -2126,25 +2126,27 @@
    4) Marka radar'ı hızlanıp parlar
    ══════════════════════════════════════════════════════════════════════════ */
 /* 1) Comet ışığı — gizlemeyi kaldır, rail'in yuvarlak-sol şekline uyarla */
+/* Sol kenarda SÜZÜLEN ışık huzmesi — sağ tarafa GEÇMEZ. Uçlarda (üst/alt) solarak
+   sarılır; loop anında huzme görünmez olduğundan SIÇRAMA/dikiş yok (gift-tekrarı yok). */
 #tracked-game-bar.scanning::before {
   display: block !important;
-  inset: -1.5px !important;
-  border-radius: 21px 0 0 21px !important;
-  filter: drop-shadow(0 0 4px rgba(94,155,255,.55)) blur(.4px) !important;
-  z-index: 2 !important;
-  /* ÇİFT comet (180° karşılıklı): ray'ın sağ kenarı ekran-dışı olsa bile her an bir ışık
-     görünür kalır → loop'ta "ışık kaybolup geri geliyor" dikişi olmaz, akış kesintisiz. */
-  background: conic-gradient(from var(--tracked-comet-angle, 0deg),
-    rgba(120,200,255,0) 0deg,
-    rgba(10,132,255,.4) 36deg, rgba(120,205,255,.95) 64deg, #e2f2ff 78deg, rgba(120,205,255,.95) 92deg, rgba(10,132,255,.4) 120deg,
-    rgba(120,200,255,0) 156deg, rgba(120,200,255,0) 204deg,
-    rgba(10,132,255,.4) 216deg, rgba(120,205,255,.95) 244deg, #e2f2ff 258deg, rgba(120,205,255,.95) 272deg, rgba(10,132,255,.4) 300deg,
-    rgba(120,200,255,0) 336deg, rgba(120,200,255,0) 360deg) !important;
+  inset: auto !important; top: 0 !important; bottom: 0 !important; left: -1.5px !important; right: auto !important;
+  width: 3px !important; height: auto !important; padding: 0 !important; border-radius: 3px !important;
+  /* Kaydırmalı periyodik gradient: tek karo (130px) tam bir periyot kadar kaydırılır →
+     ışıklar kenar boyunca KESİNTİSİZ süzülür; dikiş/boşluk/sıçrama matematiksel olarak yok. */
+  background: linear-gradient(180deg, transparent 0%, transparent 30%, rgba(120,205,255,.82) 42%, #eaf5ff 50%, rgba(120,205,255,.82) 58%, transparent 70%, transparent 100%) !important;
+  background-size: 100% 130px !important; background-repeat: repeat-y !important;
+  -webkit-mask: none !important; mask: none !important;
+  filter: drop-shadow(0 0 8px rgba(94,155,255,.9)) blur(.3px) !important;
+  animation: tk-flow 1.8s linear infinite !important;
+  z-index: 2 !important; opacity: 1 !important; transform: none !important;
 }
-/* Tararken cam daha çok bulanıklaşır (odak/işlem hissi) */
+@keyframes tk-flow { from { background-position-y: 0; } to { background-position-y: 130px; } }
+/* Tararken cam BELİRGİN bulanıklaşır (arkadaki oyun görseli buğulanır) + biraz şeffaflaşır */
 #tracked-game-bar.scanning {
-  backdrop-filter: blur(32px) saturate(1.55) !important;
-  -webkit-backdrop-filter: blur(32px) saturate(1.55) !important;
+  background: rgba(18,21,28,.58) !important;
+  backdrop-filter: blur(54px) saturate(1.4) !important;
+  -webkit-backdrop-filter: blur(54px) saturate(1.4) !important;
 }
 /* 2) Aura nabzı — ayrı ::after katmanı (kendi box-shadow'u; bar'ın !important gölgesiyle çakışmaz) */
 #tracked-game-bar.scanning::after {
