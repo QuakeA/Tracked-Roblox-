@@ -14,53 +14,66 @@ const TrackedUI = {
         });
 
         bar.innerHTML = `
-            <div class="tracked-bar-logo" title="Tracked v3.7">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <circle cx="12" cy="12" r="3"></circle>
-                </svg>
+            <div class="tracked-bar-logo brand" aria-hidden="true">
+                <span class="tk-ping"></span>
+                <span class="tk-ico tk-brand-ico">
+                    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                        <g class="tk-brand-rings"><circle cx="12" cy="12" r="9.5"></circle><circle cx="12" cy="12" r="3"></circle></g>
+                    </svg>
+                </span>
             </div>
+            <button class="tracked-bar-btn btn-autopilot tk-play" id="btn-autopilot" title="Oto-Pilot ile en yakın sunucuya otomatik bağlan">
+                <span class="tk-ico">
+                    <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 2.6l7.4 3v5.1c0 4.4-3.1 7.8-7.4 9-4.3-1.2-7.4-4.6-7.4-9V5.6l7.4-3z"></path>
+                        <path class="tk-shield-check" d="M8.7 12.1l2.3 2.3 4.3-4.5"></path>
+                    </svg>
+                </span>
+                <span class="tk-tip">Oto-Pilot</span>
+            </button>
+            <div class="tracked-divider"></div>
+            <button class="tracked-bar-btn btn-new-server tk-act" id="btn-find-new" title="Yeni açılmış sunucu bul">
+                <span class="tk-ico">
+                    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round">
+                        <path class="tk-spark tk-spark-a" d="M10.5 3.4Q11.5 7.8 15.9 8.8Q11.5 9.8 10.5 14.2Q9.5 9.8 5.1 8.8Q9.5 7.8 10.5 3.4Z"></path>
+                        <path class="tk-spark tk-spark-b" d="M17.8 12.4Q18.4 14.7 20.7 15.3Q18.4 15.9 17.8 18.2Q17.2 15.9 14.9 15.3Q17.2 14.7 17.8 12.4Z"></path>
+                    </svg>
+                </span>
+                <span class="tk-tip">Yeni</span>
+            </button>
+            <button class="tracked-bar-btn tk-act" id="btn-deep-scan" title="Derin tarama">
+                <span class="tk-ico">
+                    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+                        <g class="tk-lens"><circle cx="10.5" cy="10.5" r="6.2"></circle></g>
+                        <line x1="20.5" y1="20.5" x2="15" y2="15"></line>
+                    </svg>
+                </span>
+                <span class="tk-tip">Derin</span>
+            </button>
+            <button class="tracked-bar-btn tk-act" id="btn-copy-id" title="Oyun ID'sini kopyala">
+                <span class="tk-ico">
+                    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="6" width="18" height="12" rx="2.4"></rect>
+                        <circle cx="8.2" cy="11.2" r="2.1"></circle>
+                        <path d="M6 15.2c.5-1.1 1.3-1.7 2.2-1.7s1.7.6 2.2 1.7" stroke-width="1.4"></path>
+                        <line class="tk-id-l tk-id-l1" x1="13.5" y1="10" x2="18" y2="10"></line>
+                        <line class="tk-id-l tk-id-l2" x1="13.5" y1="13.4" x2="17" y2="13.4"></line>
+                    </svg>
+                </span>
+                <span class="tk-tip">ID</span>
+            </button>
+            <button class="tracked-bar-btn btn-watch tk-act" id="btn-watch" title="Sunucu Bekçisi — kriterli sunucu açılınca bildir/oto-katıl">
+                <span class="tk-ico">
+                    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M2.4 12s3.7-6.6 9.6-6.6S21.6 12 21.6 12s-3.7 6.6-9.6 6.6S2.4 12 2.4 12z"></path>
+                        <circle class="tk-pupil" cx="12" cy="12" r="2.8"></circle>
+                    </svg>
+                </span>
+                <span class="tk-tip">Bekçi</span>
+            </button>
+            <span class="tk-ind" aria-hidden="true"></span>
             <button class="tk-bar-lock" id="tk-bar-lock" title="Gelişmiş sunucu araçları Tracked Plus'ta — yükseltmek için tıkla">
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12 1a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2h-1V6a5 5 0 0 0-5-5zm3 8H9V6a3 3 0 0 1 6 0v3z"/></svg>
-            </button>
-            <button class="tracked-bar-btn btn-new-server" id="btn-find-new" title="Yeni açılmış sunucu bul">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
-                </svg>
-                <span>Yeni</span>
-            </button>
-            <div class="tracked-divider"></div>
-            <button class="tracked-bar-btn" id="btn-deep-scan" title="Derin tarama">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                    <circle cx="11" cy="11" r="8"></circle>
-                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                    <line x1="11" y1="8" x2="11" y2="14"></line>
-                    <line x1="8" y1="11" x2="14" y2="14"></line>
-                </svg>
-                <span>Derin</span>
-            </button>
-            <div class="tracked-divider"></div>
-            <button class="tracked-bar-btn" id="btn-copy-id" title="Oyun ID'sini kopyala">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                    <rect x="9" y="9" width="13" height="13" rx="2"></rect>
-                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                </svg>
-                <span>ID</span>
-            </button>
-            <div class="tracked-divider"></div>
-            <button class="tracked-bar-btn btn-autopilot" id="btn-autopilot" title="Oto-Pilot ile en yakın sunucuya otomatik bağlan">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-                </svg>
-                <span>Oto-Pilot</span>
-            </button>
-            <div class="tracked-divider"></div>
-            <button class="tracked-bar-btn btn-watch" id="btn-watch" title="Sunucu Bekçisi — kriterli sunucu açılınca bildir/oto-katıl">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                    <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"></path>
-                    <circle cx="12" cy="12" r="3"></circle>
-                </svg>
-                <span>Bekçi</span>
             </button>
             <span id="tracked-status" class="tracked-status"></span>
         `;
@@ -76,6 +89,18 @@ const TrackedUI = {
             const refreshLocks = async () => { bar.classList.toggle('tk-plus', await isPlus()); };
             refreshLocks();
             if (window.TrackedLicense) window.TrackedLicense.onChange(refreshLocks);
+
+            // Yan ray: hover'da kayan mavi gösterge (aktif ikonun yanına)
+            const railInd = bar.querySelector('.tk-ind');
+            if (railInd) {
+                bar.querySelectorAll('.tk-act, .tk-play').forEach((b) => {
+                    b.addEventListener('mouseenter', () => {
+                        railInd.style.setProperty('--tk-y', (b.offsetTop + b.offsetHeight / 2 - 11) + 'px');
+                        railInd.classList.add('show');
+                    });
+                });
+                bar.addEventListener('mouseleave', () => railInd.classList.remove('show'));
+            }
 
             const btnNew = bar.querySelector('#btn-find-new');
             const btnDeep = bar.querySelector('#btn-deep-scan');

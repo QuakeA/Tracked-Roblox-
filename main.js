@@ -259,17 +259,14 @@ const TrackedApp = {
     },
 
     injectBar: function(target, placeId) {
+        // Yan ray: bar artık sağ-kenara yapışan FIXED dock. Roblox layout'una inline koymak yerine
+        // doğrudan body'ye ekle → transform'lu ata-eleman fixed konumu bozmaz, kenara tam oturur.
+        // (target yalnız "sayfa hazır" sinyali; konumlama CSS'te.)
         const bar = TrackedUI.createGameBar(placeId);
-        
-        if (target.parentNode) {
-            target.parentNode.insertBefore(bar, target.nextSibling);
-        } else if (target.appendChild) {
-            target.appendChild(bar);
-        }
-        
+        document.body.appendChild(bar);
         this.state.injected = true;
         this.state.retryCount = 0;
-        console.log('[Tracked] v3.7 Bar injected');
+        console.log('[Tracked] v3.7 Bar injected (yan ray)');
     },
 
     injectToBody: function(placeId) {
