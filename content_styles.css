@@ -2017,11 +2017,12 @@
 #tracked-game-bar .tk-ping { animation-delay: 1.7s; }
 @keyframes tk-ping { 0%{transform:scale(.6);opacity:.5} 70%{opacity:0} 100%{transform:scale(2.4);opacity:0} }
 
-/* Ayraç → daha AŞAĞIDA, parlak-merkez yok (ışık-sızması görünümü gitsin); düz ince çizgi */
+/* Ayraç → ışık-süzmesi: geniş + parlak-merkezli gradient + hafif parıltı (kullanıcı istedi) */
 #tracked-game-bar .tracked-divider {
-  width: 20px !important; height: 1px !important; min-height: 1px !important; max-height: 1px !important; min-width: 0 !important;
-  margin: 9px 0 1px !important; align-self: center !important;
-  background: rgba(255,255,255,.10) !important;
+  width: 34px !important; height: 1px !important; min-height: 1px !important; max-height: 1px !important; min-width: 0 !important;
+  margin: 9px 0 2px !important; align-self: center !important;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.32), transparent) !important;
+  box-shadow: 0 0 7px rgba(255,255,255,.12) !important;
 }
 
 /* Ortak buton — ikon-öncelikli kare */
