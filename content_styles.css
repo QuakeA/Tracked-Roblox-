@@ -2137,22 +2137,23 @@
   background: linear-gradient(180deg, transparent, rgba(120,205,255,.85) 35%, #eaf5ff 50%, rgba(120,205,255,.85) 65%, transparent) !important;
   background-repeat: no-repeat !important;
   -webkit-mask: none !important; mask: none !important;
-  filter: drop-shadow(0 0 9px rgba(94,155,255,.95)) blur(.3px) !important;
+  filter: drop-shadow(0 0 6px rgba(94,155,255,.85)) blur(.3px) !important;
   animation: tk-flow 2s cubic-bezier(.45,.05,.55,.95) infinite !important;
   z-index: 2 !important;
 }
+/* Huzme ray İÇİNDE kalır (altına/dışına taşmaz): uçlarda solarak girip çıkar */
 @keyframes tk-flow {
-  0%   { transform: translateY(-118%); opacity: 0; }
-  14%  { opacity: 1; }
-  86%  { opacity: 1; }
-  100% { transform: translateY(212%);  opacity: 0; }
+  0%   { transform: translateY(-90%);  opacity: 0; }
+  16%  { opacity: 1; }
+  84%  { opacity: 1; }
+  100% { transform: translateY(116%);  opacity: 0; }
 }
-/* Tararken cam ŞEFFAFLAŞIR + arkadaki oyun görseli GÜÇLÜ frost'lanır → blur artık net görünür
-   (panel opak değil; frosted görsel camın içinden geçer). İkonlar üstte NET durur. */
+/* Tararken cam: yarı-şeffaf ama arkadaki görsel GÜÇLÜ blur + DESATURE + KOYULAŞIR
+   → temiz koyu frosted cam (renkli DEĞİL), blur görünür kalır. İkonlar üstte net. */
 #tracked-game-bar.scanning {
-  background: rgba(16,19,26,.4) !important;
-  backdrop-filter: blur(72px) saturate(1.7) brightness(1.05) !important;
-  -webkit-backdrop-filter: blur(72px) saturate(1.7) brightness(1.05) !important;
+  background: rgba(15,18,25,.52) !important;
+  backdrop-filter: blur(58px) saturate(.35) brightness(.68) !important;
+  -webkit-backdrop-filter: blur(58px) saturate(.35) brightness(.68) !important;
 }
 /* 2) Aura nabzı — ayrı ::after katmanı (kendi box-shadow'u; bar'ın !important gölgesiyle çakışmaz) */
 #tracked-game-bar.scanning::after {
