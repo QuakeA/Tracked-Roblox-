@@ -39,12 +39,14 @@
     if (document.getElementById(STYLE)) return;
     const s = document.createElement('style'); s.id = STYLE;
     s.textContent = `
+      /* Graphite/krom gövde + tek accent: mavi ikon & ince mavi kenar (artık "mas mavi" değil) */
       #${WID}-btn{position:fixed;right:18px;bottom:18px;z-index:9000;display:flex;align-items:center;gap:7px;
-        padding:9px 13px;border-radius:13px;border:1px solid rgba(255,255,255,.12);cursor:pointer;
-        background:linear-gradient(150deg,#5e9bff,#3568d6);color:#fff;font:600 12.5px/1 -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
-        box-shadow:0 8px 24px rgba(45,90,190,.42);transition:transform .15s,box-shadow .2s;}
-      #${WID}-btn:hover{transform:translateY(-2px);box-shadow:0 12px 30px rgba(45,90,190,.58);}
-      #${WID}-btn .c{background:rgba(255,255,255,.22);border-radius:8px;padding:1px 6px;font-size:11px;}
+        padding:9px 13px;border-radius:13px;border:1px solid rgba(116,146,205,.30);cursor:pointer;
+        background:linear-gradient(150deg,#2c313d,#171a21);color:#eef1f6;font:600 12.5px/1 -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+        box-shadow:0 8px 22px rgba(0,0,0,.42),inset 0 1px 0 rgba(255,255,255,.05);transition:transform .15s,box-shadow .2s,border-color .2s;}
+      #${WID}-btn svg{color:#6f9cff;}
+      #${WID}-btn:hover{transform:translateY(-2px);border-color:rgba(116,146,205,.5);box-shadow:0 12px 28px rgba(0,0,0,.5),0 0 0 1px rgba(94,155,255,.16),inset 0 1px 0 rgba(255,255,255,.06);}
+      #${WID}-btn .c{background:rgba(255,255,255,.14);border-radius:8px;padding:1px 6px;font-size:11px;}
       #${WID}{position:fixed;right:18px;bottom:18px;z-index:9001;width:330px;max-width:calc(100vw - 36px);box-sizing:border-box;
         background:linear-gradient(180deg,rgba(23,23,29,.97),rgba(13,13,18,.99));backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);
         border:1px solid rgba(255,255,255,.1);border-radius:16px;box-shadow:0 14px 44px rgba(0,0,0,.6);
