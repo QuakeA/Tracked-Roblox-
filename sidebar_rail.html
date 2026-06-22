@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tracked — Yan Ray (önizleme)</title>
+<style>
+  /* ── Token'lar ────────────────────────────────────────────── */
+  :root{
+    --bg:#0a0c11;
+    --rail-bg:rgba(19,22,29,.72);
+    --rail-edge:rgba(255,255,255,.10);
+    --icon:#a4abb7;          /* dinlenme: nötr krem-gri */
+    --icon-hi:#eef2f8;       /* hover: parlak krem */
+    --accent:#4d8bf0;        /* vurgu: mavi */
+    --accent-bright:#6ea6ff;
+    --accent-deep:#3f82ff;
+    --tip-bg:rgba(15,18,24,.92);
+  }
+
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;
+    font:500 13px/1 -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+    color:#dfe3ea;
+    background:
+      radial-gradient(120% 80% at 100% 50%, rgba(63,130,255,.10), transparent 55%),
+      radial-gradient(90% 70% at 18% 12%, rgba(120,140,180,.06), transparent 60%),
+      var(--bg);
+    overflow:hidden;
+  }
+  /* Köşede sade bağlam etiketi (önizleme için) */
+  .hint{position:fixed;left:26px;bottom:22px;color:#5b626d;font-size:12px;letter-spacing:.02em}
+  .hint b{color:#8a919d;font-weight:600}
+
+  /* ── Ray gövdesi ──────────────────────────────────────────── */
+  .rail{
+    position:fixed; top:50%; right:0;
+    display:flex; flex-direction:column; align-items:center; gap:7px;
+    padding:14px 11px;
+    background:var(--rail-bg);
+    backdrop-filter:blur(22px) saturate(1.35);
+    -webkit-backdrop-filter:blur(22px) saturate(1.35);
+    border:1px solid var(--rail-edge); border-right:none;
+    border-radius:22px 0 0 22px;
+    box-shadow:-20px 0 55px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.06);
+    transform:translateY(-50%);
+    animation:railIn .55s cubic-bezier(.2,.85,.25,1) both;
+  }
+  @keyframes railIn{ from{opacity:0;transform:translate(96px,-50%)} to{opacity:1;transform:translate(0,-50%)} }
+
+  /* Öğeler kademeli (stagger) belirsin — entrance buton'da, hover .ico'da (çakışmaz) */
+  .rail > *{animation:itemIn .5s ease both}
+  .rail > *:nth-child(1){animation-delay:.14s}
+  .rail > *:nth-child(2){animation-delay:.20s}
+  .rail > *:nth-child(3){animation-delay:.26s}
+  .rail > *:nth-child(4){animation-delay:.32s}
+  .rail > *:nth-child(5){animation-delay:.38s}
+  .rail > *:nth-child(6){animation-delay:.44s}
+  .rail > *:nth-child(7){animation-delay:.50s}
+  @keyframes itemIn{ from{opacity:0;transform:translateX(16px)} to{opacity:1;transform:translateX(0)} }
+
+  .sep{width:26px;height:1px;background:rgba(255,255,255,.09);margin:3px 0}
+
+  /* Ortak buton ────────────────────────────────────────────── */
+  .btn{
+    position:relative; width:44px; height:44px; padding:0;
+    display:flex; align-items:center; justify-content:center;
+    border:none; background:none; cursor:pointer; color:var(--icon);
+    -webkit-tap-highlight-color:transparent;
+  }
+  .btn:focus{outline:none}
+  .btn:focus-visible{outline:2px solid var(--accent-bright);outline-offset:3px;border-radius:13px}
+  .btn .ico{display:flex;transition:transform .18s cubic-bezier(.2,.8,.2,1),color .18s ease}
+  .btn svg{width:21px;height:21px;display:block;overflow:visible}
+
+  /* Hover'da arkada beliren yumuşak pill */
+  .btn::before{
+    content:""; position:absolute; inset:5px; border-radius:13px;
+    background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.05);
+    opacity:0; transform:scale(.82); transition:opacity .18s ease,transform .18s cubic-bezier(.2,.8,.2,1);
+  }
+  .btn:hover::before{opacity:1;transform:scale(1)}
+
+  /* Sola kayan tooltip etiketi (ray sağ kenarda → etiket solda) */
+  .tip{
+    position:absolute; right:calc(100% + 12px); top:50%;
+    transform:translateY(-50%) translateX(8px);
+    padding:6px 11px; border-radius:9px; white-space:nowrap;
+    background:var(--tip-bg); color:#eef2f8; font-size:12px; font-weight:600; letter-spacing:.01em;
+    border:1px solid rgba(255,255,255,.08); box-shadow:0 8px 24px rgba(0,0,0,.4);
+    opacity:0; pointer-events:none; transition:opacity .16s ease,transform .2s cubic-bezier(.2,.8,.2,1);
+  }
+  .tip::after{ /* küçük ok */
+    content:""; position:absolute; left:100%; top:50%; transform:translateY(-50%);
+    border:5px solid transparent; border-left-color:var(--tip-bg);
+  }
+  .btn:hover .tip, .btn:focus-visible .tip{opacity:1;transform:translateY(-50%) translateX(0)}
+
+  /* ── Marka diyafram ikonu (radar ping + nefes) ────────────── */
+  .brand{color:var(--accent)}
+  .brand .ico{position:relative;z-index:1}
+  .brand svg{width:25px;height:25px}
+  .brand-rings{animation:breathe 4.5s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+  @keyframes breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
+  /* dıştan genişleyip sönen iki ping halkası */
+  .brand::after,.brand .ping{
+    content:""; position:absolute; left:50%; top:50%; width:26px; height:26px; margin:-13px 0 0 -13px;
+    border-radius:50%; border:1.4px solid var(--accent);
+    opacity:0; pointer-events:none; animation:ping 3.4s cubic-bezier(.2,.7,.3,1) infinite;
+  }
+  .brand .ping{animation-delay:1.7s}
+  @keyframes ping{0%{transform:scale(.6);opacity:.55}70%{opacity:0}100%{transform:scale(2.4);opacity:0}}
+  .brand:hover{color:var(--accent-bright)}
+  .brand:hover .brand-rings{animation-duration:2.2s}
+  .brand:hover .ico{filter:drop-shadow(0 0 9px rgba(77,139,240,.6))}
+
+  /* ── Oynat / Oto-Pilot butonu (öne çıkan) ─────────────────── */
+  .play{
+    width:50px;height:50px;border-radius:16px;color:#fff;
+    background:linear-gradient(150deg,var(--accent-bright),var(--accent-deep));
+    box-shadow:0 8px 22px rgba(45,90,190,.5), inset 0 1px 0 rgba(255,255,255,.22);
+    animation:itemIn .5s ease both, playGlow 2.8s ease-in-out infinite .9s;
+  }
+  .play::before{display:none}
+  .play svg{width:23px;height:23px}
+  @keyframes playGlow{0%,100%{box-shadow:0 8px 22px rgba(45,90,190,.45),inset 0 1px 0 rgba(255,255,255,.22)}50%{box-shadow:0 10px 30px rgba(63,130,255,.7),inset 0 1px 0 rgba(255,255,255,.22)}}
+  .play:hover{box-shadow:0 12px 34px rgba(63,130,255,.7),inset 0 1px 0 rgba(255,255,255,.25)}
+  .play:hover .ico{transform:scale(1.08)}
+  .play:active .ico{transform:scale(.94)}
+  /* hover'da dış halka dalgası */
+  .play::after{
+    content:"";position:absolute;inset:0;border-radius:16px;border:1.5px solid var(--accent-bright);
+    opacity:0;pointer-events:none;
+  }
+  .play:hover::after{animation:ringwave .9s ease-out infinite}
+  @keyframes ringwave{0%{opacity:.6;transform:scale(1)}100%{opacity:0;transform:scale(1.45)}}
+  /* hover'da kalkan üstünde tik çizilsin */
+  .shield-check{stroke-dasharray:9;stroke-dashoffset:9;transition:stroke-dashoffset .35s ease .05s}
+  .play:hover .shield-check{stroke-dashoffset:0}
+  /* tıklamada ripple (JS) */
+  .ripple{position:absolute;border-radius:50%;background:rgba(255,255,255,.45);
+    transform:translate(-50%,-50%) scale(0);pointer-events:none;animation:ripple .55s ease-out forwards}
+  @keyframes ripple{to{transform:translate(-50%,-50%) scale(2.6);opacity:0}}
+
+  /* ── Eylem ikonları: hover renk + büyüme + kendi mikro hareketi ─ */
+  .act:hover .ico{transform:scale(1.12);color:var(--icon-hi)}
+  .act.on{color:var(--accent-bright)}
+  .act.on .ico{color:var(--accent-bright)}
+
+  /* Yeni → yıldızlar parıldasın */
+  .spark{transform-box:fill-box;transform-origin:center}
+  .act:hover .spark-a{animation:twinkle .9s ease both}
+  .act:hover .spark-b{animation:twinkle .9s ease .12s both}
+  @keyframes twinkle{0%{transform:scale(1);opacity:1}40%{transform:scale(1.35);opacity:.55}100%{transform:scale(1);opacity:1}}
+  /* Derin → büyüteç tarama/dönme */
+  .act:hover .lens{animation:scan .8s ease both}
+  @keyframes scan{0%{transform:rotate(0)}45%{transform:rotate(-14deg)}100%{transform:rotate(0)}}
+  .lens{transform-box:fill-box;transform-origin:10.5px 10.5px}
+  /* ID → kart satırları kayıp parıldasın */
+  .id-l{transform-box:fill-box}
+  .act:hover .id-l1{animation:idline .7s ease both}
+  .act:hover .id-l2{animation:idline .7s ease .1s both}
+  @keyframes idline{0%{opacity:.35;transform:translateX(-2px)}55%{opacity:1;transform:translateX(0)}100%{opacity:.85;transform:translateX(0)}}
+  /* Bekçi → göz kırpsın */
+  .pupil,.eye-lid{transform-box:fill-box;transform-origin:center}
+  .act:hover .pupil{animation:blink .55s ease both}
+  @keyframes blink{0%,100%{transform:scaleY(1)}45%,55%{transform:scaleY(.08)}}
+
+  /* ── Aktif gösterge: kayan mavi çubuk ─────────────────────── */
+  .acts{position:relative;display:flex;flex-direction:column;align-items:center;gap:7px;animation:itemIn .5s ease both;animation-delay:.32s}
+  .ind{
+    position:absolute;left:-3px;top:0;width:3px;height:22px;border-radius:2px;
+    background:var(--accent-bright);box-shadow:0 0 10px rgba(63,130,255,.7);
+    opacity:0;transform:translateY(var(--y,0));
+    transition:transform .34s cubic-bezier(.2,.85,.25,1),opacity .2s ease;
+  }
+  .ind.show{opacity:1}
+
+  /* ── Hareket azaltma ──────────────────────────────────────── */
+  @media (prefers-reduced-motion: reduce){
+    .rail,.rail > *,.acts{animation:none!important;opacity:1!important}
+    .rail{transform:translateY(-50%)}
+    .brand::after,.brand .ping{display:none}
+    .brand-rings,.play{animation:none!important}
+    .play:hover::after{animation:none}
+    *{transition-duration:.12s!important}
+  }
+</style>
+</head>
+<body>
+
+  <div class="hint"><b>Tracked</b> — yan ray önizleme · ikonların üstüne gel</div>
+
+  <aside class="rail" role="toolbar" aria-label="Tracked yan ray">
+
+    <!-- Marka diyafram (iç içe halkalar) -->
+    <button class="btn brand" aria-label="Tracked">
+      <span class="ping"></span>
+      <span class="ico">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+          <g class="brand-rings">
+            <circle cx="12" cy="12" r="9"/>
+            <circle cx="12" cy="12" r="5.2"/>
+            <circle cx="12" cy="12" r="1.1" fill="currentColor" stroke="none"/>
+            <path d="M12 1.6v2.4M12 20v2.4M1.6 12h2.4M20 12h2.4"/>
+          </g>
+        </svg>
+      </span>
+      <span class="tip">Tracked</span>
+    </button>
+
+    <span class="sep"></span>
+
+    <!-- Oynat = Oto-Pilot (kalkan) -->
+    <button class="btn play" aria-label="Oto-Pilot">
+      <span class="ico">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2.6l7.4 3v5.1c0 4.4-3.1 7.8-7.4 9-4.3-1.2-7.4-4.6-7.4-9V5.6l7.4-3z"/>
+          <path class="shield-check" d="M8.7 12.1l2.3 2.3 4.3-4.5"/>
+        </svg>
+      </span>
+      <span class="tip">Oto-Pilot</span>
+    </button>
+
+    <span class="sep"></span>
+
+    <!-- Dört eylem ikonu -->
+    <nav class="acts" aria-label="Eylemler">
+      <span class="ind" aria-hidden="true"></span>
+
+      <!-- Yeni → çok-yıldızlı sparkle -->
+      <button class="btn act" data-key="yeni" aria-label="Yeni">
+        <span class="ico">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round">
+            <path class="spark spark-a" d="M10.5 3.4Q11.5 7.8 15.9 8.8Q11.5 9.8 10.5 14.2Q9.5 9.8 5.1 8.8Q9.5 7.8 10.5 3.4Z"/>
+            <path class="spark spark-b" d="M17.8 12.4Q18.4 14.7 20.7 15.3Q18.4 15.9 17.8 18.2Q17.2 15.9 14.9 15.3Q17.2 14.7 17.8 12.4Z"/>
+          </svg>
+        </span>
+        <span class="tip">Yeni</span>
+      </button>
+
+      <!-- Derin → büyüteç -->
+      <button class="btn act" data-key="derin" aria-label="Derin">
+        <span class="ico">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+            <g class="lens"><circle cx="10.5" cy="10.5" r="6.2"/><path d="M8 10.5a2.5 2.5 0 0 1 2.5-2.5" stroke-width="1.3" opacity=".55"/></g>
+            <line x1="20.5" y1="20.5" x2="15" y2="15"/>
+          </svg>
+        </span>
+        <span class="tip">Derin</span>
+      </button>
+
+      <!-- ID → kimlik kartı -->
+      <button class="btn act" data-key="id" aria-label="ID">
+        <span class="ico">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="6" width="18" height="12" rx="2.4"/>
+            <circle cx="8.2" cy="11.2" r="2.1"/>
+            <path d="M6 15.2c.5-1.1 1.3-1.7 2.2-1.7s1.7.6 2.2 1.7" stroke-width="1.3"/>
+            <line class="id-l id-l1" x1="13.5" y1="10" x2="18" y2="10"/>
+            <line class="id-l id-l2" x1="13.5" y1="13.4" x2="17" y2="13.4"/>
+          </svg>
+        </span>
+        <span class="tip">ID</span>
+      </button>
+
+      <!-- Bekçi → göz -->
+      <button class="btn act" data-key="bekci" aria-label="Bekçi">
+        <span class="ico">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M2.4 12s3.7-6.6 9.6-6.6S21.6 12 21.6 12s-3.7 6.6-9.6 6.6S2.4 12 2.4 12z"/>
+            <circle class="pupil" cx="12" cy="12" r="2.8"/>
+          </svg>
+        </span>
+        <span class="tip">Bekçi</span>
+      </button>
+    </nav>
+
+  </aside>
+
+<script>
+  // Aktif eylem göstergesini kayan çubukla taşı
+  const acts = document.querySelector('.acts');
+  const ind = acts.querySelector('.ind');
+  const items = [...acts.querySelectorAll('.act')];
+
+  function setActive(btn){
+    items.forEach(b => b.classList.toggle('on', b === btn));
+    const y = btn.offsetTop + btn.offsetHeight / 2 - ind.offsetHeight / 2;
+    ind.style.setProperty('--y', y + 'px');
+    ind.classList.add('show');
+  }
+  items.forEach(b => b.addEventListener('click', () => setActive(b)));
+
+  // Oynat butonu — merkezden ripple
+  const play = document.querySelector('.play');
+  play.addEventListener('click', (e) => {
+    const r = play.getBoundingClientRect();
+    const s = document.createElement('span');
+    s.className = 'ripple';
+    const d = r.width * 1.1;
+    s.style.width = s.style.height = d + 'px';
+    s.style.left = (e.clientX - r.left) + 'px';
+    s.style.top = (e.clientY - r.top) + 'px';
+    play.appendChild(s);
+    s.addEventListener('animationend', () => s.remove());
+  });
+</script>
+</body>
+</html>
