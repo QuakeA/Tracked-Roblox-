@@ -26,7 +26,7 @@ const TrackedUI = {
                 <span class="tk-ico">
                     <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M12 2.6l7.4 3v5.1c0 4.4-3.1 7.8-7.4 9-4.3-1.2-7.4-4.6-7.4-9V5.6l7.4-3z"></path>
-                        <path class="tk-shield-check" d="M8.7 12.1l2.3 2.3 4.3-4.5"></path>
+                        <path class="tk-shield-check" pathLength="1" d="M8.7 12.1l2.3 2.3 4.3-4.5"></path>
                     </svg>
                 </span>
                 <span class="tk-tip">Oto-Pilot</span>
@@ -599,9 +599,10 @@ const TrackedUI = {
     showNoNewServerModal: (placeId) => {
         const content = `
             <div class="tracked-modal">
-                <div class="tracked-modal-icon warning" style="background: linear-gradient(135deg, rgba(191,90,242,0.2), rgba(191,90,242,0.05)); color: #BF5AF2;">
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                <div class="tracked-modal-icon warning" style="background: linear-gradient(135deg, rgba(77,139,240,0.2), rgba(77,139,240,0.05)); color: #5e9bff;">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round">
+                        <path d="M10.5 3.4Q11.5 7.8 15.9 8.8Q11.5 9.8 10.5 14.2Q9.5 9.8 5.1 8.8Q9.5 7.8 10.5 3.4Z"></path>
+                        <path d="M17.8 12.4Q18.4 14.7 20.7 15.3Q18.4 15.9 17.8 18.2Q17.2 15.9 14.9 15.3Q17.2 14.7 17.8 12.4Z"></path>
                     </svg>
                 </div>
                 <h3>${TrackedI18n.t('newServerFound')}</h3>
@@ -993,9 +994,10 @@ const TrackedUI = {
 
         const content = `
             <div class="tracked-modal" style="width: 440px;">
-                <div class="tracked-modal-icon" style="background: linear-gradient(135deg, rgba(191,90,242,0.2), rgba(191,90,242,0.05)); color: #BF5AF2;">
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                <div class="tracked-modal-icon" style="background: linear-gradient(135deg, rgba(77,139,240,0.2), rgba(77,139,240,0.05)); color: #5e9bff;">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round">
+                        <path d="M10.5 3.4Q11.5 7.8 15.9 8.8Q11.5 9.8 10.5 14.2Q9.5 9.8 5.1 8.8Q9.5 7.8 10.5 3.4Z"></path>
+                        <path d="M17.8 12.4Q18.4 14.7 20.7 15.3Q18.4 15.9 17.8 18.2Q17.2 15.9 14.9 15.3Q17.2 14.7 17.8 12.4Z"></path>
                     </svg>
                 </div>
                 <h3>${TrackedI18n.t('newServersFound')}</h3>

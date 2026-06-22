@@ -2017,8 +2017,12 @@
 #tracked-game-bar .tk-ping { animation-delay: 1.7s; }
 @keyframes tk-ping { 0%{transform:scale(.6);opacity:.5} 70%{opacity:0} 100%{transform:scale(2.4);opacity:0} }
 
-/* Ayraç → kısa yatay çizgi */
-#tracked-game-bar .tracked-divider { width: 24px !important; height: 1px !important; min-width: 0 !important; margin: 1px 0 !important; }
+/* Ayraç → kısa yatay çizgi (mevcut min-height:16px'i de ez → dikey çubuk kalmasın) */
+#tracked-game-bar .tracked-divider {
+  width: 26px !important; height: 1px !important; min-height: 1px !important; max-height: 1px !important; min-width: 0 !important;
+  margin: 1px 0 !important; align-self: center !important;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.16), transparent) !important;
+}
 
 /* Ortak buton — ikon-öncelikli kare */
 #tracked-game-bar .tracked-bar-btn {
@@ -2068,7 +2072,7 @@
 #tracked-game-bar .tk-play::after { content:""; position:absolute; inset:0; border-radius:16px; border:1.5px solid #6ea6ff; opacity:0; pointer-events:none; }
 #tracked-game-bar .tk-play:hover::after { animation: tk-ringwave .9s ease-out infinite; }
 @keyframes tk-ringwave { 0%{opacity:.6;transform:scale(1)} 100%{opacity:0;transform:scale(1.4)} }
-#tracked-game-bar .tk-shield-check { stroke-dasharray:9; stroke-dashoffset:9; transition: stroke-dashoffset .35s ease .05s; }
+#tracked-game-bar .tk-shield-check { stroke-dasharray:1; stroke-dashoffset:1; transition: stroke-dashoffset .35s ease .05s; }
 #tracked-game-bar .tk-play:hover .tk-shield-check { stroke-dashoffset:0; }
 
 /* İkon-başına mikro hareketler */
@@ -2100,6 +2104,15 @@
 #tracked-game-bar .tracked-bar-btn.btn-watch.watching { color:#30D158 !important; background: transparent !important; }
 #tracked-game-bar .tracked-bar-btn.btn-watch.watching::before { opacity:1; background: rgba(48,209,88,.16); border-color: rgba(48,209,88,.4); }
 #tracked-game-bar.scanning::before { display:none !important; }
+/* Tarama animasyonu — dikey mavi ışık ray boyunca süpürür + marka ping hızlanır */
+#tracked-game-bar.scanning::after {
+  content:""; position:absolute !important; left:6px; right:6px; top:0; height:42%; border-radius:18px; pointer-events:none; z-index:0;
+  background: linear-gradient(180deg, transparent, rgba(94,155,255,.22), transparent);
+  animation: tk-rail-scan 1.4s ease-in-out infinite;
+}
+@keyframes tk-rail-scan { 0%{top:-42%;opacity:0} 18%{opacity:1} 82%{opacity:1} 100%{top:100%;opacity:0} }
+#tracked-game-bar.scanning .tk-brand-rings { animation-duration: 1.5s !important; }
+#tracked-game-bar.scanning .tracked-bar-logo.brand::after, #tracked-game-bar.scanning .tk-ping { animation-duration: 1.8s !important; }
 
 /* Lock — altta, mavi (fortnite moru yok) */
 #tracked-game-bar .tk-bar-lock {
