@@ -2007,8 +2007,11 @@
   pointer-events: none !important; cursor: default !important; color: var(--tr-accent-blue, #4d8bf0) !important;
 }
 #tracked-game-bar .tk-brand-ico { position: relative; z-index: 1; display: flex; }
-#tracked-game-bar .tk-brand-rings { animation: tk-breathe 4.5s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
-@keyframes tk-breathe { 0%,100%{transform:scale(1)} 50%{transform:scale(1.05)} }
+#tracked-game-bar .tk-brand-rings { animation: tk-breathe 3.6s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes tk-breathe {
+  0%,100% { transform: scale(.95); opacity: .78; filter: drop-shadow(0 0 0 rgba(94,155,255,0)); }
+  50%     { transform: scale(1.09); opacity: 1;   filter: drop-shadow(0 0 6px rgba(94,155,255,.55)); }
+}
 #tracked-game-bar .tracked-bar-logo.brand::after, #tracked-game-bar .tk-ping {
   content:""; position:absolute; left:50%; top:50%; width:26px; height:26px; margin:-13px 0 0 -13px;
   border-radius:50%; border:1.4px solid var(--tr-accent-blue, #4d8bf0); opacity:0; pointer-events:none;
