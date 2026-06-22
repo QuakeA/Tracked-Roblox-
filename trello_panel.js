@@ -63,7 +63,17 @@
     }
   }
 
-  let _enabled = false, _loading = false, _place = '', _board = null, _q = '', _wantActive = false;
+  let _enabled = false, _loading = false, _place = '', _board = null, _q = '', _wantActive = false, _lastUserRefresh = 0;
+
+  // Kullanıcı "Yenile"/"Tekrar dene" tıklaması — 2 sn spam koruması (otomatik yenilemeler etkilenmez)
+  function userRefresh() {
+    const now = Date.now();
+    if (now - _lastUserRefresh < 2000) return;   // 2 sn içinde tekrar basılırsa yoksay
+    _lastUserRefresh = now;
+    const rb = document.getElementById(PANE_ID)?.querySelector('.tk-refresh');
+    if (rb) { rb.classList.add('spin'); setTimeout(() => { if (!_loading) rb.classList.remove('spin'); }, 700); }   // en az 700ms dönsün (geri bildirim)
+    refresh();
+  }
 
   // Eşleşen metni (Ctrl/Alt+F gibi) vurgula — DOM text-node'larında, HTML etiketlerini bozmadan
   function highlightNodes(root, q) {
@@ -285,9 +295,9 @@
     return `<div class="tk-bar"><span class="tk-ttl">${ICON_TRELLO}${esc(title)}</span>
       <button class="tk-act tk-refresh${busy ? ' spin' : ''}" title="${t('trelloRefresh', 'Yenile')}" style="margin-left:auto">${ICON_REFRESH}</button></div>`;
   }
-  function wire(pane) {   // yalnız yenile düğmesi
-    pane.querySelector('.tk-refresh')?.addEventListener('click', () => refresh());
-    pane.querySelector('.tk-retry')?.addEventListener('click', () => refresh());   // "Tekrar dene" = otomatik yeniden tara
+  function wire(pane) {   // yalnız yenile düğmesi (2 sn spam korumalı)
+    pane.querySelector('.tk-refresh')?.addEventListener('click', () => userRefresh());
+    pane.querySelector('.tk-retry')?.addEventListener('click', () => userRefresh());   // "Tekrar dene" = otomatik yeniden tara
   }
   function wireCards(scope) {   // kart tıklama + kapak proxy (board ve arama-sonuçları için)
     scope.querySelectorAll('.tk-card[data-li],.tk-rcard[data-li]').forEach(card => {
