@@ -1541,28 +1541,25 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         const trelloWebSearch = async (name) => {
           const clean = cleanName(name);
           const seen = new Set();
-          for (const q of [clean + ' roblox trello', clean + ' trello board link', String(name || '') + ' roblox trello']) {
+          for (const q of [clean + ' roblox trello', String(name || '') + ' roblox trello', clean + ' trello board']) {
             const qq = q.trim(); if (!qq || seen.has(qq)) continue; seen.add(qq);
             let html = '';
             try {
-              // DDG lite GET artık sonuç döndürmüyor (ana sayfa veriyor) → POST şart
-              const r = await fetch('https://lite.duckduckgo.com/lite/', {
-                method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: 'q=' + encodeURIComponent(qq)
-              });
+              // html GET kullan: lite/POST 'Origin: chrome-extension://' header'ı yüzünden DDG'de
+              // ENGELLENİYOR (boş döner). GET Origin GÖNDERMEZ → sonuç gelir. Board linki çoğu kez
+              // doğrudan sonuçta (uddg= ile kodlu) çıkar.
+              const r = await fetch('https://html.duckduckgo.com/html/?q=' + encodeURIComponent(qq), { headers: { Accept: 'text/html' } });
               if (r.ok) html = await r.text();
             } catch (e) { console.log('[trello] ddg ERR', e && e.message); }
             console.log('[trello] ddg', JSON.stringify(qq), 'htmlLen', html.length);
             if (!html) continue;
-            const direct = findId(html); if (direct) { console.log('[trello] ddg direct', direct); return direct; }   // board linki doğrudan sonuçta mı?
-            // Sonuçlardan YALNIZ izinli rehber sitelerini topla. DDG bazen direkt, bazen
-            // //duckduckgo.com/l/?uddg=<encoded> yönlendirmesi verir → uddg'yi çöz.
-            const urls = []; const re = /href="([^"]+)"/gi; let m;
-            while ((m = re.exec(html)) && urls.length < 40) {
-              let u = m[1]; const ud = u.match(/[?&]uddg=([^&"]+)/i);
-              if (ud) { try { u = decodeURIComponent(ud[1]); } catch (_) { continue; } }
-              if (/^https?:\/\//i.test(u) && allowedGuide(u) && urls.indexOf(u) < 0) urls.push(u);
-            }
+            // Tüm yönlendirme linklerini (uddg=) çöz
+            const decoded = []; const re = /uddg=([^&"']+)/gi; let m;
+            while ((m = re.exec(html)) && decoded.length < 60) { try { const u = decodeURIComponent(m[1]); if (decoded.indexOf(u) < 0) decoded.push(u); } catch (_) {} }
+            // 1) Board linki DOĞRUDAN sonuçta mı? (stands online → trello.com/b/wIH5fsGD)
+            for (const u of decoded) { const id = findId(u); if (id) { console.log('[trello] ddg direct', id); return id; } }
+            // 2) Değilse izinli rehber sayfalarını tara (type soul → guide içinde)
+            const urls = decoded.filter(u => /^https?:\/\//i.test(u) && allowedGuide(u));
             console.log('[trello] ddg pages', urls.length, urls.map(u => { try { return new URL(u).hostname; } catch (_) { return u; } }));
             const id = await scanForBoard(urls.slice(0, 8)); console.log('[trello] scan →', id || '(yok)'); if (id) return id;
           }
