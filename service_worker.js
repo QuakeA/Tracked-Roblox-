@@ -1511,25 +1511,64 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         //    Manuel giriş YOK. Bulunamazsa noBoard döner.
         const RX_TRELLO = /trello\.com(?:%2[Ff]|\/)b(?:%2[Ff]|\/)([A-Za-z0-9]+)/i;
         const findId = (text) => { const m = String(text || '').match(RX_TRELLO); return m ? m[1] : ''; };
+        // Trello-rehber/aggregator siteleri (oyun→board listeler). Yalnız bunların sayfaları okunur (izin bunlarla sınırlı).
+        const GUIDE_HOSTS = ['trellofinder.com', 'progameguides.com', 'beebom.com', 'gamertweak.com', 'mrguider.org', 'twinfinite.net', 'fossbytes.com', 'tryhardguides.com', 'gamingintel.com', 'gameriv.com', 'pcgamesn.com', 'ginx.tv'];
+        const allowedGuide = (u) => { try { const h = new URL(u).hostname.replace(/^www\./, ''); return GUIDE_HOSTS.some(d => h === d || h.endsWith('.' + d)); } catch (_) { return false; } };
         const cleanName = (name) => String(name || '')
           .replace(/:\/\//g, ' ').replace(/[\[\(\{][^\]\)\}]*[\]\)\}]/g, ' ')
           .replace(/[^\p{L}\p{N} ]+/gu, ' ').replace(/\s+/g, ' ').trim();
+        // Birden çok sayfayı paralel tara → /b/<id> say; EN ÇOK SAYFADA geçen board kazanır
+        // (asıl oyun panosu tüm rehberlerde ortak çıkar; tek-seferlik/alakasız linkler elenir).
+        const scanForBoard = async (urls) => {
+          const counts = {};
+          await Promise.all(urls.map(async (u) => {
+            try {
+              const ctrl = new AbortController(); const tm = setTimeout(() => ctrl.abort(), 4500);
+              const r = await fetch(u, { signal: ctrl.signal, headers: { Accept: 'text/html' } });
+              clearTimeout(tm);
+              if (!r.ok) return;
+              const t = await r.text();
+              const re = /trello\.com\/b\/([A-Za-z0-9]{6,})/gi; let mm; const local = new Set();
+              while ((mm = re.exec(t))) local.add(mm[1]);
+              for (const id of local) counts[id] = (counts[id] || 0) + 1;
+            } catch (_) {}
+          }));
+          const ids = Object.keys(counts);
+          if (!ids.length) return '';
+          ids.sort((a, b) => counts[b] - counts[a]);
+          return ids[0];
+        };
         const trelloWebSearch = async (name) => {
           const clean = cleanName(name);
           const seen = new Set();
-          for (const q of [clean + ' roblox trello', clean + ' trello board', String(name || '') + ' roblox trello']) {
+          for (const q of [clean + ' roblox trello', clean + ' trello board link', String(name || '') + ' roblox trello']) {
             const qq = q.trim(); if (!qq || seen.has(qq)) continue; seen.add(qq);
+            let html = '';
             try {
-              const r = await fetch(`https://lite.duckduckgo.com/lite/?q=${encodeURIComponent(qq)}`, { headers: { Accept: 'text/html' } });
-              if (!r.ok) continue;
-              const id = findId(await r.text()); if (id) return id;
+              // DDG lite GET artık sonuç döndürmüyor (ana sayfa veriyor) → POST şart
+              const r = await fetch('https://lite.duckduckgo.com/lite/', {
+                method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: 'q=' + encodeURIComponent(qq)
+              });
+              if (r.ok) html = await r.text();
             } catch (_) {}
+            if (!html) continue;
+            const direct = findId(html); if (direct) return direct;   // board linki doğrudan sonuçta mı?
+            // Sonuçlardan YALNIZ izinli rehber sitelerini topla. DDG bazen direkt, bazen
+            // //duckduckgo.com/l/?uddg=<encoded> yönlendirmesi verir → uddg'yi çöz.
+            const urls = []; const re = /href="([^"]+)"/gi; let m;
+            while ((m = re.exec(html)) && urls.length < 40) {
+              let u = m[1]; const ud = u.match(/[?&]uddg=([^&"]+)/i);
+              if (ud) { try { u = decodeURIComponent(ud[1]); } catch (_) { continue; } }
+              if (/^https?:\/\//i.test(u) && allowedGuide(u) && urls.indexOf(u) < 0) urls.push(u);
+            }
+            const id = await scanForBoard(urls.slice(0, 8)); if (id) return id;
           }
           return '';
         };
-        const socialLinksId = async (uId) => {   // geliştiricilerin eklediği sosyal linkler (Trello sık burada)
+        const socialLinksId = async (uId) => {   // geliştiricinin eklediği sosyal linkler (Trello sık burada). GET auth ister → cookie.
           try {
-            const r = await fetch(`https://games.roblox.com/v1/games/${uId}/social-links/list`, { headers: { Accept: 'application/json' } });
+            const r = await fetch(`https://games.roblox.com/v1/games/${uId}/social-links/list`, { headers: { Accept: 'application/json' }, credentials: 'include' });
             if (!r.ok) return '';
             for (const l of (((await r.json()) || {}).data || [])) { const id = findId(l && (l.url || l.title)); if (id) return id; }
             return '';
