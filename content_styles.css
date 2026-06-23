@@ -2164,20 +2164,19 @@
 #tracked-game-bar .tk-scan-lock {
   position: absolute !important; left: 50% !important; top: 50% !important;
   transform: translate(-50%, -50%) scale(.7) !important;
-  width: 42px !important; height: 42px !important; margin: 0 !important; padding: 0 !important;
+  width: 44px !important; height: 44px !important; margin: 0 !important; padding: 0 !important;
   display: grid !important; place-items: center !important;
-  border-radius: 13px !important;
-  background:
-    linear-gradient(158deg, rgba(248,251,255,.28), rgba(202,218,246,.14) 54%, rgba(168,190,232,.11)) !important;
-  backdrop-filter: blur(16px) saturate(1.35) brightness(1.08) !important; -webkit-backdrop-filter: blur(16px) saturate(1.35) brightness(1.08) !important;
-  border: 1px solid rgba(255,255,255,.42) !important;
-  box-shadow: 0 10px 24px rgba(0,0,0,.42), 0 0 18px rgba(110,160,255,.22), inset 0 1px 0 rgba(255,255,255,.75), inset 0 -9px 15px rgba(50,80,140,.10) !important;
-  color: #2a3550 !important;
+  border-radius: 14px !important;
+  background: linear-gradient(157deg, rgba(60,68,87,.50), rgba(30,36,49,.58)) !important;
+  backdrop-filter: blur(18px) saturate(1.25) brightness(1.04) !important; -webkit-backdrop-filter: blur(18px) saturate(1.25) brightness(1.04) !important;
+  border: 1px solid rgba(255,255,255,.13) !important;
+  box-shadow: 0 12px 26px rgba(0,0,0,.5), 0 0 16px rgba(90,150,245,.18), inset 0 1px 0 rgba(255,255,255,.17), inset 0 -10px 16px rgba(0,0,0,.16) !important;
+  color: #e6eefb !important;
   opacity: 0 !important; visibility: hidden !important; pointer-events: none !important; z-index: 7 !important;
   filter: blur(6px) !important;   /* gelirken bulanıktan NETe → küçük ama hoş giriş */
   transition: opacity .34s ease, transform .52s cubic-bezier(.34,1.45,.5,1), filter .42s ease, visibility .52s !important;
 }
-#tracked-game-bar .tk-scan-lock svg { filter: drop-shadow(0 1px 1px rgba(255,255,255,.55)) !important; display: block !important; }
+#tracked-game-bar .tk-scan-lock svg { filter: drop-shadow(0 1px 2px rgba(0,0,0,.4)) !important; display: block !important; }
 #tracked-game-bar.scanning .tk-scan-lock {
   opacity: 1 !important; visibility: visible !important;
   transform: translate(-50%, -50%) scale(1) !important;

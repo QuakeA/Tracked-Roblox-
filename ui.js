@@ -78,9 +78,10 @@ const TrackedUI = {
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12 1a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2h-1V6a5 5 0 0 0-5-5zm3 8H9V6a3 3 0 0 1 6 0v3z"/></svg>
             </button>
             <div class="tk-scan-lock" aria-hidden="true">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="5" y="11" width="14" height="9.5" rx="2.7"></rect>
-                    <path d="M8 11V7.6a4 4 0 0 1 8 0V11"></path>
+                <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="4.5" y="10.5" width="15" height="10" rx="3.2"></rect>
+                    <path d="M7.8 10.5V7.4a4.2 4.2 0 0 1 8.4 0v3.1"></path>
+                    <path d="M12 14.4v2"></path>
                 </svg>
             </div>
             <span id="tracked-status" class="tracked-status"></span>
