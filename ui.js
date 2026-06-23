@@ -77,6 +77,12 @@ const TrackedUI = {
             <button class="tk-bar-lock" id="tk-bar-lock" title="Gelişmiş sunucu araçları Tracked Plus'ta — yükseltmek için tıkla">
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12 1a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2h-1V6a5 5 0 0 0-5-5zm3 8H9V6a3 3 0 0 1 6 0v3z"/></svg>
             </button>
+            <div class="tk-scan-lock" aria-hidden="true">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="5" y="11" width="14" height="9.5" rx="2.7"></rect>
+                    <path d="M8 11V7.6a4 4 0 0 1 8 0V11"></path>
+                </svg>
+            </div>
             <span id="tracked-status" class="tracked-status"></span>
         `;
 

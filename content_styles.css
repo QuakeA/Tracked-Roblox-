@@ -2160,6 +2160,29 @@
 #tracked-game-bar.scanning .tk-brand-rings { animation-duration: 1.4s !important; }
 #tracked-game-bar.scanning .tracked-bar-logo.brand::after, #tracked-game-bar.scanning .tk-ping { animation-duration: 1.6s !important; }
 
+/* 5) TARAMA KİLİDİ — tarama sırasında ortaya gelen sade, Apple-vari kilit (araçlar kilitli).
+   Temaya uygun frosted grafit çip + mavi accent glow. Yalnız .scanning'de görünür (fade+scale).
+   visibility ile gizlenir → reduced-motion'ın opacity:1 zorlamasından etkilenmez. */
+#tracked-game-bar .tk-scan-lock {
+  position: absolute !important; left: 50% !important; top: 50% !important;
+  transform: translate(-50%, -50%) scale(.82) !important;
+  width: 42px !important; height: 42px !important; margin: 0 !important; padding: 0 !important;
+  display: grid !important; place-items: center !important;
+  border-radius: 13px !important;
+  background: linear-gradient(158deg, rgba(46,52,66,.72), rgba(26,30,40,.72)) !important;
+  backdrop-filter: blur(12px) saturate(1.15) !important; -webkit-backdrop-filter: blur(12px) saturate(1.15) !important;
+  border: 1px solid rgba(255,255,255,.14) !important;
+  box-shadow: 0 10px 26px rgba(0,0,0,.5), 0 0 22px rgba(94,155,255,.22), inset 0 1px 0 rgba(255,255,255,.13) !important;
+  color: #e9f1ff !important;
+  opacity: 0 !important; visibility: hidden !important; pointer-events: none !important; z-index: 7 !important;
+  transition: opacity .3s ease, transform .42s cubic-bezier(.2,.9,.25,1) !important;
+}
+#tracked-game-bar .tk-scan-lock svg { filter: drop-shadow(0 1px 2px rgba(0,0,0,.45)) !important; display: block !important; }
+#tracked-game-bar.scanning .tk-scan-lock {
+  opacity: 1 !important; visibility: visible !important;
+  transform: translate(-50%, -50%) scale(1) !important;
+}
+
 /* Lock — altta, mavi (fortnite moru yok) */
 #tracked-game-bar .tk-bar-lock {
   width:30px !important; height:30px !important; margin:3px 0 0 !important; border-radius:9px !important;
