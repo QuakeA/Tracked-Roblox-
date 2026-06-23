@@ -2143,19 +2143,17 @@
   0%,100% { box-shadow: 0 0 4px rgba(63,130,255,.08), inset 0 0 10px rgba(63,130,255,.05); }
   50%     { box-shadow: 0 0 26px rgba(63,130,255,.42), 0 0 56px rgba(63,130,255,.18), inset 0 0 16px rgba(63,130,255,.12); }
 }
-/* 3) Okuyan ışık dalgası — ray'da scan zaten meşgul gösteriyor → buton sönükleştirmeyi kaldır */
-#tracked-game-bar.scanning .tracked-bar-btn { opacity: 1 !important; }
-#tracked-game-bar.scanning .tk-ico { animation: tk-scan-read 2.2s ease-in-out infinite; will-change: transform, filter; }
-#tracked-game-bar.scanning .tracked-bar-logo .tk-ico { animation-delay: 0s; }
-#tracked-game-bar.scanning .tk-play .tk-ico { animation-delay: .2s; }
-#tracked-game-bar.scanning .btn-new-server .tk-ico { animation-delay: .4s; }
-#tracked-game-bar.scanning #btn-deep-scan .tk-ico { animation-delay: .6s; }
-#tracked-game-bar.scanning #btn-copy-id .tk-ico { animation-delay: .8s; }
-#tracked-game-bar.scanning .btn-watch .tk-ico { animation-delay: 1s; }
-@keyframes tk-scan-read {
-  0%, 16%, 100% { filter: none; transform: scale(1); }
-  8% { filter: drop-shadow(0 0 8px rgba(150,190,255,.95)) brightness(1.35); transform: scale(1.14); }
+/* 3) DERİNLİK (depth-of-field) — tarama anında TÜM ikon/butonlar bulanıklaşıp odaktan
+   çıkar (Oto-Pilot dâhil); kilit tek NET odak olarak üstte kalır. Yumuşak geçiş (.5s). */
+#tracked-game-bar.scanning .tracked-bar-logo,
+#tracked-game-bar.scanning .tracked-bar-btn,
+#tracked-game-bar.scanning .tracked-divider,
+#tracked-game-bar.scanning .tk-bar-lock {
+  filter: blur(3.5px) saturate(.9) !important;
+  opacity: .5 !important;
+  transition: filter .5s ease, opacity .5s ease !important;
 }
+#tracked-game-bar.scanning .tk-ico { animation: none !important; }
 /* 4) Marka radar'ı hızlanır */
 #tracked-game-bar.scanning .tk-brand-rings { animation-duration: 1.4s !important; }
 #tracked-game-bar.scanning .tracked-bar-logo.brand::after, #tracked-game-bar.scanning .tk-ping { animation-duration: 1.6s !important; }
@@ -2165,7 +2163,7 @@
    visibility ile gizlenir → reduced-motion'ın opacity:1 zorlamasından etkilenmez. */
 #tracked-game-bar .tk-scan-lock {
   position: absolute !important; left: 50% !important; top: 50% !important;
-  transform: translate(-50%, -50%) scale(.82) !important;
+  transform: translate(-50%, -50%) scale(.7) !important;
   width: 42px !important; height: 42px !important; margin: 0 !important; padding: 0 !important;
   display: grid !important; place-items: center !important;
   border-radius: 13px !important;
@@ -2176,12 +2174,14 @@
   box-shadow: 0 10px 24px rgba(0,0,0,.42), 0 0 18px rgba(110,160,255,.22), inset 0 1px 0 rgba(255,255,255,.75), inset 0 -9px 15px rgba(50,80,140,.10) !important;
   color: #2a3550 !important;
   opacity: 0 !important; visibility: hidden !important; pointer-events: none !important; z-index: 7 !important;
-  transition: opacity .3s ease, transform .42s cubic-bezier(.2,.9,.25,1) !important;
+  filter: blur(6px) !important;   /* gelirken bulanıktan NETe → küçük ama hoş giriş */
+  transition: opacity .34s ease, transform .52s cubic-bezier(.34,1.45,.5,1), filter .42s ease, visibility .52s !important;
 }
 #tracked-game-bar .tk-scan-lock svg { filter: drop-shadow(0 1px 1px rgba(255,255,255,.55)) !important; display: block !important; }
 #tracked-game-bar.scanning .tk-scan-lock {
   opacity: 1 !important; visibility: visible !important;
   transform: translate(-50%, -50%) scale(1) !important;
+  filter: blur(0) !important;
 }
 
 /* Lock — altta, mavi (fortnite moru yok) */
