@@ -2119,67 +2119,63 @@
 #tracked-game-bar .tracked-bar-btn.btn-watch.watching { color:#30D158 !important; background: transparent !important; }
 #tracked-game-bar .tracked-bar-btn.btn-watch.watching::before { opacity:1; background: rgba(48,209,88,.16); border-color: rgba(48,209,88,.4); }
 /* ══════════════════════════════════════════════════════════════════════════
-   TARAMA ANİMASYONU (premium, çok katmanlı) — "Sentinel sweep"
-   1) Kenar boyunca akan comet ışığı (mevcut @property conic efekti → rail şekline uyarlandı)
-   2) Yumuşak mavi aura nabzı (ayrı katman; ray'ın static gölgesine dokunmaz)
-   3) Işık dalgası ikonları YUKARIDAN AŞAĞI sırayla "okur" (her ikon ışıyıp söner)
-   4) Marka radar'ı hızlanıp parlar
+   TARAMA ANİMASYONU — Apple-vari, sade, CONTAINED (dışarı taşmaz), dikişsiz
+   1) Frosted koyu cam (nötr, renkli değil)
+   2) Cama yansıyan yumuşak ışık parıltısı (sheen) — BACKGROUND olduğu için ray'ın
+      yuvarlak kutusuna clipli; üst/alt/dışarı ASLA taşamaz. Uçlarda solar → dikişsiz.
+   3) Nazik nefes-glow (kenar)
+   4) İkonlar ince, sıralı parlar  ·  5) Marka radar'ı hafif hızlanır
    ══════════════════════════════════════════════════════════════════════════ */
-/* 1) Comet ışığı — gizlemeyi kaldır, rail'in yuvarlak-sol şekline uyarla */
-/* Sol kenarda SÜZÜLEN ışık huzmesi — sağ tarafa GEÇMEZ. Uçlarda (üst/alt) solarak
-   sarılır; loop anında huzme görünmez olduğundan SIÇRAMA/dikiş yok (gift-tekrarı yok). */
-#tracked-game-bar.scanning::before {
-  display: block !important;
-  inset: auto !important; top: 0 !important; bottom: auto !important; left: -1.5px !important; right: auto !important;
-  width: 3px !important; height: 42% !important; padding: 0 !important; border-radius: 3px !important;
-  /* TEK temiz ışık huzmesi. translateY HEP POZİTİF (5%–133%) → huzme ray'ın üstüne/altına
-     ASLA çıkmaz; sadece ray İÇİNDE süzülür, uçlarda solarak girip çıkar (dikiş yok). */
-  background: linear-gradient(180deg, transparent, rgba(120,205,255,.85) 35%, #eaf5ff 50%, rgba(120,205,255,.85) 65%, transparent) !important;
-  background-repeat: no-repeat !important;
-  -webkit-mask: none !important; mask: none !important;
-  filter: drop-shadow(0 0 4px rgba(94,155,255,.8)) blur(.3px) !important;
-  animation: tk-flow 2s cubic-bezier(.45,.05,.55,.95) infinite !important;
-  z-index: 2 !important;
-}
-@keyframes tk-flow {
-  0%   { transform: translateY(5%);    opacity: 0; }
-  12%  { opacity: 1; }
-  88%  { opacity: 1; }
-  100% { transform: translateY(133%);  opacity: 0; }
-}
-/* Tararken cam: yarı-şeffaf ama arkadaki görsel GÜÇLÜ blur + DESATURE + KOYULAŞIR
-   → temiz koyu frosted cam (renkli DEĞİL), blur görünür kalır. İkonlar üstte net. */
+/* 1) Frosted cam */
 #tracked-game-bar.scanning {
-  background: rgba(15,18,25,.52) !important;
-  backdrop-filter: blur(58px) saturate(.35) brightness(.68) !important;
-  -webkit-backdrop-filter: blur(58px) saturate(.35) brightness(.68) !important;
+  background: rgba(16,19,27,.5) !important;
+  backdrop-filter: blur(56px) saturate(.4) brightness(.74) !important;
+  -webkit-backdrop-filter: blur(56px) saturate(.4) brightness(.74) !important;
 }
-/* 2) Aura nabzı — ayrı ::after katmanı (kendi box-shadow'u; bar'ın !important gölgesiyle çakışmaz) */
+/* 2) Sheen — yumuşak ışık bandı yukarıdan aşağı süzülür; background-position ile hareket
+   ettiği için ray kutusunun DIŞINA çıkamaz (clipli). cubic-bezier ile akıcı, uçlarda solar. */
+#tracked-game-bar.scanning::before {
+  content:"" !important; display:block !important; position:absolute !important; inset:0 !important;
+  border-radius:20px 0 0 20px !important; padding:0 !important; width:auto !important; height:auto !important;
+  pointer-events:none !important; z-index:2 !important;
+  background: linear-gradient(180deg, transparent 0%, rgba(178,212,255,.13) 38%, rgba(231,243,255,.34) 50%, rgba(178,212,255,.13) 62%, transparent 100%) !important;
+  background-size: 100% 50% !important; background-repeat: no-repeat !important;
+  -webkit-mask: none !important; mask: none !important;
+  filter: none !important;
+  animation: tk-sheen 2.9s cubic-bezier(.42,0,.3,1) infinite !important;
+}
+@keyframes tk-sheen {
+  0%   { background-position: 0 -48%; opacity: 0; }
+  16%  { opacity: 1; }
+  84%  { opacity: 1; }
+  100% { background-position: 0 148%; opacity: 0; }
+}
+/* 3) Nazik nefes-glow (kenar) */
 #tracked-game-bar.scanning::after {
   content:"" !important; position:absolute !important; inset:0 !important; border-radius:20px 0 0 20px !important;
   pointer-events:none !important; z-index:0 !important; background:none !important;
-  animation: tk-rail-aura 2s ease-in-out infinite !important;
+  animation: tk-rail-aura 2.9s ease-in-out infinite !important;
 }
 @keyframes tk-rail-aura {
-  0%,100% { box-shadow: inset 0 0 10px rgba(63,130,255,.05); }
-  50%     { box-shadow: 0 0 20px rgba(63,130,255,.34), inset 0 0 16px rgba(63,130,255,.13); }
+  0%,100% { box-shadow: inset 0 0 10px rgba(90,150,245,.04); }
+  50%     { box-shadow: 0 0 16px rgba(90,150,245,.26), inset 0 0 14px rgba(90,150,245,.10); }
 }
-/* 3) Okuyan ışık dalgası — ray'da scan zaten meşgul gösteriyor → buton sönükleştirmeyi kaldır */
+/* 4) İkonlar — net kalır, sırayla İNCE parlar (Apple-vari, abartısız) */
 #tracked-game-bar.scanning .tracked-bar-btn { opacity: 1 !important; }
-#tracked-game-bar.scanning .tk-ico { animation: tk-scan-read 2.2s ease-in-out infinite; will-change: transform, filter; }
+#tracked-game-bar.scanning .tk-ico { animation: tk-scan-read 2.9s ease-in-out infinite; }
 #tracked-game-bar.scanning .tracked-bar-logo .tk-ico { animation-delay: 0s; }
-#tracked-game-bar.scanning .tk-play .tk-ico { animation-delay: .2s; }
-#tracked-game-bar.scanning .btn-new-server .tk-ico { animation-delay: .4s; }
-#tracked-game-bar.scanning #btn-deep-scan .tk-ico { animation-delay: .6s; }
-#tracked-game-bar.scanning #btn-copy-id .tk-ico { animation-delay: .8s; }
-#tracked-game-bar.scanning .btn-watch .tk-ico { animation-delay: 1s; }
+#tracked-game-bar.scanning .tk-play .tk-ico { animation-delay: .12s; }
+#tracked-game-bar.scanning .btn-new-server .tk-ico { animation-delay: .24s; }
+#tracked-game-bar.scanning #btn-deep-scan .tk-ico { animation-delay: .36s; }
+#tracked-game-bar.scanning #btn-copy-id .tk-ico { animation-delay: .48s; }
+#tracked-game-bar.scanning .btn-watch .tk-ico { animation-delay: .6s; }
 @keyframes tk-scan-read {
-  0%, 22%, 100% { filter: none; transform: scale(1); }                                                /* ikon NET kalır */
-  9% { filter: drop-shadow(0 0 9px rgba(150,190,255,.95)) brightness(1.32); transform: scale(1.15); }  /* dalga geçerken parlar */
+  0%, 20%, 100% { filter: none; transform: scale(1); }
+  8% { filter: drop-shadow(0 0 6px rgba(150,190,255,.8)) brightness(1.18); transform: scale(1.07); }
 }
-/* 4) Marka radar'ı hızlanır */
-#tracked-game-bar.scanning .tk-brand-rings { animation-duration: 1.4s !important; }
-#tracked-game-bar.scanning .tracked-bar-logo.brand::after, #tracked-game-bar.scanning .tk-ping { animation-duration: 1.6s !important; }
+/* 5) Marka radar'ı hafif hızlanır */
+#tracked-game-bar.scanning .tk-brand-rings { animation-duration: 2s !important; }
+#tracked-game-bar.scanning .tracked-bar-logo.brand::after, #tracked-game-bar.scanning .tk-ping { animation-duration: 2.2s !important; }
 
 /* Lock — altta, mavi (fortnite moru yok) */
 #tracked-game-bar .tk-bar-lock {
