@@ -122,6 +122,7 @@
         "lib/flags.css"
       ],
       "js": [
+        "tracked_debug.js",
         "license_client.js",
         "config.js",
         "lib/flags.js",
@@ -139,6 +140,7 @@
         "https://www.roblox.com/games/*"
       ],
       "js": [
+        "tracked_debug.js",
         "recent_games_content.js"
       ],
       "run_at": "document_end"
@@ -154,6 +156,7 @@
         "content_styles.css"
       ],
       "js": [
+        "tracked_debug.js",
         "license_client.js",
         "reconnect_overlay.js",
         "themes_content.js",
@@ -166,6 +169,7 @@
         "https://www.roblox.com/games/*"
       ],
       "js": [
+        "tracked_debug.js",
         "license_client.js",
         "reconnect_overlay.js",
         "now_playing.js",
@@ -180,6 +184,7 @@
         "https://www.roblox.com/users/inventory*"
       ],
       "js": [
+        "tracked_debug.js",
         "license_client.js",
         "inventory_rac.js"
       ],
@@ -190,6 +195,7 @@
         "https://www.roblox.com/users/*/profile*"
       ],
       "js": [
+        "tracked_debug.js",
         "i18n.js",
         "profile_insight.js"
       ],
@@ -200,6 +206,7 @@
         "https://www.roblox.com/catalog/*"
       ],
       "js": [
+        "tracked_debug.js",
         "catalog_enhancer.js"
       ],
       "run_at": "document_end"
@@ -210,6 +217,7 @@
         "https://www.roblox.com/users/*/avatar*"
       ],
       "js": [
+        "tracked_debug.js",
         "avatar_cost.js"
       ],
       "run_at": "document_end"
@@ -219,6 +227,7 @@
         "https://www.roblox.com/my/avatar*"
       ],
       "js": [
+        "tracked_debug.js",
         "avatar_sandbox.js"
       ],
       "run_at": "document_end"

@@ -1,6 +1,9 @@
 ﻿
 // service_worker.js - Tracked v1.9.5 - Hybrid Event Detector
 
+// Hata avcısı (orta seviye) — yakalanmamış hataları/promise reddlerini toplar. EN BAŞTA.
+try { importScripts('tracked_debug.js'); } catch (e) { console.warn('[SW] tracked_debug.js yüklenemedi:', e); }
+
 // Tracked Plus lisans çekirdeği (Lemon Squeezy) — message/alarm handler'larını kaydeder
 try { importScripts('license.js'); } catch (e) { console.warn('[Tracked] license.js yüklenemedi:', e); }
 
