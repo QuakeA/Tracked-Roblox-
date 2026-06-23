@@ -4,7 +4,7 @@
 > hangi dosyada/sayfada çalıştıkları ve teknik notlar burada. Unutunca buradan oku.
 > Kök README.md pazarlama amaçlı ve **eski** (v1.8.0, kaldırılan A+B/C+D'den bahsediyor) — **güncel doğru kaynak budur.**
 >
-> Sürüm: 1.9.5 · Manifest V3 · Diller: TR (varsayılan) + EN ([i18n.js](../i18n.js))
+> Sürüm: 1.9.6 · Manifest V3 · Diller: TR (varsayılan) + EN ([i18n.js](../i18n.js))
 
 ---
 

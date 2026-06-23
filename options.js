@@ -919,9 +919,23 @@ function escapeAttr(s) {
 // ── Sürüm Notları ──────────────────────────────────────────────────────────
 const CHANGELOG = [
     {
+        version: 'v1.9.6',
+        date: '23 Haziran 2026',
+        isNew: true,
+        entries: [
+            { icon: '▸', text: 'Trello panosu (oyun sayfası): About/Store/Servers yanına "Trello" sekmesi eklendi — oyunun Trello panosunu OTOMATİK bulup gösterir (sen hiçbir şey girmezsin). Listeler + kartlar, kapak görselleri, içinde arama (kart adı/açıklamada, eşleşeni vurgular), karta tıklayınca büyük görsel + tam açıklama' },
+            { icon: '▸', text: 'Trello otomatik bulma akıllandı: oyun açıklaması, geliştiricinin sosyal linkleri ve web araması taranır; bulunan pano önbelleğe alınır → tekrar girişte anında açılır. Manuel pano girme tamamen kaldırıldı' },
+            { icon: '▸', text: 'Yan ray: oyun sayfasındaki Yeni/Derin/ID/Oto-Pilot/Bekçi araç çubuğu, sağ kenara yapışan dikey camsı bir "ray"a dönüştürüldü — yeni ikonlar, üstüne gelince sola açılan etiketler, ince mikro-animasyonlar ve sinematik bir tarama efekti. Tüm işlevler aynı kalır' },
+            { icon: '▸', text: 'Müzik widget: sonraki şarkıya otomatik geçerken durması düzeltildi; YouTube\'da açılan video artık doğru algılanıyor' },
+            { icon: '▸', text: 'Arkadaşlar listesi açılışta anında gelir, arka planda sessizce yenilenir — değişiklik yoksa liste hiç "oynamaz" (kayma/flicker yok)' },
+            { icon: '▸', text: '"Canlı etkinlik var" rozeti yeşile çevrildi; "Kodlar" butonu tasarımla uyumlu hâle getirildi' },
+            { icon: '▸', text: 'Kararlılık: Trello sekmesi nadiren boş kalırsa kendini ≤1 sn\'de onarır, kapaklar daha hızlı (kalıcı önbellek) yüklenir; çeşitli iyileştirmeler' },
+        ]
+    },
+    {
         version: 'v1.9.5',
         date: '17 Haziran 2026',
-        isNew: true,
+        isNew: false,
         entries: [
             { icon: '▸', text: 'Şu An Çalıyor (medya widget): YouTube / YouTube Music / Spotify\'da çalan şarkıyı Roblox sayfasında gösterir; oynat/duraklat, sonraki/önceki, ileri-geri sarma ve yüzdeli ses kontrolü buradan yapılır. Veri gerçek (mediaSession), hiçbir şey tarayıcından çıkmaz. Ayarlardan açılır (varsayılan kapalı)' },
             { icon: '▸', text: 'Widget\'tan müzik arama: kartın içine yazıp ararsın, sonuçlardan birine tıklayınca YouTube/YT Music arka planda çalmaya başlar — sen Roblox\'ta kalırsın. Spotify\'da sonuç gösterilir, parça Spotify\'da açılır (DRM nedeniyle)' },
