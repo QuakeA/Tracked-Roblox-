@@ -2132,26 +2132,19 @@
   backdrop-filter: blur(56px) saturate(.4) brightness(.74) !important;
   -webkit-backdrop-filter: blur(56px) saturate(.4) brightness(.74) !important;
 }
-/* 2) Akan ışık huzmeleri (CSS, contained): İKİ ışık bandı ray içinde farklı hızda süzülür →
-   zengin akış hissi. background olduğu için ray kutusuna CLIPLİ (taşmaz). background-position
-   kaydırma → dikişsiz; uçlarda opacity solar → loop görünmez. İkonların üstünden geçer (sheen). */
-#tracked-game-bar.scanning::before {
-  content:"" !important; display:block !important; position:absolute !important; inset:0 !important;
-  border-radius:20px 0 0 20px !important; padding:0 !important; width:auto !important; height:auto !important;
-  pointer-events:none !important; z-index:2 !important;
-  background:
-    linear-gradient(180deg, transparent 40%, rgba(150,200,255,.16) 47%, rgba(234,245,255,.44) 50%, rgba(150,200,255,.16) 53%, transparent 60%),
-    linear-gradient(180deg, transparent 38%, rgba(120,180,255,.10) 47%, rgba(190,225,255,.22) 50%, rgba(120,180,255,.10) 53%, transparent 62%) !important;
-  background-size: 100% 44%, 100% 78% !important; background-repeat: no-repeat, no-repeat !important;
-  -webkit-mask:none !important; mask:none !important; filter:none !important;
-  animation: tk-sheen 2.2s cubic-bezier(.42,0,.32,1) infinite !important;
+/* 2) Akan enerji parçacıkları — ui.js TrackedScanFX (canvas, flow-field). CSS sheen kapalı. */
+#tracked-game-bar.scanning::before { display: none !important; }
+/* Tarama canvas'ı — İLK çocuk + z-index 0 → ikonların ARKASINDA; border-radius ile clipli → taşmaz */
+#tracked-game-bar .tk-scan-canvas {
+  position: absolute !important; inset: 0 !important; width: 100% !important; height: 100% !important;
+  border-radius: 20px 0 0 20px !important; pointer-events: none !important; z-index: 0 !important; display: block !important;
 }
-@keyframes tk-sheen {
-  0%   { background-position: 0 -52%, 0 -34%; opacity: 0; }
-  14%  { opacity: 1; }
-  86%  { opacity: 1; }
-  100% { background-position: 0 152%, 0 134%; opacity: 0; }
-}
+/* İkon/buton/ayraç tarama sırasında canvas'ın (z-index 0) ÜSTÜNDE kalsın */
+#tracked-game-bar.scanning .tracked-bar-logo,
+#tracked-game-bar.scanning .tracked-bar-btn,
+#tracked-game-bar.scanning .tracked-divider,
+#tracked-game-bar.scanning .tk-ind,
+#tracked-game-bar.scanning .tk-bar-lock { position: relative !important; z-index: 2 !important; }
 /* 3) Nazik nefes-glow (kenar) */
 #tracked-game-bar.scanning::after {
   content:"" !important; position:absolute !important; inset:0 !important; border-radius:20px 0 0 20px !important;
