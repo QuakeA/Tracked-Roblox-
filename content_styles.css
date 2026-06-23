@@ -2132,19 +2132,32 @@
   backdrop-filter: blur(56px) saturate(.4) brightness(.74) !important;
   -webkit-backdrop-filter: blur(56px) saturate(.4) brightness(.74) !important;
 }
-/* 2) Akan enerji parçacıkları — ui.js TrackedScanFX (canvas, flow-field). CSS sheen kapalı. */
-#tracked-game-bar.scanning::before { display: none !important; }
-/* Tarama canvas'ı — İLK çocuk + z-index 0 → ikonların ARKASINDA; border-radius ile clipli → taşmaz */
-#tracked-game-bar .tk-scan-canvas {
-  position: absolute !important; inset: 0 !important; width: 100% !important; height: 100% !important;
-  border-radius: 20px 0 0 20px !important; pointer-events: none !important; z-index: 0 !important; display: block !important;
+/* 2) TARAYICI IŞINI — keskin parlak yatay çizgi + ince hale, ray boyunca yukarıdan aşağı
+   süzülür. background tekniği → ray kutusuna CLIPLİ (border-radius ile), DIŞARI TAŞMAZ.
+   z-index yok → ::before çocukların (ikonlar, z-index:1) ARKASINDA → ikonlar daima net.
+   Uçlarda opacity solar → dikişsiz loop (gif-tekrarı hissi yok). */
+#tracked-game-bar.scanning::before {
+  content:"" !important; display:block !important; position:absolute !important; inset:0 !important;
+  border-radius:20px 0 0 20px !important; overflow:hidden !important; padding:0 !important;
+  width:auto !important; height:auto !important; pointer-events:none !important;
+  background: linear-gradient(180deg,
+      transparent 36%,
+      rgba(140,195,255,.16) 45%,
+      rgba(200,228,255,.52) 48.6%,
+      rgba(242,248,255,.95) 50%,
+      rgba(200,228,255,.52) 51.4%,
+      rgba(140,195,255,.16) 55%,
+      transparent 64%) !important;
+  background-size: 100% 52% !important; background-repeat: no-repeat !important;
+  -webkit-mask:none !important; mask:none !important; filter: blur(.4px) !important;
+  animation: tk-beam 2.1s cubic-bezier(.45,0,.4,1) infinite !important;
 }
-/* İkon/buton/ayraç tarama sırasında canvas'ın (z-index 0) ÜSTÜNDE kalsın */
-#tracked-game-bar.scanning .tracked-bar-logo,
-#tracked-game-bar.scanning .tracked-bar-btn,
-#tracked-game-bar.scanning .tracked-divider,
-#tracked-game-bar.scanning .tk-ind,
-#tracked-game-bar.scanning .tk-bar-lock { position: relative !important; z-index: 2 !important; }
+@keyframes tk-beam {
+  0%   { background-position: 0 -58%; opacity: 0; }
+  14%  { opacity: 1; }
+  86%  { opacity: 1; }
+  100% { background-position: 0 158%; opacity: 0; }
+}
 /* 3) Nazik nefes-glow (kenar) */
 #tracked-game-bar.scanning::after {
   content:"" !important; position:absolute !important; inset:0 !important; border-radius:20px 0 0 20px !important;

@@ -1,66 +1,5 @@
 // ui.js - Tracked Extension v3.7 UI Module (Universal Insight Tags)
 
-// ── Tarama efekti: ray içinde akan mavi enerji parçacıkları (algorithmic-art: flow-field + parçacık) ──
-//    Sürekli akış (steady-state) → loop/dikiş YOK. Canvas İLK çocuk + z-index 0 → ikonların ARKASINDA,
-//    border-radius ile clipli → taşmaz. Yalnız tarama sırasında; bitince yumuşakça solar, kendini kaldırır.
-const TrackedScanFX = {
-    cv: null, ctx: null, raf: 0, parts: [], t: 0, alpha: 0, target: 0, sprite: null, onResize: null, w: 60, h: 300,
-    _mkSprite() {
-        const s = document.createElement('canvas'); s.width = s.height = 32;
-        const c = s.getContext('2d');
-        const g = c.createRadialGradient(16, 16, 0, 16, 16, 16);
-        g.addColorStop(0, 'rgba(210,235,255,1)'); g.addColorStop(0.35, 'rgba(110,180,255,0.75)'); g.addColorStop(1, 'rgba(110,180,255,0)');
-        c.fillStyle = g; c.fillRect(0, 0, 32, 32); return s;
-    },
-    _fit() {
-        const bar = this.cv && this.cv.parentNode; if (!bar) return;
-        const r = bar.getBoundingClientRect(); const dpr = Math.min(window.devicePixelRatio || 1, 2);
-        this.w = r.width || 60; this.h = r.height || 300;
-        this.cv.width = Math.round(this.w * dpr); this.cv.height = Math.round(this.h * dpr);
-        this.cv.style.width = this.w + 'px'; this.cv.style.height = this.h + 'px';
-        this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    },
-    _spawn(any) { return { x: Math.random() * this.w, y: any ? Math.random() * this.h : this.h + 14, vy: -(0.45 + Math.random() * 0.8), vx: 0, b: 0.5 + Math.random() * 0.9 }; },
-    start() {
-        const bar = document.getElementById('tracked-game-bar'); if (!bar) return;
-        if (!this.sprite) this.sprite = this._mkSprite();
-        let cv = bar.querySelector('.tk-scan-canvas');
-        if (!cv) { cv = document.createElement('canvas'); cv.className = 'tk-scan-canvas'; cv.setAttribute('aria-hidden', 'true'); bar.insertBefore(cv, bar.firstChild); }
-        this.cv = cv; this.ctx = cv.getContext('2d'); this.target = 1;
-        this._fit();
-        if (!this.onResize) { this.onResize = () => this._fit(); window.addEventListener('resize', this.onResize); }
-        if (!this.parts.length) { const n = Math.max(6, Math.round(this.h / 30)); for (let i = 0; i < n; i++) this.parts.push(this._spawn(true)); }   // AZ → ışık-süzmesi
-        if (!this.raf) this.raf = requestAnimationFrame(() => this._loop());
-    },
-    stop() { this.target = 0; },
-    _loop() {
-        const ctx = this.ctx; if (!ctx || !this.cv) { this.raf = 0; return; }
-        this.t += 0.016;
-        this.alpha += (this.target - this.alpha) * 0.08;
-        if (this.target === 0 && this.alpha < 0.025) {
-            try { ctx.clearRect(0, 0, this.w, this.h); this.cv.remove(); } catch (_) {}
-            this.cv = null; this.ctx = null; this.parts = []; this.raf = 0;
-            if (this.onResize) { window.removeEventListener('resize', this.onResize); this.onResize = null; }
-            return;
-        }
-        const w = this.w, h = this.h, A = this.alpha;
-        // Uzun iz → ışık huzmesi (yavaş silinme)
-        ctx.globalCompositeOperation = 'destination-out'; ctx.fillStyle = 'rgba(0,0,0,0.055)'; ctx.fillRect(0, 0, w, h);
-        ctx.globalCompositeOperation = 'lighter';
-        for (const p of this.parts) {
-            const ang = Math.sin(p.y * 0.016 + this.t * 0.7) * 0.8 + Math.cos(p.x * 0.08 - this.t * 0.45) * 0.45;
-            p.vx += Math.cos(ang) * 0.04; p.vx *= 0.93; p.x += p.vx; p.y += p.vy;
-            if (p.y < -14) { p.y = h + 14; p.x = Math.random() * w; p.vx = 0; }
-            if (p.x < -8) p.x = w + 8; else if (p.x > w + 8) p.x = -8;
-            // dikey UZUN huzme (genişten çok yüksek) → ışık-süzmesi izlenimi
-            const sz = 7 + p.b * 10, sw = sz * 0.78, sh = sz * 2.7, a = (0.22 + p.b * 0.4) * A;
-            ctx.globalAlpha = a; ctx.drawImage(this.sprite, p.x - sw / 2, p.y - sh / 2, sw, sh);
-        }
-        ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
-        this.raf = requestAnimationFrame(() => this._loop());
-    }
-};
-
 const TrackedUI = {
     // v2.4.5: Global buton kilitleme durumu
     buttonLockState: {
@@ -362,8 +301,7 @@ const TrackedUI = {
         });
         // Bar genelinde tarama animasyonu (Yeni / Derin / Oto-Pilot — hepsi)
         const bar = document.getElementById('tracked-game-bar');
-        if (bar) bar.classList.add('scanning');
-        TrackedScanFX.start();
+        if (bar) bar.classList.add('scanning');
         console.log('[Tracked] All buttons locked');
     },
 
@@ -378,8 +316,7 @@ const TrackedUI = {
             }
         });
         const bar = document.getElementById('tracked-game-bar');
-        if (bar) bar.classList.remove('scanning');
-        TrackedScanFX.stop();
+        if (bar) bar.classList.remove('scanning');
         console.log('[Tracked] All buttons unlocked');
     },
 
@@ -409,8 +346,7 @@ const TrackedUI = {
 
     startScanProgress: function() {
         const bar = document.getElementById('tracked-game-bar');
-        if (bar) bar.classList.add('scanning');
-        TrackedScanFX.start();
+        if (bar) bar.classList.add('scanning');
     },
 
     updateScanProgress: function(_ratio) {
@@ -419,8 +355,7 @@ const TrackedUI = {
 
     endScanProgress: function() {
         const bar = document.getElementById('tracked-game-bar');
-        if (bar) bar.classList.remove('scanning');
-        TrackedScanFX.stop();
+        if (bar) bar.classList.remove('scanning');
     },
 
     // ============================================
