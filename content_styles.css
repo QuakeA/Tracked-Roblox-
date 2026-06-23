@@ -2170,16 +2170,15 @@
   display: grid !important; place-items: center !important;
   border-radius: 13px !important;
   background:
-    linear-gradient(160deg, rgba(255,255,255,.12), rgba(255,255,255,.012) 44%, rgba(255,255,255,0) 66%),
-    linear-gradient(158deg, rgba(48,54,70,.15), rgba(26,30,42,.18)) !important;
-  backdrop-filter: blur(34px) saturate(1.7) brightness(1.12) !important; -webkit-backdrop-filter: blur(34px) saturate(1.7) brightness(1.12) !important;
-  border: 1px solid rgba(255,255,255,.16) !important;
-  box-shadow: 0 12px 28px rgba(0,0,0,.5), 0 0 20px rgba(94,155,255,.22), inset 0 1px 0 rgba(255,255,255,.30) !important;
-  color: #e9f1ff !important;
+    linear-gradient(158deg, rgba(248,251,255,.28), rgba(202,218,246,.14) 54%, rgba(168,190,232,.11)) !important;
+  backdrop-filter: blur(16px) saturate(1.35) brightness(1.08) !important; -webkit-backdrop-filter: blur(16px) saturate(1.35) brightness(1.08) !important;
+  border: 1px solid rgba(255,255,255,.42) !important;
+  box-shadow: 0 10px 24px rgba(0,0,0,.42), 0 0 18px rgba(110,160,255,.22), inset 0 1px 0 rgba(255,255,255,.75), inset 0 -9px 15px rgba(50,80,140,.10) !important;
+  color: #2a3550 !important;
   opacity: 0 !important; visibility: hidden !important; pointer-events: none !important; z-index: 7 !important;
   transition: opacity .3s ease, transform .42s cubic-bezier(.2,.9,.25,1) !important;
 }
-#tracked-game-bar .tk-scan-lock svg { filter: drop-shadow(0 1px 2px rgba(0,0,0,.45)) !important; display: block !important; }
+#tracked-game-bar .tk-scan-lock svg { filter: drop-shadow(0 1px 1px rgba(255,255,255,.55)) !important; display: block !important; }
 #tracked-game-bar.scanning .tk-scan-lock {
   opacity: 1 !important; visibility: visible !important;
   transform: translate(-50%, -50%) scale(1) !important;
