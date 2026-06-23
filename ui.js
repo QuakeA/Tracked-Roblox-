@@ -20,7 +20,7 @@ const TrackedScanFX = {
         this.cv.style.width = this.w + 'px'; this.cv.style.height = this.h + 'px';
         this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     },
-    _spawn(any) { return { x: Math.random() * this.w, y: any ? Math.random() * this.h : this.h + 8, vy: -(0.22 + Math.random() * 0.5), vx: 0, b: 0.4 + Math.random() * 0.9 }; },
+    _spawn(any) { return { x: Math.random() * this.w, y: any ? Math.random() * this.h : this.h + 14, vy: -(0.45 + Math.random() * 0.8), vx: 0, b: 0.5 + Math.random() * 0.9 }; },
     start() {
         const bar = document.getElementById('tracked-game-bar'); if (!bar) return;
         if (!this.sprite) this.sprite = this._mkSprite();
@@ -29,7 +29,7 @@ const TrackedScanFX = {
         this.cv = cv; this.ctx = cv.getContext('2d'); this.target = 1;
         this._fit();
         if (!this.onResize) { this.onResize = () => this._fit(); window.addEventListener('resize', this.onResize); }
-        if (!this.parts.length) { const n = Math.max(20, Math.round(this.h / 9)); for (let i = 0; i < n; i++) this.parts.push(this._spawn(true)); }
+        if (!this.parts.length) { const n = Math.max(6, Math.round(this.h / 30)); for (let i = 0; i < n; i++) this.parts.push(this._spawn(true)); }   // AZ → ışık-süzmesi
         if (!this.raf) this.raf = requestAnimationFrame(() => this._loop());
     },
     stop() { this.target = 0; },
@@ -44,15 +44,17 @@ const TrackedScanFX = {
             return;
         }
         const w = this.w, h = this.h, A = this.alpha;
-        ctx.globalCompositeOperation = 'destination-out'; ctx.fillStyle = 'rgba(0,0,0,0.10)'; ctx.fillRect(0, 0, w, h);
+        // Uzun iz → ışık huzmesi (yavaş silinme)
+        ctx.globalCompositeOperation = 'destination-out'; ctx.fillStyle = 'rgba(0,0,0,0.055)'; ctx.fillRect(0, 0, w, h);
         ctx.globalCompositeOperation = 'lighter';
         for (const p of this.parts) {
-            const ang = Math.sin(p.y * 0.017 + this.t * 0.8) * 0.9 + Math.cos(p.x * 0.085 - this.t * 0.5) * 0.55;
-            p.vx += Math.cos(ang) * 0.05; p.vx *= 0.92; p.x += p.vx; p.y += p.vy;
-            if (p.y < -8) { p.y = h + 8; p.x = Math.random() * w; p.vx = 0; }
-            if (p.x < -6) p.x = w + 6; else if (p.x > w + 6) p.x = -6;
-            const sz = 6 + p.b * 11, a = (0.2 + p.b * 0.38) * A;
-            ctx.globalAlpha = a; ctx.drawImage(this.sprite, p.x - sz / 2, p.y - sz / 2, sz, sz);
+            const ang = Math.sin(p.y * 0.016 + this.t * 0.7) * 0.8 + Math.cos(p.x * 0.08 - this.t * 0.45) * 0.45;
+            p.vx += Math.cos(ang) * 0.04; p.vx *= 0.93; p.x += p.vx; p.y += p.vy;
+            if (p.y < -14) { p.y = h + 14; p.x = Math.random() * w; p.vx = 0; }
+            if (p.x < -8) p.x = w + 8; else if (p.x > w + 8) p.x = -8;
+            // dikey UZUN huzme (genişten çok yüksek) → ışık-süzmesi izlenimi
+            const sz = 7 + p.b * 10, sw = sz * 0.78, sh = sz * 2.7, a = (0.22 + p.b * 0.4) * A;
+            ctx.globalAlpha = a; ctx.drawImage(this.sprite, p.x - sw / 2, p.y - sh / 2, sw, sh);
         }
         ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
         this.raf = requestAnimationFrame(() => this._loop());
