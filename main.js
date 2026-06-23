@@ -170,19 +170,28 @@ const TrackedRegion = {
         await this.getUserGeo();
         await Promise.all([this._loadPingMap(), this.ensureRegionalPings()]);
         const limit = Math.min(n ?? this.AUTO_LIMIT, servers.length);
-        for (let i = 0; i < limit; i++) servers[i].regionPending = true;
+        const targets = [];
         for (let i = 0; i < limit; i++) {
             const s = servers[i];
-            if (!s || s.regionResolved) continue;
-            try {
-                const info = await this.resolveOne(placeId, s.id);
-                this.apply(s, info);
-            } catch (_) {
-                // Tek sunucunun hatası döngüyü kesip kalanları "yükleniyor"da bırakmasın.
-                s.regionFailed = true; s.regionResolved = true; s.regionPending = false;
-            }
-            if (typeof onUpdate === 'function') { try { onUpdate(s, i); } catch (_) {} }
-            if (i < limit - 1) await new Promise(r => setTimeout(r, this.STEP_MS));
+            if (s && !s.regionResolved) { s.regionPending = true; targets.push({ s, i }); }
+        }
+        // Hız: TEK TEK (350ms ara) yerine PARALEL gruplar — her sunucunun bölgesi bağımsız bir
+        // çözüm. Oto-Pilot 6-paralel kullanıyor; UI'da 4 → daha temkinli = rate-limit'e sıkıntısız.
+        // Her sunucu çözülünce onUpdate ile hücresi anında güncellenir (aşamalı dolar).
+        const CONCURRENCY = 4;
+        for (let b = 0; b < targets.length; b += CONCURRENCY) {
+            const batch = targets.slice(b, b + CONCURRENCY);
+            await Promise.all(batch.map(async ({ s, i }) => {
+                try {
+                    const info = await this.resolveOne(placeId, s.id);
+                    this.apply(s, info);
+                } catch (_) {
+                    // Tek sunucunun hatası grubu kesip kalanları "yükleniyor"da bırakmasın.
+                    s.regionFailed = true; s.regionResolved = true; s.regionPending = false;
+                }
+                if (typeof onUpdate === 'function') { try { onUpdate(s, i); } catch (_) {} }
+            }));
+            if (b + CONCURRENCY < targets.length) await new Promise(r => setTimeout(r, 200));
         }
     }
 };

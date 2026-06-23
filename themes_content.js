@@ -1669,7 +1669,7 @@ html.tke-text-color body :is(
   .icon-label,.vote-text,.vote-percentage-label,.playing-counts-label,.info-label,
   .text-truncate-end,.see-all-link-icon,.friends-carousel-display-name,.friend-tile-non-styled-button,
   .friend-tile-dropdown-button,[class*="textIconRowText"],.age-rating-display-name,.text-link,h1,h2,h3,h4,h5,h6
-){
+):not([class*="tracked"] *):not([id*="tracked"] *):not([class*="tk-"] *){
   color:var(--tk-text-color)!important;
   text-shadow:0 1px 2px rgba(0,0,0,.55)!important;
 }
@@ -1684,7 +1684,7 @@ html.tke-text-font body :is(
   .icon-label,.vote-text,.vote-percentage-label,.playing-counts-label,.info-label,
   .text-truncate-end,.see-all-link-icon,.friends-carousel-display-name,.friend-tile-non-styled-button,
   .friend-tile-dropdown-button,[class*="textIconRowText"],.age-rating-display-name,.text-link,h1,h2,h3,h4,h5,h6,p
-):not([class*="icon-"]):not([class*="Icon"]){
+):not([class*="icon-"]):not([class*="Icon"]):not([class*="tracked"] *):not([id*="tracked"] *):not([class*="tk-"] *){
   font-family:var(--tk-text-font)!important;
 }
 
