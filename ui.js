@@ -462,10 +462,9 @@ const TrackedUI = {
             const closeness = (typeof s.measuredPing === 'number')
                 ? `<span class="server-ping" title="${TrackedI18n.t('measuredPingTip')}">${s.measuredPing} ms</span>`
                 : '';
-            const ver = s.placeVersion ? `<span class="server-version">v${s.placeVersion}</span>` : '';
             const rec = s.recommended ? `<span class="region-recommend" title="${TrackedI18n.t('recommendedTip')}">${TARGET}${TrackedI18n.t('recommended')}</span>` : '';
             const flag = (typeof tkFlag === 'function') ? tkFlag(s.region) : '';
-            regionChip = `${rec}<span class="server-region">${flag || PIN}${s.region}</span>${closeness}${ver}`;
+            regionChip = `${rec}<span class="server-region">${flag || PIN}${s.region}</span>${closeness}`;
         } else if (s.regionResolved && s.regionFailed) {
             regionChip = `<span class="server-region unknown">${PIN}${TrackedI18n.t('regionUnknown')}</span>`;
         } else if (s.regionPending) {
@@ -507,9 +506,8 @@ const TrackedUI = {
         const regionLineInner = (s) => {
             if (s.regionResolved && s.region && !s.regionFailed) {
                 const close = (typeof s.measuredPing === 'number') ? ` · ${s.measuredPing} ms` : '';
-                const ver = s.placeVersion ? ` · v${s.placeVersion}` : '';
                 const flag = (typeof tkFlag === 'function') ? tkFlag(s.region) : '';
-                return `<div class="tracked-modal-region">${flag || pinSvg}<span>${s.region}${close}${ver}</span></div>`;
+                return `<div class="tracked-modal-region">${flag || pinSvg}<span>${s.region}${close}</span></div>`;
             }
             if (s.regionResolved && s.regionFailed) {
                 return `<div class="tracked-modal-region unknown">${pinSvg}<span>${TrackedI18n.t('regionUnknown')}</span></div>`;
