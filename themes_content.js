@@ -1674,9 +1674,12 @@ html.tke-text-color body :is(
   text-shadow:0 1px 2px rgba(0,0,0,.55)!important;
 }
 /* İSTİSNA: "Themes" sidebar öğesi Roblox nav'ına ENJEKTE — diğer nav öğeleri gibi tema
-   rengini ALSIN (yukarıdaki exclusion onu da kapatıyordu). Sadece etiket metni; ikon (svg) hariç. */
-html.tke-text-color #tracked-themes-nav-item a span:not(:has(svg)){
+   rengini ALSIN (exclusion onu da kapatıyordu). Hem ETİKET hem İKON (palet svg currentColor). */
+html.tke-text-color #tracked-themes-nav-item a span,
+html.tke-text-color #tracked-themes-nav-item a svg{
   color:var(--tk-text-color)!important;
+}
+html.tke-text-color #tracked-themes-nav-item a span:not(:has(svg)){
   text-shadow:0 1px 2px rgba(0,0,0,.55)!important;
 }
 
