@@ -772,31 +772,38 @@ const TrackedUI = {
 
                 return `
                     <div class="server-item${s.verified ? ' verified' : ''}" data-job="${s.id}">
-                        <div class="server-item-row">
-                            <div class="server-info">
-                                <span class="server-rank">#${i + 1}</span>
-                                <span class="server-players" style="--fill-pct:${fillPct}%;--fill-color:${fillColor};" title="${fillPct}% dolu">${s.playing}/${s.maxPlayers}${newBadge ? ' ' + newBadge : ''}</span>
-                                ${fpsHtml}
-                                ${verifiedBadge}
+                        <div class="srv-head">
+                            <span class="server-rank">#${i + 1}</span>
+                            <div class="srv-stats">
+                                <div class="srv-stat" title="${fillPct}% dolu">
+                                    <span class="srv-stat-v server-players">${s.playing}<i>/${s.maxPlayers}</i></span>
+                                    <span class="srv-stat-k">${TrackedI18n.t('player')}${newBadge ? ' ' + newBadge : ''}</span>
+                                </div>
+                                <div class="srv-stat">
+                                    <span class="srv-stat-v server-fps ${fpsClass}">${fps ?? 'N/A'}</span>
+                                    <span class="srv-stat-k">${TrackedI18n.t('fps')}</span>
+                                </div>
+                                <div class="srv-stat">
+                                    <span class="srv-stat-v" style="color:${barColor}">${normScore}</span>
+                                    <span class="srv-stat-k">${TrackedI18n.t('sortByScore')}</span>
+                                </div>
                             </div>
-                            <div class="server-actions">
-                                <button class="server-copy-btn" data-job="${s.id}" title="${TrackedI18n.t('copyJobId')}">
-                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                                        <rect x="9" y="9" width="13" height="13" rx="2"></rect>
-                                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                                    </svg>
-                                </button>
-                                <button class="server-join-btn" data-job="${s.id}">${TrackedI18n.t('join')}</button>
-                            </div>
+                            <span class="srv-flex"></span>
+                            <button class="server-copy-btn" data-job="${s.id}" title="${TrackedI18n.t('copyJobId')}">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
+                                    <rect x="9" y="9" width="13" height="13" rx="2"></rect>
+                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                </svg>
+                            </button>
+                            <button class="server-join-btn" data-job="${s.id}">${TrackedI18n.t('join')}</button>
                         </div>
+                        <div class="server-region-cell" data-job="${s.id}">${regionCellInner(s)}</div>
                         <div class="server-score-row">
                             <div class="server-score-bar">
                                 <div class="server-score-fill" style="width:${normScore}%;background:${barColor}"></div>
                             </div>
-                            <span class="server-score-label" style="color:${barColor}">${normScore}</span>
                         </div>
-                        ${insightBadges ? `<div class="insight-badges">${insightBadges}</div>` : ''}
-                        <div class="server-region-cell" data-job="${s.id}">${regionCellInner(s)}</div>
+                        ${(verifiedBadge || insightBadges) ? `<div class="srv-tags">${verifiedBadge}${insightBadges}</div>` : ''}
                     </div>
                 `;
             }).join('');
@@ -855,9 +862,9 @@ const TrackedUI = {
         }
 
         const content = `
-            <div class="tracked-modal" style="width: 420px;">
+            <div class="tracked-modal tk-srv" style="width: 444px;">
                 <div class="tracked-modal-icon">
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="11" cy="11" r="8"></circle>
                         <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                     </svg>

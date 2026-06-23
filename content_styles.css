@@ -2209,3 +2209,121 @@
 .tracked-reduced-motion #tracked-game-bar { transform: translateY(-50%) !important; }
 .tracked-reduced-motion #tracked-game-bar .tracked-bar-logo.brand::after, .tracked-reduced-motion #tracked-game-bar .tk-ping { display:none !important; }
 .tracked-reduced-motion #tracked-game-bar .tk-brand-rings, .tracked-reduced-motion #tracked-game-bar .tk-play { animation:none !important; }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   DERIN TARAMA — sunucu secim modali YENILENDI (ferah, anlasilir, grafit+mavi).
+   Tumu .tk-srv altinda scoped → diger modallar (Yeni/Katil/Hata) ETKILENMEZ.
+   ══════════════════════════════════════════════════════════════════════════ */
+.tracked-modal.tk-srv { width: 444px !important; padding: 22px 20px 18px !important; text-align: left; }
+.tracked-modal.tk-srv .tracked-modal-icon {
+  width: 46px; height: 46px; margin: 0 auto 12px;
+  background: linear-gradient(135deg, rgba(90,150,245,.22), rgba(90,150,245,.05));
+  box-shadow: 0 0 0 1px rgba(90,150,245,.18), 0 8px 20px rgba(20,45,95,.4);
+}
+.tracked-modal.tk-srv h3 { font-size: 18px; justify-content: center; margin-bottom: 3px; }
+.tracked-modal.tk-srv > p { text-align: center; font-size: 12.5px; color: rgba(255,255,255,.5); margin: 0 0 16px; }
+
+/* Filtre */
+.tracked-modal.tk-srv .server-filter-row {
+  margin: 0 0 8px; padding: 11px 13px; gap: 13px;
+  background: rgba(255,255,255,.035); border: 1px solid rgba(255,255,255,.06); border-radius: 12px;
+}
+.tracked-modal.tk-srv .filter-label > span { font-size: 9px; letter-spacing: .5px; color: rgba(255,255,255,.36); }
+.tracked-modal.tk-srv .filter-label input {
+  padding: 7px 10px; font-size: 13px; border-radius: 8px; color: #eef2f8;
+  background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.09);
+}
+.tracked-modal.tk-srv .filter-label input:focus { border-color: rgba(90,150,245,.55); background: rgba(90,150,245,.07); }
+
+/* Siralama */
+.tracked-modal.tk-srv .server-sort-row {
+  margin: 0 0 13px; padding: 4px; gap: 3px;
+  background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.05); border-radius: 10px;
+}
+.tracked-modal.tk-srv .sort-btn { padding: 7px 4px; font-size: 10px; border-radius: 7px; color: rgba(255,255,255,.5); }
+.tracked-modal.tk-srv .sort-btn:hover { color: #fff; background: rgba(255,255,255,.06); }
+.tracked-modal.tk-srv .sort-btn.active { background: rgba(90,150,245,.16); color: #7fb0ff; }
+
+/* Liste */
+.tracked-modal.tk-srv .server-list { max-height: 384px; margin-bottom: 14px; padding-right: 6px; }
+
+/* ── KART ── */
+.tk-srv .server-item {
+  display: flex; flex-direction: column; gap: 11px;
+  padding: 14px; margin-bottom: 10px; border-radius: 14px;
+  background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.06);
+  transition: background .18s ease, border-color .18s ease;
+}
+.tk-srv .server-item:hover { background: rgba(90,150,245,.07); border-color: rgba(90,150,245,.22); }
+.tk-srv .server-item.verified { border-color: rgba(48,209,88,.18); }
+
+/* Satir 1: sira + statlar + aksiyonlar */
+.tk-srv .srv-head { display: flex; align-items: center; gap: 14px; }
+.tk-srv .server-rank { font-size: 14px; font-weight: 800; color: #7fb0ff; min-width: 24px; }
+.tk-srv .srv-stats { display: flex; gap: 20px; }
+.tk-srv .srv-stat { display: flex; flex-direction: column; gap: 2px; line-height: 1.05; }
+.tk-srv .srv-stat-v { font-size: 16px; font-weight: 700; color: #eef2f8; font-variant-numeric: tabular-nums; padding: 0 !important; background: none !important; border: none !important; white-space: nowrap; }
+.tk-srv .srv-stat-v i { font-style: normal; font-size: 12px; font-weight: 600; color: rgba(255,255,255,.38); }
+.tk-srv .srv-stat-v.fps-good { color: #4ad17a; }
+.tk-srv .srv-stat-v.fps-ok { color: #ffb340; }
+.tk-srv .srv-stat-v.fps-bad { color: #ff6f62; }
+.tk-srv .srv-stat-k { font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: rgba(255,255,255,.4); display: inline-flex; align-items: center; gap: 4px; }
+.tk-srv .srv-flex { flex: 1 1 auto; }
+
+.tk-srv .server-copy-btn {
+  width: 32px; height: 32px; border-radius: 9px; display: grid; place-items: center; flex-shrink: 0;
+  background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.09); color: rgba(255,255,255,.55); cursor: pointer;
+  transition: background .15s ease, color .15s ease;
+}
+.tk-srv .server-copy-btn:hover { background: rgba(255,255,255,.13); color: #fff; }
+.tk-srv .server-copy-btn.copied { background: rgba(48,209,88,.2); color: #4ad17a; border-color: rgba(48,209,88,.4); }
+.tk-srv .server-join-btn {
+  padding: 9px 20px; border-radius: 10px; font-size: 13px; font-weight: 700; color: #fff; cursor: pointer; flex-shrink: 0;
+  background: linear-gradient(180deg, #4d8bf0, #2f6ad6); border: none;
+  box-shadow: 0 5px 14px rgba(45,90,190,.42), inset 0 1px 0 rgba(255,255,255,.22);
+  transition: filter .15s ease, transform .15s ease;
+}
+.tk-srv .server-join-btn:hover { filter: brightness(1.09); transform: translateY(-1px); }
+.tk-srv .server-join-btn:active { transform: translateY(0); }
+
+/* Satir 2: bolge / yakinlik — belirgin */
+.tk-srv .server-region-cell {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 7px; min-height: 30px;
+  padding: 7px 11px; border-radius: 10px; margin: 0;
+  background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.055);
+}
+.tk-srv .server-region { order: 1; display: inline-flex; align-items: center; gap: 6px; font-size: 13.5px; font-weight: 600; color: #e6ecf5; background: none; border: none; padding: 0; }
+.tk-srv .server-region svg, .tk-srv .server-region img { width: 18px !important; height: auto !important; border-radius: 3px; }
+.tk-srv .server-region.unknown, .tk-srv .server-region.region-loading { font-size: 12px; color: rgba(255,255,255,.4); font-weight: 500; }
+.tk-srv .region-show-btn {
+  order: 1; display: inline-flex; align-items: center; gap: 6px; padding: 5px 11px; border-radius: 8px; cursor: pointer;
+  background: rgba(90,150,245,.12); border: 1px solid rgba(90,150,245,.25); color: #9cc2ff; font-size: 12px; font-weight: 600;
+}
+.tk-srv .region-show-btn:hover { background: rgba(90,150,245,.2); }
+.tk-srv .server-ping { order: 2; display: inline-flex; align-items: center; padding: 3px 8px; border-radius: 7px; font-size: 11.5px; font-weight: 700; color: #cfe0ff; background: rgba(90,150,245,.13); border: 1px solid rgba(90,150,245,.2); font-variant-numeric: tabular-nums; }
+.tk-srv .server-perf { order: 3; display: inline-flex; align-items: center; padding: 3px 8px; border-radius: 7px; font-size: 11px; font-weight: 700; }
+.tk-srv .server-perf.perf-good { background: rgba(48,209,88,.14); color: #5fd98f; border: 1px solid rgba(48,209,88,.22); }
+.tk-srv .server-perf.perf-ok { background: rgba(255,179,64,.13); color: #ffc26b; border: 1px solid rgba(255,179,64,.22); }
+.tk-srv .server-perf.perf-bad { background: rgba(255,111,98,.13); color: #ff8f84; border: 1px solid rgba(255,111,98,.22); }
+.tk-srv .server-version { order: 4; font-size: 10.5px; font-weight: 600; color: rgba(255,255,255,.34); letter-spacing: .2px; }
+.tk-srv .region-recommend {
+  order: 0; display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 7px;
+  background: linear-gradient(135deg, rgba(255,200,90,.16), rgba(255,180,60,.07)); border: 1px solid rgba(255,200,90,.3);
+  color: #ffd479; font-size: 10.5px; font-weight: 700;
+}
+.tk-srv .region-recommend svg { width: 10px; height: 10px; }
+
+/* Satir 3: skor bari */
+.tk-srv .server-score-row { display: block; }
+.tk-srv .server-score-bar { width: 100%; height: 4px; background: rgba(255,255,255,.07); border-radius: 3px; overflow: hidden; }
+.tk-srv .server-score-fill { height: 100%; border-radius: 3px; }
+
+/* Satir 4: rozetler */
+.tk-srv .srv-tags { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.tk-srv .verified-badge { font-size: 9px; padding: 3px 8px; border-radius: 7px; background: rgba(48,209,88,.14); border-color: rgba(48,209,88,.28); color: #5fd98f; }
+.tk-srv .insight-badge { padding: 4px 10px !important; border-radius: 8px !important; font-size: 10.5px !important; box-shadow: none !important; }
+
+/* Alt aksiyon (Yenile / Kapat) */
+.tk-srv .modal-action-row { margin-top: 4px; gap: 10px; }
+.tk-srv .modal-action-row .btn-secondary { padding: 11px; border-radius: 11px; font-size: 13px; }
+.tk-srv .server-filter-empty { padding: 28px 0; font-size: 13px; }
