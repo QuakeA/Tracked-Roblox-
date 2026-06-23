@@ -301,7 +301,7 @@ const TrackedUI = {
         });
         // Bar genelinde tarama animasyonu (Yeni / Derin / Oto-Pilot — hepsi)
         const bar = document.getElementById('tracked-game-bar');
-        if (bar) bar.classList.add('scanning');
+        if (bar) bar.classList.add('scanning');
         console.log('[Tracked] All buttons locked');
     },
 
@@ -316,7 +316,7 @@ const TrackedUI = {
             }
         });
         const bar = document.getElementById('tracked-game-bar');
-        if (bar) bar.classList.remove('scanning');
+        if (bar) bar.classList.remove('scanning');
         console.log('[Tracked] All buttons unlocked');
     },
 
@@ -346,7 +346,7 @@ const TrackedUI = {
 
     startScanProgress: function() {
         const bar = document.getElementById('tracked-game-bar');
-        if (bar) bar.classList.add('scanning');
+        if (bar) bar.classList.add('scanning');
     },
 
     updateScanProgress: function(_ratio) {
@@ -355,7 +355,7 @@ const TrackedUI = {
 
     endScanProgress: function() {
         const bar = document.getElementById('tracked-game-bar');
-        if (bar) bar.classList.remove('scanning');
+        if (bar) bar.classList.remove('scanning');
     },
 
     // ============================================
