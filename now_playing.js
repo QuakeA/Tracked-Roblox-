@@ -55,7 +55,7 @@
   let _idleSource = 'youtube';            // arama kaynağı
   let _searchTimer = null;                // canlı arama debounce
   let _vol = 100, _muted = false, _volPendUntil = 0;  // ses durumu + iyimser pencere
-  let _seekPendUntil = 0;   // seek sonrası iyimser pencere: poll'un eski pozisyonu geri yazıp titretmesini önler
+  let _seekPendUntil = 0, _scrubbing = false;   // seek iyimser penceresi + sürükleme (scrub) durumu
   let _searchSeq = 0;                                 // arama isteklerini sıralamak (eski yanıtı yok say)
 
   // ── Konum/boyut: sürükle (8 simetrik snap noktası) + sınırlı resize (210–340px), kalıcı ──
@@ -213,15 +213,15 @@
       .np-min-btn:hover{background:rgba(255,255,255,.12);color:#fff;transform:scale(1.08);}
 
       .np-prog{display:flex;align-items:center;gap:8px;margin-top:11px;}
-      .np-bar{flex:1;height:4px;border-radius:4px;background:rgba(255,255,255,.14);position:relative;cursor:pointer;transition:height .15s;}
-      .np-bar:not(.np-ro):hover{height:6px;}
+      .np-bar{flex:1;height:4px;border-radius:4px;background:rgba(255,255,255,.14);position:relative;cursor:pointer;transition:height .15s;touch-action:none;}
+      .np-bar:not(.np-ro):hover,.np-bar.np-scrub{height:6px;}
       .np-bar.np-ro{cursor:default;}
       .np-fill{position:absolute;left:0;top:0;height:100%;border-radius:4px;width:0;
         background:linear-gradient(90deg,color-mix(in srgb,var(--np-accent) 75%,#fff),var(--np-accent));
         box-shadow:0 0 8px color-mix(in srgb,var(--np-accent) 65%,transparent);transition:width .4s linear,background .5s;}
       .np-fill::after{content:'';position:absolute;right:-4px;top:50%;width:9px;height:9px;border-radius:50%;background:#fff;
         transform:translateY(-50%) scale(0);transition:transform .15s;box-shadow:0 0 6px color-mix(in srgb,var(--np-accent) 70%,transparent);}
-      .np-bar:not(.np-ro):hover .np-fill::after{transform:translateY(-50%) scale(1);}
+      .np-bar:not(.np-ro):hover .np-fill::after,.np-bar.np-scrub .np-fill::after{transform:translateY(-50%) scale(1);}
       .np-time{font-size:9.5px;color:rgba(255,255,255,.55);font-variant-numeric:tabular-nums;white-space:nowrap;}
 
       .np-ctrls{display:flex;align-items:center;justify-content:center;gap:16px;margin-top:9px;}
@@ -564,15 +564,33 @@
     w.querySelectorAll('.np-btn').forEach(b => b.addEventListener('click', (e) => { e.stopPropagation(); onControl(b.dataset.cmd); }));
     const bar = w.querySelector('.np-bar');
     if (bar && !seekRO) {
-      bar.addEventListener('mousedown', (e) => e.preventDefault());   // metin seçimini başlatma (mavi sızma yok); click yine çalışır
-      bar.addEventListener('click', (e) => {
-        if (!_dur) return; const r = bar.getBoundingClientRect(); const pct = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
-        _pos = pct * _dur; _posAt = Date.now(); _seekPendUntil = Date.now() + 1300;   // iyimser: poll geri yazıp titretmesin
-        const fill = w.querySelector('.np-fill');
-        if (fill) { fill.style.transition = 'none'; updateProg(); void fill.offsetWidth; fill.style.transition = ''; }  // seek'te ANINDA atla (slide yok)
-        else updateProg();
-        swMsg({ action: 'mediaControl', cmd: 'seek', value: _pos, tabId: _tabId });
+      // DRAG-SCRUB: bas-sürükle → fill fareyi ANINDA takip eder; bırakınca gerçek seek gönderilir.
+      const applyVisual = (clientX) => {
+        const r = bar.getBoundingClientRect();
+        const pct = Math.max(0, Math.min(1, (clientX - r.left) / (r.width || 1)));
+        _pos = pct * _dur; _posAt = Date.now(); _seekPendUntil = Date.now() + 1500;   // poll, çekilen konumu geri yazmasın
+        const f = w.querySelector('.np-fill'), t = w.querySelector('.np-time');
+        if (f) f.style.width = (pct * 100) + '%';
+        if (t) t.textContent = fmtTime(_pos) + ' / ' + fmtTime(_dur);
+      };
+      bar.addEventListener('pointerdown', (e) => {
+        if (!_dur) return;
+        e.preventDefault(); e.stopPropagation();
+        _scrubbing = true; bar.classList.add('np-scrub');
+        const f = w.querySelector('.np-fill'); if (f) f.style.transition = 'none';   // sürüklerken fill anında taksin (kayma yok)
+        try { bar.setPointerCapture(e.pointerId); } catch (_) {}
+        applyVisual(e.clientX);
       });
+      bar.addEventListener('pointermove', (e) => { if (_scrubbing) applyVisual(e.clientX); });
+      const endScrub = (e) => {
+        if (!_scrubbing) return;
+        _scrubbing = false; bar.classList.remove('np-scrub');
+        try { bar.releasePointerCapture(e.pointerId); } catch (_) {}
+        const f = w.querySelector('.np-fill'); if (f) { void f.offsetWidth; f.style.transition = ''; }   // smooth transition geri
+        swMsg({ action: 'mediaControl', cmd: 'seek', value: _pos, tabId: _tabId });   // gerçek seek bırakınca (tek komut)
+      };
+      bar.addEventListener('pointerup', endScrub);
+      bar.addEventListener('pointercancel', endScrub);
     }
     wireResize(w);
     applyLayout();
@@ -581,6 +599,7 @@
 
   // ── İlerleme (interpolasyon, render'sız) ──
   function updateProg() {
+    if (_scrubbing) return;   // sürüklerken fill'i applyVisual yönetir; otomatik ilerleme karıştırmasın
     const w = document.getElementById(WIDGET_ID); if (!w) return;
     const cur = _playing ? _pos + (Date.now() - _posAt) / 1000 : _pos;
     const c = _dur ? Math.max(0, Math.min(_dur, cur)) : 0;
