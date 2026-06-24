@@ -1685,6 +1685,11 @@ html.tke-text-color #tracked-themes-nav-item a span:not(:has(svg)),
 html.tke-text-color #tab-tracked-trello .text-lead{
   text-shadow:0 1px 2px rgba(0,0,0,.55)!important;
 }
+/* Aynı enjekte öğeler için YAZI TİPİ de uygulansın (tke-text-font) — etiketler default kalmasın. */
+html.tke-text-font #tracked-themes-nav-item a span,
+html.tke-text-font #tab-tracked-trello .text-lead{
+  font-family:var(--tk-text-font)!important;
+}
 
 /* === YAZI TİPİ (html.tke-text-font, Gelişmiş) ===
    İçerik metninin fontunu değiştirir. İkon font'ları HARİÇ (icon glyph'leri bozulmasın). */

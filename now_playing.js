@@ -399,7 +399,7 @@
   }
 
   // ── Arama görünümü: idle (çalan yok) ya da overlay (çalarken "back" ile). YouTube/YTM = listele+çal, Spotify = listele+aç ──
-  const SRC_OF = { youtube: { icon: SRC_YOUTUBE, label: 'YouTube' }, ytmusic: { icon: SRC_YTMUSIC, label: 'Müzik' }, spotify: { icon: SRC_SPOTIFY, label: 'Spotify' } };
+  const SRC_OF = { youtube: { icon: SRC_YOUTUBE, label: 'YouTube' }, ytmusic: { icon: SRC_YTMUSIC, label: 'Müzik' } };
   function renderIdle() { renderSearch(false); }
   function renderSearch(back) {
     const w = ensureWidget();
