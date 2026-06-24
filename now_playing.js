@@ -55,6 +55,7 @@
   let _idleSource = 'youtube';            // arama kaynağı
   let _searchTimer = null;                // canlı arama debounce
   let _vol = 100, _muted = false, _volPendUntil = 0;  // ses durumu + iyimser pencere
+  let _seekPendUntil = 0;   // seek sonrası iyimser pencere: poll'un eski pozisyonu geri yazıp titretmesini önler
   let _searchSeq = 0;                                 // arama isteklerini sıralamak (eski yanıtı yok say)
 
   // ── Konum/boyut: sürükle (8 simetrik snap noktası) + sınırlı resize (210–340px), kalıcı ──
@@ -160,7 +161,7 @@
     s.textContent = `
       #${WIDGET_ID}{position:fixed;left:14px;bottom:14px;width:260px;box-sizing:border-box;z-index:9000;user-select:none;-webkit-user-select:none;--np-accent:#5b9cff;
         background:linear-gradient(180deg,rgba(23,23,29,.95),rgba(12,12,17,.985));
-        backdrop-filter:blur(30px) saturate(1.55);-webkit-backdrop-filter:blur(30px) saturate(1.55);
+        backdrop-filter:blur(12px) saturate(1.2);-webkit-backdrop-filter:blur(12px) saturate(1.2);
         border:1px solid rgba(255,255,255,.10);border-radius:16px;
         box-shadow:0 12px 44px rgba(0,0,0,.58),inset 0 1px 0 rgba(255,255,255,.06);
         color:rgba(255,255,255,.9);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
@@ -202,11 +203,11 @@
       .np-srcrow{display:flex;align-items:center;gap:6px;margin-top:4px;}
       .np-src{display:inline-flex;opacity:.95;}
       .np-eq{display:inline-flex;align-items:flex-end;gap:2px;height:11px;}
-      .np-eq i{width:2.5px;background:var(--np-accent);border-radius:1px;height:30%;transform-origin:bottom;animation:np-eq .95s ease-in-out infinite;box-shadow:0 0 4px color-mix(in srgb,var(--np-accent) 60%,transparent);}
+      .np-eq i{width:2.5px;background:var(--np-accent);border-radius:1px;height:100%;transform-origin:bottom;transform:scaleY(.3);animation:np-eq .95s ease-in-out infinite;box-shadow:0 0 4px color-mix(in srgb,var(--np-accent) 60%,transparent);}
       .np-eq i:nth-child(1){animation-delay:0s;} .np-eq i:nth-child(2){animation-delay:.22s;}
       .np-eq i:nth-child(3){animation-delay:.46s;} .np-eq i:nth-child(4){animation-delay:.12s;} .np-eq i:nth-child(5){animation-delay:.34s;}
-      @keyframes np-eq{0%,100%{height:22%;}50%{height:100%;}}
-      #${WIDGET_ID}.np-paused .np-eq i{animation-play-state:paused;height:28%;background:rgba(255,255,255,.32);box-shadow:none;}
+      @keyframes np-eq{0%,100%{transform:scaleY(.22);}50%{transform:scaleY(1);}}
+      #${WIDGET_ID}.np-paused .np-eq i{animation-play-state:paused;transform:scaleY(.28);background:rgba(255,255,255,.32);box-shadow:none;}
 
       .np-min-btn{position:relative;z-index:8;background:none;border:none;color:rgba(255,255,255,.42);cursor:pointer;width:24px;height:24px;padding:0;border-radius:7px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;align-self:flex-start;transition:background .18s,color .18s,transform .18s;}
       .np-min-btn:hover{background:rgba(255,255,255,.12);color:#fff;transform:scale(1.08);}
@@ -217,7 +218,7 @@
       .np-bar.np-ro{cursor:default;}
       .np-fill{position:absolute;left:0;top:0;height:100%;border-radius:4px;width:0;
         background:linear-gradient(90deg,color-mix(in srgb,var(--np-accent) 75%,#fff),var(--np-accent));
-        box-shadow:0 0 8px color-mix(in srgb,var(--np-accent) 65%,transparent);transition:background .5s;}
+        box-shadow:0 0 8px color-mix(in srgb,var(--np-accent) 65%,transparent);transition:width .4s linear,background .5s;}
       .np-fill::after{content:'';position:absolute;right:-4px;top:50%;width:9px;height:9px;border-radius:50%;background:#fff;
         transform:translateY(-50%) scale(0);transition:transform .15s;box-shadow:0 0 6px color-mix(in srgb,var(--np-accent) 70%,transparent);}
       .np-bar:not(.np-ro):hover .np-fill::after{transform:translateY(-50%) scale(1);}
@@ -566,7 +567,11 @@
       bar.addEventListener('mousedown', (e) => e.preventDefault());   // metin seçimini başlatma (mavi sızma yok); click yine çalışır
       bar.addEventListener('click', (e) => {
         if (!_dur) return; const r = bar.getBoundingClientRect(); const pct = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
-        _pos = pct * _dur; _posAt = Date.now(); updateProg(); swMsg({ action: 'mediaControl', cmd: 'seek', value: _pos, tabId: _tabId });
+        _pos = pct * _dur; _posAt = Date.now(); _seekPendUntil = Date.now() + 1300;   // iyimser: poll geri yazıp titretmesin
+        const fill = w.querySelector('.np-fill');
+        if (fill) { fill.style.transition = 'none'; updateProg(); void fill.offsetWidth; fill.style.transition = ''; }  // seek'te ANINDA atla (slide yok)
+        else updateProg();
+        swMsg({ action: 'mediaControl', cmd: 'seek', value: _pos, tabId: _tabId });
       });
     }
     wireResize(w);
@@ -636,9 +641,9 @@
   function applyMedia(media, tabId) {
     _media = media; _tabId = tabId != null ? tabId : _tabId;
     if (!media) { _trackKey = ''; render(); return; }
-    _pos = media.position != null ? media.position : 0;
     _dur = media.duration != null ? media.duration : 0;
-    _posAt = Date.now();
+    // Seek iyimser penceresi: kullanıcının az önce çektiği konumu poll geri YAZMASIN (titreme yok)
+    if (Date.now() >= _seekPendUntil) { _pos = media.position != null ? media.position : 0; _posAt = Date.now(); }
     let playing = !!media.playing;
     // İyimser çal/duraklat: gerçek durum yakalanana (ya da 2sn) kadar poll'un titretmesini engelle
     if (_pendPlay !== null) {
