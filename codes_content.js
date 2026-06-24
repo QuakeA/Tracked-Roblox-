@@ -47,7 +47,7 @@
       #${WID}-btn svg{color:#6f9cff;}
       #${WID}-btn:hover{transform:translateY(-2px);border-color:rgba(116,146,205,.5);box-shadow:0 12px 28px rgba(0,0,0,.5),0 0 0 1px rgba(94,155,255,.16),inset 0 1px 0 rgba(255,255,255,.06);}
       #${WID}-btn .c{background:rgba(255,255,255,.14);border-radius:8px;padding:1px 6px;font-size:11px;}
-      #${WID}{position:fixed;right:18px;bottom:18px;z-index:9001;width:330px;max-width:calc(100vw - 36px);box-sizing:border-box;
+      #${WID}{position:fixed;right:18px;bottom:18px;z-index:1000000;width:330px;max-width:calc(100vw - 36px);box-sizing:border-box;
         background:linear-gradient(180deg,rgba(23,23,29,.97),rgba(13,13,18,.99));backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);
         border:1px solid rgba(255,255,255,.1);border-radius:16px;box-shadow:0 14px 44px rgba(0,0,0,.6);
         color:rgba(255,255,255,.9);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;overflow:hidden;
@@ -137,7 +137,6 @@
       body = `<div class="tc-empty">Kod bilgisi alınamadı.</div>`;
     } else {
       const codes = d.codes || [];
-      const warn = `<div class="tc-warn">${ICON_WARN}Doğrulanmamış — süresi dolmuş olabilir. Roblox'ta resmi kod API'si yok; kodlar topluluk/açıklama kaynaklı. Çalışmazsa aşağıdaki resmi kaynaklara bak.</div>`;
       let codesHtml;
       if (codes.length) {
         codesHtml = `<div class="tc-sec">Bulunan kodlar (${codes.length})</div>` + codes.map((c, i) => `
@@ -155,7 +154,7 @@
           socials.map(s => { const m = socialMeta(s.type); return `<a class="tc-link" href="${esc(s.url)}" target="_blank" rel="noopener"><span class="dot" style="background:${m.col}"></span>${esc(m.label)}${ICON_OUT}</a>`; }).join('') + `</div>`;
       }
       const repoHtml = d.repoUrl ? `<div class="tc-foot">Kod kaynağı: <a href="${esc(d.repoUrl)}" target="_blank" rel="noopener" style="color:#7b9cff">ProGameGuides</a> · denenerek doğrulanmalı</div>` : '';
-      body = warn + codesHtml + socialHtml +
+      body = codesHtml + socialHtml +
         `<button class="tc-search" data-search="1">Web'de güncel kodları ara${ICON_OUT}</button>` + repoHtml;
     }
     w.innerHTML = `
