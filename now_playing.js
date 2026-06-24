@@ -158,7 +158,7 @@
     const s = document.createElement('style');
     s.id = STYLE_ID;
     s.textContent = `
-      #${WIDGET_ID}{position:fixed;left:14px;bottom:14px;width:260px;box-sizing:border-box;z-index:9000;--np-accent:#5b9cff;
+      #${WIDGET_ID}{position:fixed;left:14px;bottom:14px;width:260px;box-sizing:border-box;z-index:9000;user-select:none;-webkit-user-select:none;--np-accent:#5b9cff;
         background:linear-gradient(180deg,rgba(23,23,29,.95),rgba(12,12,17,.985));
         backdrop-filter:blur(30px) saturate(1.55);-webkit-backdrop-filter:blur(30px) saturate(1.55);
         border:1px solid rgba(255,255,255,.10);border-radius:16px;
@@ -255,6 +255,8 @@
       #${WIDGET_ID}.np-min .np-edge{display:none;}
       /* sürükleme/resize sırasında sayfada (Roblox dahil) seçim/sürükleme olmasın */
       .np-dragging-global, .np-dragging-global *{user-select:none !important;-webkit-user-select:none !important;}
+      /* Widget user-select:none → ama arama input'u düzenlenebilir/seçilebilir kalsın */
+      #${WIDGET_ID} input,#${WIDGET_ID} textarea{user-select:text !important;-webkit-user-select:text !important;}
       #${WIDGET_ID}.np-min .np-edge{display:none;}
 
       /* Idle — widget-içi arama */
@@ -560,10 +562,13 @@
     });
     w.querySelectorAll('.np-btn').forEach(b => b.addEventListener('click', (e) => { e.stopPropagation(); onControl(b.dataset.cmd); }));
     const bar = w.querySelector('.np-bar');
-    if (bar && !seekRO) bar.addEventListener('click', (e) => {
-      if (!_dur) return; const r = bar.getBoundingClientRect(); const pct = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
-      _pos = pct * _dur; _posAt = Date.now(); updateProg(); swMsg({ action: 'mediaControl', cmd: 'seek', value: _pos, tabId: _tabId });
-    });
+    if (bar && !seekRO) {
+      bar.addEventListener('mousedown', (e) => e.preventDefault());   // metin seçimini başlatma (mavi sızma yok); click yine çalışır
+      bar.addEventListener('click', (e) => {
+        if (!_dur) return; const r = bar.getBoundingClientRect(); const pct = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
+        _pos = pct * _dur; _posAt = Date.now(); updateProg(); swMsg({ action: 'mediaControl', cmd: 'seek', value: _pos, tabId: _tabId });
+      });
+    }
     wireResize(w);
     applyLayout();
     startProg();
