@@ -111,28 +111,24 @@
       if (e.target.closest('.np-btn,.np-min-btn,.np-bar,.np-edge,.np-search,.np-srcseg,.np-results,.np-vol,.tkplus-lock')) return; // etkileşimli alanlar hariç
       const sx = e.clientX, sy = e.clientY;
       const r0 = w.getBoundingClientRect(); const sl = r0.left, st = r0.top, ww = r0.width, hh = r0.height;
-      let moved = false, cdx = 0, cdy = 0;
-      // np-in giriş animasyonu (fill:both) 'transform:none'ı tutup inline transform'u eziyordu →
-      // sürüklerken animasyonu kapat ki transform (GPU taşıma) uygulanabilsin.
-      w.style.transition = 'none'; w.style.animation = 'none'; w.classList.add('np-dragging');
+      let moved = false, cl = sl, ct = st;
+      w.style.transition = 'none'; w.style.animation = 'none'; w.style.transform = 'none'; w.classList.add('np-dragging');
       beginDrag(w, e, (ev) => {
         const dx = ev.clientX - sx, dy = ev.clientY - sy;
         if (Math.abs(dx) + Math.abs(dy) > 4) moved = true;
-        // Boyut cache'li (reflow YOK) → viewport içinde tut, TRANSFORM ile taşı (GPU → smooth)
-        cdx = Math.max(6 - sl, Math.min(window.innerWidth - ww - 6 - sl, dx));
-        cdy = Math.max(6 - st, Math.min(window.innerHeight - hh - 6 - st, dy));
-        w.style.transform = 'translate(' + Math.round(cdx) + 'px,' + Math.round(cdy) + 'px)';
+        // SENKRON left/top + ALT-PİKSEL (yuvarlama YOK): imleci ANINDA ve pürüzsüz takip eder —
+        // transform'un compositor (~1 frame) gecikmesi + Math.round basamaklanması ortadan kalkar.
+        // Boyut cache'li (getBoundingClientRect YOK → reflow yok); backdrop kapalı → boyama ucuz.
+        cl = Math.max(6, Math.min(window.innerWidth - ww - 6, sl + dx));
+        ct = Math.max(6, Math.min(window.innerHeight - hh - 6, st + dy));
+        w.style.left = cl + 'px'; w.style.top = ct + 'px'; w.style.right = 'auto'; w.style.bottom = 'auto';
       }, () => {
         _dragMoved = moved;
         if (moved) {
-          const fl = sl + cdx, ft = st + cdy;
-          // SERBEST: bırakıldığı YERDE kal — snap yok. transform'u kenar-ofset konuma çevir.
-          // Hareket olmadığından (drop noktası = mevcut görsel konum) sıçrama/animasyon yok → smooth.
-          posFromRect({ left: fl, top: ft, right: fl + ww, bottom: ft + hh, width: ww, height: hh });
-          w.style.transition = 'none'; w.style.transform = '';
-          applyLayout(); void w.offsetWidth; w.style.transition = '';
-          saveLayout();
-        } else { w.style.transform = ''; }
+          // SERBEST: bırakıldığı yerde kal — kenar-ofsete çevir (konum aynı → sıçrama/animasyon yok)
+          posFromRect({ left: cl, top: ct, right: cl + ww, bottom: ct + hh, width: ww, height: hh });
+          applyLayout(); saveLayout();
+        }
         w.classList.remove('np-dragging');
       });
     });
@@ -249,7 +245,7 @@
       #${WIDGET_ID}.np-min .np-vol{display:none!important;}
       .np-back-btn{margin-right:1px;}
 
-      #${WIDGET_ID}.np-dragging{cursor:grabbing;user-select:none;will-change:transform;backdrop-filter:none;-webkit-backdrop-filter:none;}
+      #${WIDGET_ID}.np-dragging{cursor:grabbing;user-select:none;backdrop-filter:none;-webkit-backdrop-filter:none;box-shadow:0 6px 16px rgba(0,0,0,.4);transition:none!important;}
       #${WIDGET_ID}.np-dragging *{user-select:none;}
       /* Görünmez kenar bölgeleri — yalnız sağ/sol kenardan genişlik */
       .np-edge{position:absolute;top:0;bottom:0;width:12px;z-index:6;cursor:ew-resize;touch-action:none;}
