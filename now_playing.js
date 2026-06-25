@@ -134,6 +134,7 @@
           const fl = sl + cdx, ft = st + cdy;
           w.style.transform = '';   // transform'u kalıcı left/top'a çevir (sıçrama yok)
           w.style.left = Math.round(fl) + 'px'; w.style.top = Math.round(ft) + 'px'; w.style.right = 'auto'; w.style.bottom = 'auto';
+          void w.offsetWidth;   // REFLOW: drop konumunu baseline'a yaz → snap BIRAKILAN yerden başlar (eski konumdan ışınlanma yok)
           _anchor = nearestAnchor(fl + ww / 2, ft + hh / 2, ww, hh);
           w.style.transition = 'left .2s cubic-bezier(.22,.61,.36,1), top .2s cubic-bezier(.22,.61,.36,1), width .18s ease';
           applyLayout(); saveLayout();   // en yakın köşeye yumuşak otur
