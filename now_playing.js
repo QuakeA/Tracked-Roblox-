@@ -115,23 +115,27 @@
     w.addEventListener('pointerdown', (e) => {
       if (e.button !== 0) return;
       if (e.target.closest('.np-btn,.np-min-btn,.np-bar,.np-edge,.np-search,.np-srcseg,.np-results,.np-vol,.tkplus-lock')) return; // etkileşimli alanlar hariç
-      const sx = e.clientX, sy = e.clientY; const r0 = w.getBoundingClientRect(); const sl = r0.left, st = r0.top; let moved = false;
+      const sx = e.clientX, sy = e.clientY;
+      const r0 = w.getBoundingClientRect(); const sl = r0.left, st = r0.top, ww = r0.width, hh = r0.height;
+      let moved = false, cdx = 0, cdy = 0;
       w.style.transition = 'none'; w.classList.add('np-dragging');
       beginDrag(w, e, (ev) => {
         const dx = ev.clientX - sx, dy = ev.clientY - sy;
         if (Math.abs(dx) + Math.abs(dy) > 4) moved = true;
-        const r = w.getBoundingClientRect();
-        const l = Math.max(6, Math.min(window.innerWidth - r.width - 6, sl + dx));
-        const t = Math.max(6, Math.min(window.innerHeight - r.height - 6, st + dy));
-        w.style.left = l + 'px'; w.style.top = t + 'px'; w.style.right = 'auto'; w.style.bottom = 'auto';
+        // Boyut cache'li (reflow YOK) → viewport içinde tut, TRANSFORM ile taşı (GPU → smooth)
+        cdx = Math.max(6 - sl, Math.min(window.innerWidth - ww - 6 - sl, dx));
+        cdy = Math.max(6 - st, Math.min(window.innerHeight - hh - 6 - st, dy));
+        w.style.transform = 'translate(' + Math.round(cdx) + 'px,' + Math.round(cdy) + 'px)';
       }, () => {
         w.classList.remove('np-dragging'); _dragMoved = moved;
         if (moved) {
-          const r = w.getBoundingClientRect();
-          _anchor = nearestAnchor(r.left + r.width / 2, r.top + r.height / 2, r.width, r.height);
-          w.style.transition = 'left .18s ease, top .18s ease, width .18s ease';
-          applyLayout(); saveLayout();
-        }
+          const fl = sl + cdx, ft = st + cdy;
+          w.style.transform = '';   // transform'u kalıcı left/top'a çevir (sıçrama yok)
+          w.style.left = Math.round(fl) + 'px'; w.style.top = Math.round(ft) + 'px'; w.style.right = 'auto'; w.style.bottom = 'auto';
+          _anchor = nearestAnchor(fl + ww / 2, ft + hh / 2, ww, hh);
+          w.style.transition = 'left .2s cubic-bezier(.22,.61,.36,1), top .2s cubic-bezier(.22,.61,.36,1), width .18s ease';
+          applyLayout(); saveLayout();   // en yakın köşeye yumuşak otur
+        } else { w.style.transform = ''; }
       });
     });
   }
@@ -247,7 +251,7 @@
       #${WIDGET_ID}.np-min .np-vol{display:none!important;}
       .np-back-btn{margin-right:1px;}
 
-      #${WIDGET_ID}.np-dragging{cursor:grabbing;user-select:none;}
+      #${WIDGET_ID}.np-dragging{cursor:grabbing;user-select:none;will-change:transform;}
       #${WIDGET_ID}.np-dragging *{user-select:none;}
       /* Görünmez kenar bölgeleri — yalnız sağ/sol kenardan genişlik */
       .np-edge{position:absolute;top:0;bottom:0;width:12px;z-index:6;cursor:ew-resize;touch-action:none;}
