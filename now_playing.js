@@ -118,7 +118,9 @@
       const sx = e.clientX, sy = e.clientY;
       const r0 = w.getBoundingClientRect(); const sl = r0.left, st = r0.top, ww = r0.width, hh = r0.height;
       let moved = false, cdx = 0, cdy = 0;
-      w.style.transition = 'none'; w.classList.add('np-dragging');
+      // np-in giriş animasyonu (fill:both) 'transform:none'ı tutup inline transform'u eziyordu →
+      // sürüklerken animasyonu kapat ki transform (GPU taşıma) uygulanabilsin.
+      w.style.transition = 'none'; w.style.animation = 'none'; w.classList.add('np-dragging');
       beginDrag(w, e, (ev) => {
         const dx = ev.clientX - sx, dy = ev.clientY - sy;
         if (Math.abs(dx) + Math.abs(dy) > 4) moved = true;
