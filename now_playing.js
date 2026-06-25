@@ -129,7 +129,7 @@
         cdy = Math.max(6 - st, Math.min(window.innerHeight - hh - 6 - st, dy));
         w.style.transform = 'translate(' + Math.round(cdx) + 'px,' + Math.round(cdy) + 'px)';
       }, () => {
-        w.classList.remove('np-dragging'); _dragMoved = moved;
+        _dragMoved = moved;
         if (moved) {
           const fl = sl + cdx, ft = st + cdy;
           w.style.transform = '';   // transform'u kalıcı left/top'a çevir (sıçrama yok)
@@ -137,7 +137,9 @@
           _anchor = nearestAnchor(fl + ww / 2, ft + hh / 2, ww, hh);
           w.style.transition = 'left .2s cubic-bezier(.22,.61,.36,1), top .2s cubic-bezier(.22,.61,.36,1), width .18s ease';
           applyLayout(); saveLayout();   // en yakın köşeye yumuşak otur
-        } else { w.style.transform = ''; }
+          // backdrop'ı snap BİTİNCE geri aç (snap boyunca da kapalı kalsın → akıcı otursun)
+          setTimeout(() => { const x = document.getElementById(WIDGET_ID); if (x) x.classList.remove('np-dragging'); }, 230);
+        } else { w.classList.remove('np-dragging'); w.style.transform = ''; }
       });
     });
   }
@@ -253,7 +255,7 @@
       #${WIDGET_ID}.np-min .np-vol{display:none!important;}
       .np-back-btn{margin-right:1px;}
 
-      #${WIDGET_ID}.np-dragging{cursor:grabbing;user-select:none;will-change:transform;}
+      #${WIDGET_ID}.np-dragging{cursor:grabbing;user-select:none;will-change:transform;backdrop-filter:none;-webkit-backdrop-filter:none;}
       #${WIDGET_ID}.np-dragging *{user-select:none;}
       /* Görünmez kenar bölgeleri — yalnız sağ/sol kenardan genişlik */
       .np-edge{position:absolute;top:0;bottom:0;width:12px;z-index:6;cursor:ew-resize;touch-action:none;}
