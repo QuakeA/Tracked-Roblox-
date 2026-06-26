@@ -18,27 +18,38 @@
     s.textContent = `
       .tk-ca-thumb { position: relative !important; }
       .tk-ca {
-        position: absolute; left: var(--tk-ca-inset, 8px); right: var(--tk-ca-inset, 8px); bottom: 8px; transform: translateY(6px);
-        display: flex; justify-content: space-between; z-index: 40; opacity: 0; pointer-events: none;
-        transition: opacity .16s ease, transform .18s cubic-bezier(.2,.8,.25,1);
+        position: absolute; left: var(--tk-ca-inset, 8px); right: var(--tk-ca-inset, 8px); bottom: 8px;
+        display: flex; justify-content: space-between; z-index: 40; pointer-events: none;
+        transform: translateY(9px) scale(.95);
+        transition: transform .34s cubic-bezier(.34,1.46,.52,1);   /* yukarı süzül + hafif overshoot (yaylanma → havalı) */
       }
       .tk-ca-card:hover .tk-ca, .tk-ca-thumb:hover .tk-ca {
-        opacity: 1; pointer-events: auto; transform: translateY(0);
+        pointer-events: auto; transform: translateY(0) scale(1);
       }
       .tk-ca-btn {
         width: 32px; height: 32px; border-radius: 28%; display: grid; place-items: center;
         cursor: pointer; color: #fff; border: 1px solid rgba(255,255,255,.22); padding: 0;
         background: linear-gradient(160deg, #4d8bf0, #2f6ad6);
         box-shadow: 0 0 0 1.5px rgba(0,0,0,.22), 0 4px 12px rgba(0,0,0,.42), inset 0 1px 0 rgba(255,255,255,.3);
-        transition: transform .12s ease, filter .12s ease, box-shadow .12s ease;
+        opacity: 0;
+        transition: opacity .26s ease, transform .12s ease, filter .12s ease, box-shadow .12s ease;
         -webkit-backdrop-filter: blur(2px);
       }
+      .tk-ca-card:hover .tk-ca-btn, .tk-ca-thumb:hover .tk-ca-btn { opacity: 1; }
       .tk-ca-btn:hover { transform: translateY(-2px); filter: brightness(1.1); }
       .tk-ca-btn:active { transform: translateY(0); }
       .tk-ca-btn svg { display: block; pointer-events: none; width: 58%; height: 58%; }
       .tk-ca-btn.tk-ca-play svg { transform: translateX(-1px); }   /* play üçgeni sağa kırpık → optik merkeze çek */
       .tk-ca-btn.tk-ca-ap svg { width: 66%; height: 66%; }   /* ince çizgili kalkan, dolu üçgenin yanında küçük görünür → optik dengele */
-      .tk-ca-btn.tk-ca-ap { background: linear-gradient(160deg, #5b9cff, #3a6fd8); }
+      /* oto-pilot, oyna'dan hafif SONRA süzülür (stagger → premium his); gecikme yalnız opacity'de (hover-lift anında) */
+      .tk-ca-btn.tk-ca-ap {
+        background: linear-gradient(160deg, #5b9cff, #3a6fd8);
+        transition: opacity .26s ease .08s, transform .12s ease, filter .12s ease, box-shadow .12s ease;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .tk-ca { transform: none; transition: none; }
+        .tk-ca-btn, .tk-ca-btn.tk-ca-ap { transition: opacity .15s ease; }
+      }
       .tk-ca-tip {
         position: fixed; z-index: 2147483600; background: rgba(15,18,24,.97); color: #fff;
         font: 600 11px/1.25 -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
