@@ -29,7 +29,7 @@
         width: 28px; height: 28px; border-radius: 28%; display: grid; place-items: center;
         cursor: pointer; color: #fff; border: 1px solid rgba(255,255,255,.22); padding: 0;
         background: linear-gradient(160deg, #4d8bf0, #2f6ad6);
-        box-shadow: 0 4px 11px rgba(20,50,120,.5), inset 0 1px 0 rgba(255,255,255,.28);
+        box-shadow: 0 0 0 1.5px rgba(0,0,0,.22), 0 4px 12px rgba(0,0,0,.42), inset 0 1px 0 rgba(255,255,255,.3);
         transition: transform .12s ease, filter .12s ease, box-shadow .12s ease;
         -webkit-backdrop-filter: blur(2px);
       }
