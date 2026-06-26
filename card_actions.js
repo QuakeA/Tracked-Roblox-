@@ -8,8 +8,8 @@
   if (window.__tkCardActions) return; window.__tkCardActions = true;
 
   const HOST_ATTR = 'data-tk-ca';        // işaretlenmiş kart (tekrar işlenmesin)
-  const PLAY_SVG = '<svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.14v13.72a1 1 0 0 0 1.54.84l10.5-6.86a1 1 0 0 0 0-1.68L9.54 4.3A1 1 0 0 0 8 5.14z"/></svg>';
-  const AP_SVG   = '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.6l7.4 3v5.1c0 4.4-3.1 7.8-7.4 9-4.3-1.2-7.4-4.6-7.4-9V5.6l7.4-3z"/><path d="M8.7 12.1l2.3 2.3 4.3-4.5"/></svg>';
+  const PLAY_SVG = '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.14v13.72a1 1 0 0 0 1.54.84l10.5-6.86a1 1 0 0 0 0-1.68L9.54 4.3A1 1 0 0 0 8 5.14z"/></svg>';
+  const AP_SVG   = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.6l7.4 3v5.1c0 4.4-3.1 7.8-7.4 9-4.3-1.2-7.4-4.6-7.4-9V5.6l7.4-3z"/><path d="M8.7 12.1l2.3 2.3 4.3-4.5"/></svg>';
 
   function injectStyles() {
     if (document.getElementById('tk-ca-style')) return;
@@ -18,18 +18,18 @@
     s.textContent = `
       .tk-ca-thumb { position: relative !important; }
       .tk-ca {
-        position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%) translateY(7px);
-        display: flex; gap: 8px; z-index: 40; opacity: 0; pointer-events: none;
+        position: absolute; left: 7px; right: 7px; bottom: 7px; transform: translateY(6px);
+        display: flex; justify-content: space-between; z-index: 40; opacity: 0; pointer-events: none;
         transition: opacity .16s ease, transform .18s cubic-bezier(.2,.8,.25,1);
       }
       .tk-ca-card:hover .tk-ca, .tk-ca-thumb:hover .tk-ca {
-        opacity: 1; pointer-events: auto; transform: translateX(-50%) translateY(0);
+        opacity: 1; pointer-events: auto; transform: translateY(0);
       }
       .tk-ca-btn {
-        width: 38px; height: 38px; border-radius: 12px; display: grid; place-items: center;
+        width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center;
         cursor: pointer; color: #fff; border: 1px solid rgba(255,255,255,.22); padding: 0;
         background: linear-gradient(160deg, #4d8bf0, #2f6ad6);
-        box-shadow: 0 6px 16px rgba(20,50,120,.5), inset 0 1px 0 rgba(255,255,255,.28);
+        box-shadow: 0 4px 11px rgba(20,50,120,.5), inset 0 1px 0 rgba(255,255,255,.28);
         transition: transform .12s ease, filter .12s ease, box-shadow .12s ease;
         -webkit-backdrop-filter: blur(2px);
       }
