@@ -111,8 +111,12 @@
     if (jobId) dl += '&gameInstanceId=' + encodeURIComponent(jobId);
     else if (accessCode) dl += '&accessCode=' + encodeURIComponent(accessCode);
     const deeplink = () => { try { window.location.href = dl; } catch (_) {} };
+    // Özel sunucu: DOĞRUDAN protokol (deep-link). joinPrivateGame taskbar'da takılıp öne gelmiyordu;
+    // deep-link Roblox'u öne getirir + DOĞRU (kendi) özel sunucuna sokar (kullanıcı doğruladı).
+    if (accessCode) { deeplink(); return; }
+    // Oyna/oto-pilot: native launcher (Roblox'un "now loading" overlay'i + öne gelir).
     try {
-      chrome.runtime.sendMessage({ action: 'launchRobloxGame', placeId: String(placeId), jobId: jobId ? String(jobId) : '', accessCode: accessCode ? String(accessCode) : '', gameTitle: (document.title || '') }, (r) => {
+      chrome.runtime.sendMessage({ action: 'launchRobloxGame', placeId: String(placeId), jobId: jobId ? String(jobId) : '', gameTitle: (document.title || '') }, (r) => {
         if (chrome.runtime.lastError || !r || !r.success) deeplink();
       });
     } catch (_) { deeplink(); }
@@ -133,8 +137,22 @@
   function checkPriv(placeId, ov, privBtn) {
     ensureOwnedPriv((owned) => {
       const psid = owned[String(placeId)];
-      if (psid) { ov.classList.add('tk-ca-haspriv'); privBtn._psid = psid; }
+      if (psid) {
+        ov.classList.add('tk-ca-haspriv'); privBtn._psid = psid;
+        prefetchAccess(placeId, psid, privBtn);   // accessCode'u ÖNCEDEN çek → tıklamada anında launch (öne gelir)
+      }
     });
+  }
+  // accessCode'u hover'da arka planda çek → tıklama anı gecikmesiz olsun (Roblox odak-çalma engeline takılmaz)
+  function prefetchAccess(placeId, psid, privBtn) {
+    if (privBtn._accessCode || privBtn._acFetching) return;
+    privBtn._acFetching = true;
+    try {
+      chrome.runtime.sendMessage({ action: 'cardPrivateJoin', placeId, privateServerId: psid }, (resp) => {
+        privBtn._acFetching = false;
+        if (resp && resp.ok && resp.accessCode) privBtn._accessCode = resp.accessCode;
+      });
+    } catch (_) { privBtn._acFetching = false; }
   }
 
   // Roblox kartının üç-nokta (⋯) menü butonunu thumbnail'ın ÜST-SAĞ bölgesinde bul → rect (viewport). Bulamazsa null.
@@ -240,8 +258,10 @@
     // Özel sunucu: kendi bedava sunucuna anında gir; yoksa SW bedava oluşturup verir (expectedPrice:0
     // → ücretliyse Robux harcanmaz). Sayfa değişmez. "Hallediyor" spinner'ı.
     let _privBusy = false;
-    privBtn.addEventListener('click', async (e) => {
+    privBtn.addEventListener('click', (e) => {
       stop(e);
+      // HIZLI YOL: accessCode hover'da önceden çekildiyse → tıklama jesti İÇİNDE anında launch
+      if (privBtn._accessCode) { launchJoin(placeId, null, privBtn._accessCode); return; }
       if (_privBusy) return;
       _privBusy = true; privBtn.classList.add('tk-ca-busy'); hideTip();
       let done = false;
@@ -249,7 +269,7 @@
         if (done) return; done = true;
         clearTimeout(guard);
         _privBusy = false; privBtn.classList.remove('tk-ca-busy');
-        if (ok && accessCode) launchJoin(placeId, null, accessCode);
+        if (ok && accessCode) { privBtn._accessCode = accessCode; launchJoin(placeId, null, accessCode); }
         else { showTip(privBtn, 'Özel sunucu açılamadı — tekrar dene', 'left'); setTimeout(hideTip, 2400); }
       };
       const guard = setTimeout(() => finish(false), 25000);
