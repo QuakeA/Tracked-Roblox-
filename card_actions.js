@@ -94,7 +94,7 @@
   // ⋯'nin konumunu BİR KEZ ölç → global --tk-ca-inset (tüm kartlara uygulanır, tutarlı + ⋯ ile hizalı).
   // ⋯ sağ-kenardan hep aynı px uzaklıkta olduğu için tek ölçüm tüm kartlara yeter.
   const BTN = 32;        // .tk-ca-btn boyutuyla aynı
-  const NUDGE_LEFT = 2;  // ⋯ kutusu görünen daireyle birebir değil → minik sola düzeltme (tam altına otursun)
+  const NUDGE_LEFT = 2.4;  // ⋯ kutusu görünen daireyle birebir değil → minik sola düzeltme (tam altına otursun)
   let _insetSet = false;
   function measureInset(scope, thumb) {
     if (_insetSet) return;
