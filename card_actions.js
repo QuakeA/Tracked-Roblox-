@@ -37,13 +37,6 @@
       .tk-ca-btn:active { transform: translateY(0); }
       .tk-ca-btn svg { display: block; pointer-events: none; }
       .tk-ca-btn.tk-ca-ap { background: linear-gradient(160deg, #5b9cff, #3a6fd8); }
-      .tk-ca-tip {
-        position: absolute; bottom: calc(100% + 7px); left: 50%; transform: translateX(-50%);
-        background: rgba(15,18,24,.96); color: #fff; font: 600 10.5px/1.2 -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
-        padding: 5px 8px; border-radius: 7px; white-space: nowrap; opacity: 0; pointer-events: none;
-        transition: opacity .12s ease; box-shadow: 0 6px 18px rgba(0,0,0,.45); z-index: 50;
-      }
-      .tk-ca-btn:hover .tk-ca-tip { opacity: 1; }
     `;
     (document.head || document.documentElement).appendChild(s);
   }
@@ -53,6 +46,27 @@
     const href = link.getAttribute('href') || '';
     const m = href.match(/\/games\/(\d{4,})/);
     return m ? m[1] : null;
+  }
+
+  // Roblox kartının üç-nokta (⋯) menü butonunu thumbnail'ın ÜST-SAĞ bölgesinde bul → merkez x
+  // (thumb soluna göre, px). Bulamazsa null. Yanlış-pozitifi azaltmak için ihtiyatlı.
+  function findMenuX(scope, tr) {
+    if (!scope || !tr || !tr.width) return null;
+    let bx = null, bs = Infinity;
+    let els;
+    try { els = scope.querySelectorAll('button, [role="button"], a[aria-haspopup], [class*="menu" i], [class*="context" i], [class*="overflow" i]'); }
+    catch (_) { return null; }
+    for (const el of els) {
+      if (el.closest('.tk-ca')) continue;
+      const r = el.getBoundingClientRect();
+      if (r.width < 10 || r.width > 50 || r.height < 10 || r.height > 50) continue;
+      const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+      const rx = (cx - tr.left) / tr.width, ry = (cy - tr.top) / tr.height;
+      if (rx < 0.62 || rx > 1.08 || ry < -0.08 || ry > 0.48) continue;   // üst-sağ bölge
+      const s = ry + (1 - rx);   // en üst-sağ olanı seç
+      if (s < bs) { bs = s; bx = cx - tr.left; }
+    }
+    return bx;
   }
 
   // Bir oyun kartını (link) işle: thumbnail'a 2 buton overlay ekle.
@@ -80,9 +94,25 @@
     ov.className = 'tk-ca';
     ov.setAttribute('aria-hidden', 'true');
     ov.innerHTML =
-      `<button class="tk-ca-btn tk-ca-play" type="button">${PLAY_SVG}<span class="tk-ca-tip">Hemen oyna</span></button>` +
-      `<button class="tk-ca-btn tk-ca-ap" type="button">${AP_SVG}<span class="tk-ca-tip">Oto-Pilot — en yakın sunucu</span></button>`;
+      `<button class="tk-ca-btn tk-ca-play" type="button" title="Hemen oyna (rastgele sunucu)">${PLAY_SVG}</button>` +
+      `<button class="tk-ca-btn tk-ca-ap" type="button" title="Oto-Pilot — en yakın sunucuya bağlan">${AP_SVG}</button>`;
     thumb.appendChild(ov);
+
+    // Butonları Roblox'un üç-nokta (⋯) menüsüyle hizala: SAĞ buton ⋯'nin altına, SOL buton
+    // simetrik karşısına. ⋯ hover'da gelebilir → bulamazsa ilk hover'da tekrar dener.
+    const realign = () => {
+      try {
+        const tr = thumb.getBoundingClientRect();
+        const mx = findMenuX(link.parentElement || link, tr);
+        if (mx != null && tr.width > 40) {
+          const inset = Math.max(4, Math.min(tr.width / 2 - 17, Math.round(tr.width - mx - 15)));
+          ov.style.left = inset + 'px'; ov.style.right = inset + 'px';
+          return true;
+        }
+      } catch (_) {}
+      return false;
+    };
+    if (!realign()) link.addEventListener('mouseenter', function once() { if (realign()) link.removeEventListener('mouseenter', once); });
 
     const stop = (e) => { e.preventDefault(); e.stopPropagation(); };
     ov.querySelector('.tk-ca-play').addEventListener('click', (e) => {
