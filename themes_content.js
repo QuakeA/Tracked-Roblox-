@@ -2468,21 +2468,28 @@ function getLinkPathname(a) {
 // Bu yüzden TAM-yol eşleşmesi (/home) İngilizce-dışında çuvallıyordu → yolun SON segmentine bak
 // (/de/home → "home", /my/avatar → "avatar") → her dilde çalışır.
 const NAV_LAST = new Set(['home', 'profile', 'friends', 'avatar', 'inventory', 'trade', 'messages']);
-function isNavLink(a) {
+function navSeg(a) {
   const p = getLinkPathname(a).replace(/\/+$/, '');
-  return NAV_LAST.has(p.slice(p.lastIndexOf('/') + 1));
+  return p.slice(p.lastIndexOf('/') + 1);
 }
+// SOL sidebar = EN ÇOK farklı nav-link (home/profile/friends/...) içeren <ul>. Tek eşleşmeyle
+// YETİNME: üst-sağ hesap menüsü de profile/avatar içerebilir → oraya yanlış enjekte olurdu.
+// Sol sidebar her zaman en çoğunu (5-7) içerir, üst menüler az → en yüksek sayanı seç.
 function findSidebarUL() {
-  for (const a of document.querySelectorAll('a')) {
-    if (!isNavLink(a)) continue;
-    let el = a.parentElement;
-    for (let i = 0; i < 10; i++) {
-      if (!el || el === document.body) break;
-      if (el.tagName === 'UL' && el.querySelectorAll(':scope > li').length >= 4) return el;
-      el = el.parentElement;
+  let best = null, bestCount = 0;
+  for (const ul of document.querySelectorAll('ul')) {
+    const lis = ul.querySelectorAll(':scope > li');
+    if (lis.length < 4) continue;
+    const seen = new Set();
+    for (const li of lis) {
+      const a = li.querySelector('a');
+      if (!a) continue;
+      const seg = navSeg(a);
+      if (NAV_LAST.has(seg)) seen.add(seg);
     }
+    if (seen.size > bestCount) { bestCount = seen.size; best = ul; }
   }
-  return null;
+  return bestCount >= 2 ? best : null;
 }
 
 function getSidebarWidth() {
