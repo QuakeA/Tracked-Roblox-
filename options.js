@@ -80,6 +80,8 @@ let currentSettings = { ...DEFAULT_SETTINGS };
 document.addEventListener('DOMContentLoaded', async () => {
     loadVersionInfo();
     await loadSettings();
+    // Ayarlar uygulandı → toggle'ları aç (FOUC sıçraması bitti). tk-pre <head>'de eklenmişti.
+    try { document.documentElement.classList.remove('tk-pre'); } catch (_) {}
     setupStepperControls();
     setupSmartLanguageSelector();
     setupKeyboardShortcuts();
