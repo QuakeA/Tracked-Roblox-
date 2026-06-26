@@ -36,6 +36,7 @@
       .tk-ca-btn:hover { transform: translateY(-2px); filter: brightness(1.1); }
       .tk-ca-btn:active { transform: translateY(0); }
       .tk-ca-btn svg { display: block; pointer-events: none; width: 58%; height: 58%; }
+      .tk-ca-btn.tk-ca-play svg { transform: translateX(-1px); }   /* play üçgeni sağa kırpık → optik merkeze çek */
       .tk-ca-btn.tk-ca-ap { background: linear-gradient(160deg, #5b9cff, #3a6fd8); }
       .tk-ca-tip {
         position: fixed; z-index: 2147483600; background: rgba(15,18,24,.97); color: #fff;
