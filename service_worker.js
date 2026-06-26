@@ -3531,32 +3531,35 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true;
   }
 
-  // ── KART ÖZEL SUNUCU — DURUM: butonu göster mi? (özel sunucu AÇIK ve BEDAVA ise) ──────────
-  // Mass çağrı olmasın diye karttan HOVER'da tembel sorulur, oyun başına önbelleklenir.
-  if (request.action === "cardPrivateStatus") {
+  // ── KART ÖZEL SUNUCU — LİSTE: kullanıcının TÜM aktif özel sunucularını TEK çağrıda getir ────
+  // my-private-servers tüm sunucuları (oyun farketmeksizin) döndürür → kart tarafı placeId'ye göre
+  // anında eşler (per-kart API yok). 90sn önbellek. Dönen: { placeId(string): privateServerId }.
+  let _tkPrivOwnedCache = null, _tkPrivOwnedAt = 0;
+  if (request.action === "cardPrivateList") {
     (async () => {
       try {
-        const placeId = String(request.placeId || '');
-        if (!/^\d{4,}$/.test(placeId)) return sendResponse({ ok: false, show: false });
-        const universeId = await tkUniverseId(placeId);
-        if (!universeId) return sendResponse({ ok: false, show: false });
-        // 1) Özel sunucu İZİNLİ mi? (oyun ayarı)
-        let allowed = false;
-        try {
-          const g = await fetch(`https://games.roblox.com/v1/games?universeIds=${universeId}`, { credentials: 'include' });
-          if (g.ok) allowed = !!((await g.json()).data?.[0]?.createVipServersAllowed);
-        } catch (_) {}
-        if (!allowed) return sendResponse({ ok: true, show: false, universeId });
-        // 2) BEDAVA mı? vip-servers config (price). Fiyat çözülemezse GÖSTERME (güvenli: ücretli görünmesin).
-        let price = null;
-        try {
-          const v = await fetch(`https://games.roblox.com/v1/games/vip-servers/${universeId}`, { credentials: 'include' });
-          if (v.ok) { const d = await v.json(); if (typeof d.price === 'number') price = d.price; }
-        } catch (_) {}
-        const show = (price === 0);
-        if (!show) console.log('[Tracked PS] durum:', placeId, 'allowed=', allowed, 'price=', price, '(buton gizli — fiyat 0 değil/çözülemedi)');
-        return sendResponse({ ok: true, show, universeId, price });
-      } catch (e) { return sendResponse({ ok: false, show: false, error: String(e && e.message || e) }); }
+        if (_tkPrivOwnedCache && (Date.now() - _tkPrivOwnedAt) < 90 * 1000) {
+          return sendResponse({ ok: true, owned: _tkPrivOwnedCache, cached: true });
+        }
+        const owned = {};
+        let cursor = '';
+        for (let p = 0; p < 8; p++) {   // güvenlik: en çok 8 sayfa
+          const url = `https://games.roblox.com/v1/private-servers/my-private-servers?itemsPerPage=100${cursor ? '&cursor=' + encodeURIComponent(cursor) : ''}`;
+          let d;
+          try { const r = await fetch(url, { credentials: 'include' }); if (!r.ok) break; d = await r.json(); }
+          catch (_) { break; }
+          if (!d || !Array.isArray(d.data)) break;
+          for (const s of d.data) {
+            // Yalnız AKTİF (kullanılabilir) sunucular — süresi dolmuşlar değil.
+            if (s && s.active === true && s.placeId && s.privateServerId) owned[String(s.placeId)] = s.privateServerId;
+          }
+          cursor = d.nextPageCursor;
+          if (!cursor) break;
+        }
+        _tkPrivOwnedCache = owned; _tkPrivOwnedAt = Date.now();
+        console.log('[Tracked PS] sahip olunan aktif özel sunucu sayısı:', Object.keys(owned).length);
+        return sendResponse({ ok: true, owned });
+      } catch (e) { return sendResponse({ ok: false, error: String(e && e.message || e) }); }
     })();
     return true;
   }

@@ -118,20 +118,23 @@
     } catch (_) { deeplink(); }
   }
 
-  // Özel sunucu DURUM önbelleği (oyun başına) + tembel kontrol → buton yalnız bedava+açıkken görünür.
-  const _privCache = new Map();
-  function checkPriv(placeId, ov, privBtn) {
-    const apply = (st) => { if (st && st.show) { ov.classList.add('tk-ca-haspriv'); privBtn._uni = st.universeId || null; } };
-    const c = _privCache.get(placeId);
-    if (c) { apply(c); return; }
+  // Kullanıcının TÜM aktif özel sunucuları TEK seferde çekilir (SW my-private-servers) → her kart
+  // anında kontrol eder, per-kart API çağrısı YOK. _ownedPriv: { placeId(string): privateServerId }.
+  let _ownedPriv = null, _ownedCbs = [];
+  function ensureOwnedPriv(cb) {
+    if (_ownedPriv) return cb(_ownedPriv);
+    _ownedCbs.push(cb);
+    if (_ownedCbs.length > 1) return;   // çekim zaten sürüyor
+    const finish = (map) => { _ownedPriv = map || {}; const cbs = _ownedCbs; _ownedCbs = []; cbs.forEach(f => { try { f(_ownedPriv); } catch (_) {} }); };
     try {
-      chrome.runtime.sendMessage({ action: 'cardPrivateStatus', placeId }, (resp) => {
-        if (chrome.runtime.lastError) return;
-        const st = (resp && resp.ok) ? { show: !!resp.show, universeId: resp.universeId } : { show: false };
-        _privCache.set(placeId, st);
-        apply(st);
-      });
-    } catch (_) {}
+      chrome.runtime.sendMessage({ action: 'cardPrivateList' }, (resp) => finish((resp && resp.ok && resp.owned) ? resp.owned : {}));
+    } catch (_) { finish({}); }
+  }
+  function checkPriv(placeId, ov, privBtn) {
+    ensureOwnedPriv((owned) => {
+      const psid = owned[String(placeId)];
+      if (psid) { ov.classList.add('tk-ca-haspriv'); privBtn._psid = psid; }
+    });
   }
 
   // Roblox kartının üç-nokta (⋯) menü butonunu thumbnail'ın ÜST-SAĞ bölgesinde bul → rect (viewport). Bulamazsa null.
@@ -251,7 +254,7 @@
       };
       const guard = setTimeout(() => finish(false), 25000);
       try {
-        chrome.runtime.sendMessage({ action: 'cardPrivateJoin', placeId, universeId: privBtn._uni || undefined }, (resp) => {
+        chrome.runtime.sendMessage({ action: 'cardPrivateJoin', placeId, privateServerId: privBtn._psid || undefined }, (resp) => {
           if (chrome.runtime.lastError) return finish(false);
           finish(!!(resp && resp.ok && resp.accessCode), resp && resp.accessCode);
         });
