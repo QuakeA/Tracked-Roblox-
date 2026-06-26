@@ -27,6 +27,7 @@
         pointer-events: auto; transform: translateY(0) scale(1);
       }
       .tk-ca-btn {
+        position: relative;
         width: 32px; height: 32px; border-radius: 28%; display: grid; place-items: center;
         cursor: pointer; color: #fff; border: 1px solid rgba(255,255,255,.22); padding: 0;
         background: linear-gradient(160deg, #4d8bf0, #2f6ad6);
@@ -46,9 +47,19 @@
         background: linear-gradient(160deg, #5b9cff, #3a6fd8);
         transition: opacity .26s ease .08s, transform .12s ease, filter .12s ease, box-shadow .12s ease;
       }
+      /* Oto-Pilot "en yakın sunucuyu buluyor" durumu: ikon gizlenir, dönen spinner gelir */
+      .tk-ca-btn.tk-ca-busy { pointer-events: none; }
+      .tk-ca-btn.tk-ca-busy svg { opacity: 0; }
+      .tk-ca-btn.tk-ca-busy::after {
+        content: ''; position: absolute; inset: 0; margin: auto; width: 15px; height: 15px;
+        border-radius: 50%; border: 2px solid rgba(255,255,255,.35); border-top-color: #fff;
+        animation: tk-ca-spin .6s linear infinite;
+      }
+      @keyframes tk-ca-spin { to { transform: rotate(360deg); } }
       @media (prefers-reduced-motion: reduce) {
         .tk-ca { transform: none; transition: none; }
         .tk-ca-btn, .tk-ca-btn.tk-ca-ap { transition: opacity .15s ease; }
+        .tk-ca-btn.tk-ca-busy::after { animation-duration: 1.2s; }
       }
       .tk-ca-tip {
         position: fixed; z-index: 2147483600; background: rgba(15,18,24,.97); color: #fff;
@@ -81,6 +92,17 @@
     _tip.style.left = Math.round(dir === 'left' ? (r.right - w) : r.left) + 'px';
   }
   function hideTip() { if (_tip) _tip.classList.remove('on'); }
+
+  // Sekme açmadan, sayfadan ayrılmadan oyuna gir: SW launchRobloxGame (mevcut sekmenin MAIN
+  // world'ünde Roblox.GameLauncher.joinGameInstance) → başarısızsa roblox:// deep-link fallback.
+  function launchJoin(placeId, jobId) {
+    const deeplink = () => { try { window.location.href = `roblox://experiences/start?placeId=${encodeURIComponent(placeId)}&gameInstanceId=${encodeURIComponent(jobId)}`; } catch (_) {} };
+    try {
+      chrome.runtime.sendMessage({ action: 'launchRobloxGame', placeId: String(placeId), jobId: String(jobId), gameTitle: (document.title || '') }, (r) => {
+        if (chrome.runtime.lastError || !r || !r.success) deeplink();
+      });
+    } catch (_) { deeplink(); }
+  }
 
   // Roblox kartının üç-nokta (⋯) menü butonunu thumbnail'ın ÜST-SAĞ bölgesinde bul → rect (viewport). Bulamazsa null.
   function findMenuRect(scope, tr) {
@@ -170,10 +192,31 @@
       // Normal giriş: rastgele sunucu (Roblox "Play" gibi)
       try { window.location.href = 'roblox://experiences/start?placeId=' + encodeURIComponent(placeId); } catch (_) {}
     });
-    apBtn.addEventListener('click', (e) => {
+    // Oto-Pilot: oyun sayfasına GİTMEDEN, kartın üstünden en yakın sunucuyu bul (SW cardAutoPilot)
+    // → native başlat (sekme yok, sayfa değişmez). Pro-gate + "buluyor" spinner'ı.
+    let _apBusy = false;
+    apBtn.addEventListener('click', async (e) => {
       stop(e);
-      // Oto-Pilot: oyun sayfasına git, orada otomatik tetiklensin (tüm akış + Pro-gate hazır)
-      window.location.href = '/games/' + placeId + '?tracked_ap=1';
+      if (_apBusy) return;
+      let isPlus = false;
+      try { isPlus = window.TrackedLicense ? await window.TrackedLicense.isPlus() : false; } catch (_) {}
+      if (!isPlus) { try { chrome.runtime.sendMessage({ action: 'openPlusPage' }); } catch (_) {} return; }
+      _apBusy = true; apBtn.classList.add('tk-ca-busy'); hideTip();
+      let done = false;
+      const finish = (ok, jobId) => {
+        if (done) return; done = true;
+        clearTimeout(guard);
+        _apBusy = false; apBtn.classList.remove('tk-ca-busy');
+        if (ok && jobId) launchJoin(placeId, jobId);
+        else { showTip(apBtn, 'En yakın sunucu bulunamadı — tekrar dene', 'right'); setTimeout(hideTip, 2200); }
+      };
+      const guard = setTimeout(() => finish(false), 25000);   // pick uzarsa serbest bırak
+      try {
+        chrome.runtime.sendMessage({ action: 'cardAutoPilot', placeId }, (resp) => {
+          if (chrome.runtime.lastError) return finish(false);
+          finish(!!(resp && resp.ok && resp.jobId), resp && resp.jobId);
+        });
+      } catch (_) { finish(false); }
     });
     ov.addEventListener('click', (e) => e.stopPropagation());
   }

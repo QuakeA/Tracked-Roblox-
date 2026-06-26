@@ -3371,6 +3371,116 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true;
   }
 
+  // ── KART OTO-PİLOT: oyun sayfasına gitmeden, kartın üstünden EN YAKIN sunucuyu bul ──────────
+  // main.js autoPilotPickClosest'in tabsız SW karşılığı: sunucu listesi → bölge çöz (tkResolveServerRegion,
+  // önbellekli, istemci-UA) → kullanıcı/ hedef bölgeye en yakını seç → jobId döndür. Kart bunu launch eder.
+  if (request.action === "cardAutoPilot") {
+    (async () => {
+      try {
+        const placeId = String(request.placeId || '');
+        if (!/^\d{4,}$/.test(placeId)) return sendResponse({ ok: false, error: 'bad_place' });
+
+        // Hedef bölge (popup "Hedef Bölge") — varsa mesafe o ülkenin DC şehirlerine
+        let target = null;
+        try {
+          const t = (await chrome.storage.local.get('rota_target_region'))?.rota_target_region;
+          if (t && t.code && Array.isArray(t.cities) && t.cities.length) target = t;
+        } catch (_) {}
+
+        // Konum (otomatik modda mesafe için şart; hedef modda gerekmez)
+        const geo = await tkResolveUserGeo();
+        if ((!geo || !geo.ok || typeof geo.lat !== 'number') && !target) return sendResponse({ ok: false, error: 'no_geo' });
+
+        // Oto-Pilot blocklist (kötü işaretliler) — TTL 24s
+        let blocked = new Set();
+        try {
+          const bl = (await chrome.storage.local.get('rota_otopilot_blocklist'))?.rota_otopilot_blocklist || [];
+          const now = Date.now(), TTL = 24 * 60 * 60 * 1000;
+          blocked = new Set(bl.filter(e => e?.ts && (now - e.ts) < TTL).map(e => e.id));
+        } catch (_) {}
+
+        // Aday havuzu: açık (dolu değil) sunucular, en boş önce, ~3 sayfa
+        const pool = [];
+        let cursor = '';
+        for (let p = 0; p < 3; p++) {
+          const url = `https://games.roblox.com/v1/games/${placeId}/servers/Public?sortOrder=Asc&limit=100${cursor ? '&cursor=' + encodeURIComponent(cursor) : ''}`;
+          let d;
+          try { const r = await fetch(url, { headers: { Accept: 'application/json' }, credentials: 'omit' }); if (!r.ok) break; d = await r.json(); }
+          catch (_) { break; }
+          if (!d || !Array.isArray(d.data)) break;
+          for (const s of d.data) {
+            if (s && s.id && typeof s.playing === 'number' && typeof s.maxPlayers === 'number'
+              && s.playing < s.maxPlayers && !blocked.has(s.id)) pool.push(s);
+          }
+          cursor = d.nextPageCursor;
+          if (!cursor) break;
+        }
+        if (!pool.length) return sendResponse({ ok: false, error: 'no_servers' });
+
+        // En boş→dolu sırala, sonra listeye YAYILMIŞ ~24 aday seç (stride) → bölge çeşitliliği
+        pool.sort((a, b) => ((a.playing || 0) - (b.playing || 0)) || (((b.fps ? Math.round(b.fps) : 0) - (a.fps ? Math.round(a.fps) : 0))));
+        const WANT = 24;
+        let candidates;
+        if (pool.length <= WANT) candidates = pool;
+        else { candidates = []; const stride = pool.length / WANT; for (let k = 0; k < WANT; k++) candidates.push(pool[Math.floor(k * stride)]); }
+
+        // Haversine (km)
+        const hav = (la1, lo1, la2, lo2) => {
+          const R = 6371, toR = Math.PI / 180, dLa = (la2 - la1) * toR, dLo = (lo2 - lo1) * toR;
+          const a = Math.sin(dLa / 2) ** 2 + Math.cos(la1 * toR) * Math.cos(la2 * toR) * Math.sin(dLo / 2) ** 2;
+          return 2 * R * Math.asin(Math.min(1, Math.sqrt(a)));
+        };
+
+        // Bölgeleri çöz — 6'lı paralel; erken çıkış: hedef ≤150km, otomatik ≤ en yakın DC*1.3+200
+        const nearTarget = target ? 150 : ((typeof geo?.nearestDcKm === 'number') ? Math.round(geo.nearestDcKm * 1.3 + 200) : null);
+        const CONC = 6;
+        const resolved = [];
+        let earlyExit = false;
+        for (let i = 0; i < candidates.length && !earlyExit; i += CONC) {
+          const batch = candidates.slice(i, i + CONC);
+          const infos = await Promise.all(batch.map(s => tkResolveServerRegion(placeId, s.id).catch(() => null)));
+          for (let j = 0; j < batch.length; j++) {
+            const info = infos[j];
+            if (!info || !info.ok || typeof info.lat !== 'number') continue;
+            let dKm;
+            if (target) {
+              const ds = target.cities.map(c => hav(c.lat, c.lon, info.lat, info.lon)).filter(v => typeof v === 'number' && !isNaN(v));
+              dKm = ds.length ? Math.min(...ds) : null;
+            } else {
+              dKm = hav(geo.lat, geo.lon, info.lat, info.lon);
+            }
+            if (typeof dKm === 'number' && !isNaN(dKm)) {
+              resolved.push({ server: batch[j], region: info.region, distanceKm: dKm, version: info.version });
+              if (nearTarget !== null && dKm <= nearTarget) earlyExit = true;
+            }
+          }
+          if (earlyExit) break;
+          if (i + CONC < candidates.length) await new Promise(r => setTimeout(r, 150));
+        }
+        if (!resolved.length) return sendResponse({ ok: false, error: 'no_region' });
+
+        // En yakın (mesafe asc; eşitlikte fps desc)
+        resolved.sort((a, b) => (a.distanceKm - b.distanceKm) || (((b.server.fps ? Math.round(b.server.fps) : 0) - (a.server.fps ? Math.round(a.server.fps) : 0))));
+
+        // ranked sakla → oyun sayfasındaki "Sıradaki sunucu" en yakından devam etsin (uyumlu)
+        try {
+          await chrome.storage.local.set({
+            rota_otopilot_region_candidates: {
+              placeId, ts: Date.now(),
+              ranked: resolved.map(r => ({ jobId: r.server.id, region: r.region, distanceKm: r.distanceKm, players: r.server.playing, maxPlayers: r.server.maxPlayers }))
+            }
+          });
+        } catch (_) {}
+
+        const best = resolved[0];
+        return sendResponse({ ok: true, jobId: best.server.id, region: best.region, distanceKm: Math.round(best.distanceKm), target: target ? (target.label || target.code) : null });
+      } catch (e) {
+        return sendResponse({ ok: false, error: String(e && e.message || e) });
+      }
+    })();
+    return true;
+  }
+
   // ── Bölgesel ping'leri arka planda ölç (otomatik, 30dk cache) → tracked_region_pings ──
   if (request.action === "ensureRegionalPings") {
     tkEnsureRegionalPings(request.force)
