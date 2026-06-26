@@ -8,9 +8,11 @@
   <link rel="stylesheet" href="lib/flags.css">
   <style>
     /* Ayar yüklenene kadar toggle'ları gizle → açılışta "kapalı→yeşil" sıçraması (FOUC) olmasın.
-       .switch'in kendi transition'ı yok; opacity ekliyoruz, .slider'ın knob animasyonu bozulmaz. */
+       KRİTİK: gizliyken slider animasyonunu da KAPAT → checked set edilince knob/renk kaymadan
+       ANINDA oturur (gizliyken). Sonra .switch opacity ile statik-yeşil belirir. Kayma görünmez. */
     html.tk-pre .switch { opacity: 0; }
-    .switch { transition: opacity .22s ease; }
+    html.tk-pre .slider, html.tk-pre .slider::before { transition: none !important; }
+    .switch { transition: opacity .2s ease; }
   </style>
   <script>
     /* Toggle'lar paint olmadan ÖNCE gizle; options.js ayarları uygulayınca açar (1.5sn güvence). */
