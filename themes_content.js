@@ -2464,9 +2464,17 @@ function getLinkPathname(a) {
   try { return new URL(a.href, location.origin).pathname; } catch { return ''; }
 }
 
+// Roblox İngilizce-DIŞI dillerde URL'lere /de/, /tr/, /fr/ gibi LOCALE öneki ekler (ör. /de/home).
+// Bu yüzden TAM-yol eşleşmesi (/home) İngilizce-dışında çuvallıyordu → yolun SON segmentine bak
+// (/de/home → "home", /my/avatar → "avatar") → her dilde çalışır.
+const NAV_LAST = new Set(['home', 'profile', 'friends', 'avatar', 'inventory', 'trade', 'messages']);
+function isNavLink(a) {
+  const p = getLinkPathname(a).replace(/\/+$/, '');
+  return NAV_LAST.has(p.slice(p.lastIndexOf('/') + 1));
+}
 function findSidebarUL() {
   for (const a of document.querySelectorAll('a')) {
-    if (!NAV_PATHS.includes(getLinkPathname(a))) continue;
+    if (!isNavLink(a)) continue;
     let el = a.parentElement;
     for (let i = 0; i < 10; i++) {
       if (!el || el === document.body) break;
