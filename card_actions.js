@@ -93,7 +93,8 @@
 
   // ⋯'nin konumunu BİR KEZ ölç → global --tk-ca-inset (tüm kartlara uygulanır, tutarlı + ⋯ ile hizalı).
   // ⋯ sağ-kenardan hep aynı px uzaklıkta olduğu için tek ölçüm tüm kartlara yeter.
-  const BTN = 32;   // .tk-ca-btn boyutuyla aynı
+  const BTN = 32;        // .tk-ca-btn boyutuyla aynı
+  const NUDGE_LEFT = 3;  // ⋯ kutusu görünen daireyle birebir değil → minik sola düzeltme (tam altına otursun)
   let _insetSet = false;
   function measureInset(scope, thumb) {
     if (_insetSet) return;
@@ -101,8 +102,8 @@
       const tr = thumb.getBoundingClientRect();
       const r = findMenuRect(scope, tr);
       if (r && tr.width > 40) {
-        // oto-pilot (sağ buton) merkezi ⋯ merkezinin tam altına gelsin:
-        const inset = Math.round((tr.right - (r.left + r.width / 2)) - BTN / 2);
+        // oto-pilot (sağ buton) merkezi ⋯ merkezinin tam altına gelsin (+sola minik düzeltme):
+        const inset = Math.round((tr.right - (r.left + r.width / 2)) - BTN / 2) + NUDGE_LEFT;
         const clamped = Math.max(4, Math.min(Math.floor(tr.width / 2 - BTN - 4), inset));
         document.documentElement.style.setProperty('--tk-ca-inset', clamped + 'px');
         _insetSet = true;
