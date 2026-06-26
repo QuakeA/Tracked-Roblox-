@@ -14,11 +14,8 @@
     html.tk-pre .slider, html.tk-pre .slider::before { transition: none !important; }
     .switch { transition: opacity .2s ease; }
   </style>
-  <script>
-    /* Toggle'lar paint olmadan ÖNCE gizle; options.js ayarları uygulayınca açar (1.5sn güvence). */
-    document.documentElement.classList.add('tk-pre');
-    setTimeout(function () { document.documentElement.classList.remove('tk-pre'); }, 1500);
-  </script>
+  <!-- Toggle FOUC önleme: paint öncesi tk-pre ekler (inline script CSP'ye takıldığı için ayrı dosya) -->
+  <script src="options_preload.js"></script>
 </head>
 <body>
   <div class="bg-noise"></div>
