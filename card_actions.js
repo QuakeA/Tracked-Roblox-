@@ -26,7 +26,7 @@
         opacity: 1; pointer-events: auto; transform: translateY(0);
       }
       .tk-ca-btn {
-        width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center;
+        width: var(--tk-ca-sz, 28px); height: var(--tk-ca-sz, 28px); border-radius: 28%; display: grid; place-items: center;
         cursor: pointer; color: #fff; border: 1px solid rgba(255,255,255,.22); padding: 0;
         background: linear-gradient(160deg, #4d8bf0, #2f6ad6);
         box-shadow: 0 4px 11px rgba(20,50,120,.5), inset 0 1px 0 rgba(255,255,255,.28);
@@ -35,8 +35,15 @@
       }
       .tk-ca-btn:hover { transform: translateY(-2px); filter: brightness(1.1); }
       .tk-ca-btn:active { transform: translateY(0); }
-      .tk-ca-btn svg { display: block; pointer-events: none; }
+      .tk-ca-btn svg { display: block; pointer-events: none; width: 58%; height: 58%; }
       .tk-ca-btn.tk-ca-ap { background: linear-gradient(160deg, #5b9cff, #3a6fd8); }
+      .tk-ca-tip {
+        position: fixed; z-index: 2147483600; background: rgba(15,18,24,.97); color: #fff;
+        font: 600 11px/1.25 -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+        padding: 5px 9px; border-radius: 7px; white-space: nowrap; pointer-events: none;
+        opacity: 0; transition: opacity .1s ease; box-shadow: 0 6px 18px rgba(0,0,0,.5);
+      }
+      .tk-ca-tip.on { opacity: 1; }
     `;
     (document.head || document.documentElement).appendChild(s);
   }
@@ -48,11 +55,11 @@
     return m ? m[1] : null;
   }
 
-  // Roblox kartının üç-nokta (⋯) menü butonunu thumbnail'ın ÜST-SAĞ bölgesinde bul → merkez x
-  // (thumb soluna göre, px). Bulamazsa null. Yanlış-pozitifi azaltmak için ihtiyatlı.
-  function findMenuX(scope, tr) {
+  // Roblox kartının üç-nokta (⋯) menü butonunu thumbnail'ın ÜST-SAĞ bölgesinde bul →
+  // { x: merkez-x (thumb soluna göre px), size: ⋯ boyutu (px) }. Bulamazsa null.
+  function findMenu(scope, tr) {
     if (!scope || !tr || !tr.width) return null;
-    let bx = null, bs = Infinity;
+    let best = null, bs = Infinity;
     let els;
     try { els = scope.querySelectorAll('button, [role="button"], a[aria-haspopup], [class*="menu" i], [class*="context" i], [class*="overflow" i]'); }
     catch (_) { return null; }
@@ -64,10 +71,24 @@
       const rx = (cx - tr.left) / tr.width, ry = (cy - tr.top) / tr.height;
       if (rx < 0.62 || rx > 1.08 || ry < -0.08 || ry > 0.48) continue;   // üst-sağ bölge
       const s = ry + (1 - rx);   // en üst-sağ olanı seç
-      if (s < bs) { bs = s; bx = cx - tr.left; }
+      if (s < bs) { bs = s; best = { x: cx - tr.left, size: Math.max(r.width, r.height) }; }
     }
-    return bx;
+    return best;
   }
+
+  // Yön kontrollü tooltip (fixed → overflow:hidden thumb'da KESİLMEZ). dir: 'left' (sola uzar) | 'right'.
+  let _tip = null;
+  function showTip(btn, text, dir) {
+    if (!_tip) { _tip = document.createElement('div'); _tip.className = 'tk-ca-tip'; (document.body || document.documentElement).appendChild(_tip); }
+    _tip.textContent = text;
+    const r = btn.getBoundingClientRect();
+    _tip.style.top = Math.round(r.bottom + 8) + 'px';
+    _tip.style.left = '0px';
+    _tip.classList.add('on');
+    const w = _tip.offsetWidth;
+    _tip.style.left = Math.round(dir === 'left' ? (r.right - w) : r.left) + 'px';
+  }
+  function hideTip() { if (_tip) _tip.classList.remove('on'); }
 
   // Bir oyun kartını (link) işle: thumbnail'a 2 buton overlay ekle.
   function enhance(link) {
@@ -94,19 +115,21 @@
     ov.className = 'tk-ca';
     ov.setAttribute('aria-hidden', 'true');
     ov.innerHTML =
-      `<button class="tk-ca-btn tk-ca-play" type="button" title="Hemen oyna (rastgele sunucu)">${PLAY_SVG}</button>` +
-      `<button class="tk-ca-btn tk-ca-ap" type="button" title="Oto-Pilot — en yakın sunucuya bağlan">${AP_SVG}</button>`;
+      `<button class="tk-ca-btn tk-ca-play" type="button" aria-label="Hemen oyna">${PLAY_SVG}</button>` +
+      `<button class="tk-ca-btn tk-ca-ap" type="button" aria-label="Oto-Pilot">${AP_SVG}</button>`;
     thumb.appendChild(ov);
 
-    // Butonları Roblox'un üç-nokta (⋯) menüsüyle hizala: SAĞ buton ⋯'nin altına, SOL buton
-    // simetrik karşısına. ⋯ hover'da gelebilir → bulamazsa ilk hover'da tekrar dener.
+    // Butonları Roblox'un üç-nokta (⋯) menüsüyle hizala + BOYUTUNU eşitle: SAĞ buton ⋯'nin
+    // altına ve aynı boyuta, SOL buton simetrik karşısına. ⋯ hover'da gelebilir → ilk hover'da tekrar dener.
     const realign = () => {
       try {
         const tr = thumb.getBoundingClientRect();
-        const mx = findMenuX(link.parentElement || link, tr);
-        if (mx != null && tr.width > 40) {
-          const inset = Math.max(4, Math.min(tr.width / 2 - 17, Math.round(tr.width - mx - 15)));
+        const m = findMenu(link.parentElement || link, tr);
+        if (m && tr.width > 40) {
+          const sz = Math.max(20, Math.min(40, Math.round(m.size)));
+          const inset = Math.max(4, Math.min(tr.width / 2 - sz / 2 - 2, Math.round(tr.width - m.x - sz / 2)));
           ov.style.left = inset + 'px'; ov.style.right = inset + 'px';
+          ov.style.setProperty('--tk-ca-sz', sz + 'px');
           return true;
         }
       } catch (_) {}
@@ -114,18 +137,24 @@
     };
     if (!realign()) link.addEventListener('mouseenter', function once() { if (realign()) link.removeEventListener('mouseenter', once); });
 
-    const stop = (e) => { e.preventDefault(); e.stopPropagation(); };
-    ov.querySelector('.tk-ca-play').addEventListener('click', (e) => {
+    const playBtn = ov.querySelector('.tk-ca-play');
+    const apBtn = ov.querySelector('.tk-ca-ap');
+    playBtn.addEventListener('mouseenter', () => showTip(playBtn, 'Hemen oyna (rastgele sunucu)', 'left'));   // sola uzar
+    apBtn.addEventListener('mouseenter', () => showTip(apBtn, 'Oto-Pilot — en yakın sunucuya bağlan', 'right')); // sağa uzar
+    playBtn.addEventListener('mouseleave', hideTip);
+    apBtn.addEventListener('mouseleave', hideTip);
+
+    const stop = (e) => { e.preventDefault(); e.stopPropagation(); hideTip(); };
+    playBtn.addEventListener('click', (e) => {
       stop(e);
       // Normal giriş: rastgele sunucu (Roblox "Play" gibi)
       try { window.location.href = 'roblox://experiences/start?placeId=' + encodeURIComponent(placeId); } catch (_) {}
     });
-    ov.querySelector('.tk-ca-ap').addEventListener('click', (e) => {
+    apBtn.addEventListener('click', (e) => {
       stop(e);
       // Oto-Pilot: oyun sayfasına git, orada otomatik tetiklensin (tüm akış + Pro-gate hazır)
       window.location.href = '/games/' + placeId + '?tracked_ap=1';
     });
-    // Kartın kendi tıklamasını overlay alanında engelle (yanlışlıkla oyun sayfası açılmasın)
     ov.addEventListener('click', (e) => e.stopPropagation());
   }
 
