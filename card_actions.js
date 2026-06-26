@@ -94,7 +94,7 @@
   // ⋯'nin konumunu BİR KEZ ölç → global --tk-ca-inset (tüm kartlara uygulanır, tutarlı + ⋯ ile hizalı).
   // ⋯ sağ-kenardan hep aynı px uzaklıkta olduğu için tek ölçüm tüm kartlara yeter.
   const BTN = 32;        // .tk-ca-btn boyutuyla aynı
-  const NUDGE_LEFT = 2.41;  // ⋯ kutusu görünen daireyle birebir değil → minik sola düzeltme (tam altına otursun)
+  const NUDGE_LEFT = 0;  // 0 = ölçülen ⋯ merkezine matematiksel kesin hizalama (göz kararı fudge yok)
   let _insetSet = false;
   function measureInset(scope, thumb) {
     if (_insetSet) return;
@@ -102,11 +102,27 @@
       const tr = thumb.getBoundingClientRect();
       const r = findMenuRect(scope, tr);
       if (r && tr.width > 40) {
-        // oto-pilot (sağ buton) merkezi ⋯ merkezinin tam altına gelsin (+sola minik düzeltme):
-        const inset = Math.round((tr.right - (r.left + r.width / 2)) - BTN / 2) + NUDGE_LEFT;
+        // oto-pilot (sağ buton) merkezi ⋯ merkezinin TAM altına gelsin:
+        const menuCx = r.left + r.width / 2;
+        const inset = (tr.right - menuCx) - BTN / 2 + NUDGE_LEFT;
         const clamped = Math.max(4, Math.min(Math.floor(tr.width / 2 - BTN - 4), inset));
         document.documentElement.style.setProperty('--tk-ca-inset', clamped + 'px');
         _insetSet = true;
+        // GARANTİ DOĞRULAMA: bir sonraki frame'de gerçek buton merkezini ölç, ⋯ ile karşılaştır → konsola yaz
+        requestAnimationFrame(() => {
+          try {
+            const ap = thumb.querySelector('.tk-ca-ap');
+            const mr = findMenuRect(scope, thumb.getBoundingClientRect());
+            if (!ap || !mr) return;
+            const ar = ap.getBoundingClientRect();
+            const apCx = ar.left + ar.width / 2, mCx = mr.left + mr.width / 2, diff = apCx - mCx;
+            console.log('%c[Tracked] Kart hizalama (garanti ölçüm)', 'color:#5b9cff;font-weight:700;font-size:12px',
+              '\n  ⋯ menü       → merkez X:', mCx.toFixed(2), '| sağ kenar:', mr.right.toFixed(1), '| çap:', mr.width.toFixed(1),
+              '\n  oto-pilot    → merkez X:', apCx.toFixed(2), '| sağ kenar:', ar.right.toFixed(1), '| boy:', ar.width.toFixed(1),
+              '\n  MERKEZ FARKI:', diff.toFixed(2) + 'px', Math.abs(diff) < 0.6 ? '✓ tam hizalı' : '(NUDGE_LEFT ile düzelt)',
+              '\n  sağ-kenar farkı:', (ar.right - mr.right).toFixed(1) + 'px', '(⋯ daha büyük olduğundan kenarlar normalde uyuşmaz)');
+          } catch (_) {}
+        });
       }
     } catch (_) {}
   }
