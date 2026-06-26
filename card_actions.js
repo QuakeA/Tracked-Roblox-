@@ -1,8 +1,10 @@
-// card_actions.js — Oyun kartlarına hover'da 2 hızlı buton ekler:
-//   SOL  = Normal giriş (rastgele sunucu, Roblox "Play" gibi)  → roblox://experiences/start?placeId=
-//   SAĞ  = Oto-Pilot (en yakın sunucu)  → oyun sayfasına ?tracked_ap=1 ile git, orada otomatik tetiklenir
+// card_actions.js — Oyun kartlarına hover'da 3 hızlı giriş butonu ekler (sayfadan ayrılmadan, sekme açmadan):
+//   Oyna       = rastgele sunucu (Roblox "Play" gibi)                            → native joinMultiplayerGame
+//   Oto-pilot  = EN YAKIN sunucu (SW cardAutoPilot ile tabsız bulunur)           → native joinGameInstance (Tracked Plus)
+//   Özel sun.  = sahip olunan AKTİF özel sunucu (otomatik algılanır → buton görünür) → native joinPrivateGame
+// Hepsi mevcut sekmenin MAIN world'ünde Roblox.GameLauncher ile; başarısızsa roblox:// deep-link fallback.
 // Home / Charts / Discover / Arama / Profil — oyun kartı olan her yerde çalışır. SPA + React re-render'a
-// dayanıklı (MutationObserver ile yeniden uygular). Eklentinin kendi UI'ı, isole IIFE.
+// dayanıklı (MutationObserver + throttle ile yeniden uygular). Eklentinin kendi UI'ı, izole IIFE.
 (function () {
   'use strict';
   if (window.__tkCardActions) return; window.__tkCardActions = true;
