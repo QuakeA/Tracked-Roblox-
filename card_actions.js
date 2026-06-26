@@ -10,7 +10,7 @@
   const HOST_ATTR = 'data-tk-ca';        // işaretlenmiş kart (tekrar işlenmesin)
   const PLAY_SVG = '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.14v13.72a1 1 0 0 0 1.54.84l10.5-6.86a1 1 0 0 0 0-1.68L9.54 4.3A1 1 0 0 0 8 5.14z"/></svg>';
   const AP_SVG   = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.6l7.4 3v5.1c0 4.4-3.1 7.8-7.4 9-4.3-1.2-7.4-4.6-7.4-9V5.6l7.4-3z"/><path d="M8.7 12.1l2.3 2.3 4.3-4.5"/></svg>';
-  const PRIV_SVG = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10.6" width="14" height="9.4" rx="2.4"/><path d="M8 10.6V7.6a4 4 0 0 1 8 0v3"/></svg>';
+  const PRIV_SVG = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>';
 
   function injectStyles() {
     if (document.getElementById('tk-ca-style')) return;
@@ -53,7 +53,7 @@
       .tk-ca-priv { display: none; }
       .tk-ca.tk-ca-haspriv .tk-ca-priv { display: grid; }
       .tk-ca-btn.tk-ca-priv {
-        background: linear-gradient(160deg, #6f7bf7, #4a57e0);   /* indigo — diğer ikisinden ayrışsın, palet içinde kalsın */
+        /* renk diğer butonlarla AYNI (base mavi) — sadece stagger gecikmesi farklı */
         transition: opacity .26s ease .04s, transform .12s ease, filter .12s ease, box-shadow .12s ease;
       }
       .tk-ca-btn.tk-ca-priv svg { width: 62%; height: 62%; }
