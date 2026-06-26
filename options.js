@@ -1,5 +1,19 @@
 // options.js - Tracked Extension v3.8 - Enhanced Settings UI
 
+// Toggle FOUC kökten çözüm: durumları localStorage önbelleğinden (SENKRON) PAINT öncesi uygula.
+// chrome.storage async (~0.5sn) olduğu için tek başına geç kalıp "kapalı→yeşil" sıçramasına/gecikmeye
+// yol açıyordu. Bu önbellek her load + save'de tazelenir; ilk açılışta yoksa <head>'deki tk-pre hide
+// devreye girer (loadSettings'e kadar gizler). options.js body sonunda yüklendiği için toggle'lar burada hazır.
+(function () {
+  try {
+    const c = JSON.parse(localStorage.getItem('tk_opt_toggles') || 'null');
+    if (c && typeof c === 'object') {
+      for (const id in c) { const el = document.getElementById(id); if (el) el.checked = !!c[id]; }
+      document.documentElement.classList.remove('tk-pre');   // doğru durumla ANINDA göster
+    }
+  } catch (_) {}
+})();
+
 const DEFAULT_SETTINGS = {
     timeoutMs: 3000,
     cacheMinutes: 10,
@@ -415,6 +429,20 @@ async function loadSettings() {
 
     updateLanguageDisplay(settings.language || 'tr');
     renderProbes(settings.probes);
+    mirrorToggleCache();
+}
+
+// Toggle durumlarını localStorage'a yansıt → sonraki açılışta paint öncesi SENKRON kurulur (FOUC yok).
+function mirrorToggleCache() {
+    try {
+        localStorage.setItem('tk_opt_toggles', JSON.stringify({
+            'chk-now-playing': !!(ui.chkNowPlaying && ui.chkNowPlaying.checked),
+            'chk-trello': !!(ui.chkTrello && ui.chkTrello.checked),
+            'chk-game-codes': !!(ui.chkGameCodes && ui.chkGameCodes.checked),
+            'chk-auto-reconnect': !!(ui.chkAutoReconnect && ui.chkAutoReconnect.checked),
+            'chk-auto-reconnect-native': !!(ui.chkAutoReconnectNative && ui.chkAutoReconnectNative.checked)
+        }));
+    } catch (_) {}
 }
 
 function renderProbes(userProbes) {
@@ -772,6 +800,7 @@ async function saveSettings() {
 
     await chrome.storage.local.set({ 'rota_settings': newSettings });
     currentSettings = newSettings;
+    mirrorToggleCache();   // localStorage önbelleğini tazele → sonraki açılış FOUC'suz
 
     document.body.classList.toggle('reduced-motion', newSettings.reducedMotion);
 
