@@ -316,6 +316,18 @@
     } catch (_) {}
   }
 
+  // Tazelenme güvencesi: React overlay'i silip AYNI link'i (işaretiyle) koruyabilir → buton kaybolur,
+  // scan da işaretli linki atladığı için geri gelmez. İşaretli (tk-ca-card) ama overlay'i (.tk-ca)
+  // kalmamış kartların işaretini kaldır → bir sonraki scan yeniden ekler. SADECE 2.5sn interval'da
+  // çağrılır (her mutasyonda DEĞİL) → performansa etkisi yok.
+  function reheal() {
+    try {
+      document.querySelectorAll('a.tk-ca-card').forEach((link) => {
+        if (!link.querySelector('.tk-ca')) link.removeAttribute(HOST_ATTR);
+      });
+    } catch (_) {}
+  }
+
   // Throttle (debounce DEĞİL): sayfa yüklenirken DOM sürekli değişir; saf debounce her
   // mutasyonda sıfırlandığı için tarama mutasyonlar durana dek (~1-2sn) hiç çalışmıyordu →
   // butonlar geç geliyordu. Throttle, sürekli mutasyonda bile ~180ms'de bir tarar → kartlar
@@ -338,7 +350,8 @@
     [100, 300, 600, 1000, 1600].forEach((ms) => setTimeout(scan, ms));
     // SPA gezinmesinde de tara
     window.addEventListener('popstate', scheduleScan);
-    setInterval(scan, 2500);   // güvenlik ağı (React kartları geç gelebilir / overlay'i silebilir)
+    // Güvenlik ağı (2.5sn): reheal = overlay'i silinmiş kartları yeniden ekler; scan = yeni kartlar
+    setInterval(() => { reheal(); scan(); }, 2500);
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, { once: true });
