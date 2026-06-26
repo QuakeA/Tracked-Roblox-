@@ -222,16 +222,6 @@
         "avatar_cost.js"
       ],
       "run_at": "document_end"
-    },
-    {
-      "matches": [
-        "https://www.roblox.com/my/avatar*"
-      ],
-      "js": [
-        "tracked_debug.js",
-        "avatar_sandbox.js"
-      ],
-      "run_at": "document_end"
     }
   ]
 }
