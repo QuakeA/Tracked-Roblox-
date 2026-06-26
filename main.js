@@ -276,6 +276,7 @@ const TrackedApp = {
         this.state.injected = true;
         this.state.retryCount = 0;
         console.log('[Tracked] v3.7 Bar injected (yan ray)');
+        this.maybeAutoPilotFromUrl(placeId);
     },
 
     injectToBody: function(placeId) {
@@ -283,12 +284,32 @@ const TrackedApp = {
             id: 'tracked-fallback-container',
             style: 'position: fixed; top: 120px; right: 20px; z-index: 999999 !important;'
         });
-        
+
         const bar = TrackedUI.createGameBar(placeId);
         container.appendChild(bar);
         document.body.appendChild(container);
-        
+
         this.state.injected = true;
+        this.maybeAutoPilotFromUrl(placeId);
+    },
+
+    // Kart Oto-Pilot butonu → oyun sayfasına ?tracked_ap=1 ile gelir. Burada Pro kontrolü + Oto-Pilot.
+    maybeAutoPilotFromUrl: function(placeId) {
+        try {
+            if (this._apFromUrlDone) return;
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('tracked_ap') !== '1') return;
+            this._apFromUrlDone = true;
+            // URL'i temizle (yenilemede tekrar tetiklenmesin)
+            params.delete('tracked_ap');
+            const clean = window.location.pathname + (params.toString() ? '?' + params.toString() : '') + window.location.hash;
+            try { window.history.replaceState(null, '', clean); } catch (_) {}
+            setTimeout(async () => {
+                const isPlus = window.TrackedLicense ? await window.TrackedLicense.isPlus() : false;
+                if (!isPlus) { try { chrome.runtime.sendMessage({ action: 'openPlusPage' }); } catch (_) {} return; }
+                try { TrackedApp.autoBlockerScan(placeId); } catch (_) {}
+            }, 1200);   // bar + lisans hazır olsun
+        } catch (_) {}
     },
 
     // ============================================

@@ -160,7 +160,8 @@
         "license_client.js",
         "reconnect_overlay.js",
         "themes_content.js",
-        "now_playing.js"
+        "now_playing.js",
+        "card_actions.js"
       ],
       "run_at": "document_end"
     },

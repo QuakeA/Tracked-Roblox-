@@ -1,0 +1,125 @@
+// card_actions.js — Oyun kartlarına hover'da 2 hızlı buton ekler:
+//   SOL  = Normal giriş (rastgele sunucu, Roblox "Play" gibi)  → roblox://experiences/start?placeId=
+//   SAĞ  = Oto-Pilot (en yakın sunucu)  → oyun sayfasına ?tracked_ap=1 ile git, orada otomatik tetiklenir
+// Home / Charts / Discover / Arama / Profil — oyun kartı olan her yerde çalışır. SPA + React re-render'a
+// dayanıklı (MutationObserver ile yeniden uygular). Eklentinin kendi UI'ı, isole IIFE.
+(function () {
+  'use strict';
+  if (window.__tkCardActions) return; window.__tkCardActions = true;
+
+  const HOST_ATTR = 'data-tk-ca';        // işaretlenmiş kart (tekrar işlenmesin)
+  const PLAY_SVG = '<svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.14v13.72a1 1 0 0 0 1.54.84l10.5-6.86a1 1 0 0 0 0-1.68L9.54 4.3A1 1 0 0 0 8 5.14z"/></svg>';
+  const AP_SVG   = '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.6l7.4 3v5.1c0 4.4-3.1 7.8-7.4 9-4.3-1.2-7.4-4.6-7.4-9V5.6l7.4-3z"/><path d="M8.7 12.1l2.3 2.3 4.3-4.5"/></svg>';
+
+  function injectStyles() {
+    if (document.getElementById('tk-ca-style')) return;
+    const s = document.createElement('style');
+    s.id = 'tk-ca-style';
+    s.textContent = `
+      .tk-ca-thumb { position: relative !important; }
+      .tk-ca {
+        position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%) translateY(7px);
+        display: flex; gap: 8px; z-index: 40; opacity: 0; pointer-events: none;
+        transition: opacity .16s ease, transform .18s cubic-bezier(.2,.8,.25,1);
+      }
+      .tk-ca-card:hover .tk-ca, .tk-ca-thumb:hover .tk-ca {
+        opacity: 1; pointer-events: auto; transform: translateX(-50%) translateY(0);
+      }
+      .tk-ca-btn {
+        width: 38px; height: 38px; border-radius: 12px; display: grid; place-items: center;
+        cursor: pointer; color: #fff; border: 1px solid rgba(255,255,255,.22); padding: 0;
+        background: linear-gradient(160deg, #4d8bf0, #2f6ad6);
+        box-shadow: 0 6px 16px rgba(20,50,120,.5), inset 0 1px 0 rgba(255,255,255,.28);
+        transition: transform .12s ease, filter .12s ease, box-shadow .12s ease;
+        -webkit-backdrop-filter: blur(2px);
+      }
+      .tk-ca-btn:hover { transform: translateY(-2px); filter: brightness(1.1); }
+      .tk-ca-btn:active { transform: translateY(0); }
+      .tk-ca-btn svg { display: block; pointer-events: none; }
+      .tk-ca-btn.tk-ca-ap { background: linear-gradient(160deg, #5b9cff, #3a6fd8); }
+      .tk-ca-tip {
+        position: absolute; bottom: calc(100% + 7px); left: 50%; transform: translateX(-50%);
+        background: rgba(15,18,24,.96); color: #fff; font: 600 10.5px/1.2 -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+        padding: 5px 8px; border-radius: 7px; white-space: nowrap; opacity: 0; pointer-events: none;
+        transition: opacity .12s ease; box-shadow: 0 6px 18px rgba(0,0,0,.45); z-index: 50;
+      }
+      .tk-ca-btn:hover .tk-ca-tip { opacity: 1; }
+    `;
+    (document.head || document.documentElement).appendChild(s);
+  }
+
+  // Karttan placeId çıkar (href: /games/<id>/...)
+  function placeIdOf(link) {
+    const href = link.getAttribute('href') || '';
+    const m = href.match(/\/games\/(\d{4,})/);
+    return m ? m[1] : null;
+  }
+
+  // Bir oyun kartını (link) işle: thumbnail'a 2 buton overlay ekle.
+  function enhance(link) {
+    if (!link || link.getAttribute(HOST_ATTR)) return;
+    const placeId = placeIdOf(link);
+    if (!placeId) return;
+    const img = link.querySelector('img');
+    if (!img) return;                                  // thumbnail yoksa atla (kart değil)
+    // Thumbnail kutusu = img'in en yakın blok kapsayıcısı (kareye yakın, makul boyut)
+    let thumb = img.parentElement;
+    for (let i = 0; i < 3 && thumb && thumb !== link; i++) {
+      const r = thumb.getBoundingClientRect();
+      if (r.width >= 80 && r.height >= 70) break;       // yeterince büyük → thumbnail kutusu
+      thumb = thumb.parentElement;
+    }
+    if (!thumb || thumb === document.body) thumb = img.parentElement;
+    if (!thumb || thumb.querySelector(':scope > .tk-ca')) { link.setAttribute(HOST_ATTR, '1'); return; }
+
+    link.setAttribute(HOST_ATTR, '1');
+    link.classList.add('tk-ca-card');
+    thumb.classList.add('tk-ca-thumb');
+
+    const ov = document.createElement('div');
+    ov.className = 'tk-ca';
+    ov.setAttribute('aria-hidden', 'true');
+    ov.innerHTML =
+      `<button class="tk-ca-btn tk-ca-play" type="button">${PLAY_SVG}<span class="tk-ca-tip">Hemen oyna</span></button>` +
+      `<button class="tk-ca-btn tk-ca-ap" type="button">${AP_SVG}<span class="tk-ca-tip">Oto-Pilot — en yakın sunucu</span></button>`;
+    thumb.appendChild(ov);
+
+    const stop = (e) => { e.preventDefault(); e.stopPropagation(); };
+    ov.querySelector('.tk-ca-play').addEventListener('click', (e) => {
+      stop(e);
+      // Normal giriş: rastgele sunucu (Roblox "Play" gibi)
+      try { window.location.href = 'roblox://experiences/start?placeId=' + encodeURIComponent(placeId); } catch (_) {}
+    });
+    ov.querySelector('.tk-ca-ap').addEventListener('click', (e) => {
+      stop(e);
+      // Oto-Pilot: oyun sayfasına git, orada otomatik tetiklensin (tüm akış + Pro-gate hazır)
+      window.location.href = '/games/' + placeId + '?tracked_ap=1';
+    });
+    // Kartın kendi tıklamasını overlay alanında engelle (yanlışlıkla oyun sayfası açılmasın)
+    ov.addEventListener('click', (e) => e.stopPropagation());
+  }
+
+  function scan() {
+    try {
+      document.querySelectorAll('a[href*="/games/"]:not([' + HOST_ATTR + '])').forEach(enhance);
+    } catch (_) {}
+  }
+
+  let _t = 0;
+  function scheduleScan() { clearTimeout(_t); _t = setTimeout(scan, 220); }
+
+  function start() {
+    injectStyles();
+    scan();
+    try {
+      const mo = new MutationObserver(scheduleScan);
+      mo.observe(document.documentElement, { childList: true, subtree: true });
+    } catch (_) {}
+    // SPA gezinmesinde de tara
+    window.addEventListener('popstate', scheduleScan);
+    setInterval(scan, 2500);   // güvenlik ağı (React kartları geç gelebilir / overlay'i silebilir)
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, { once: true });
+  else start();
+})();
