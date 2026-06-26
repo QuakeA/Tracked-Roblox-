@@ -18,7 +18,7 @@
     s.textContent = `
       .tk-ca-thumb { position: relative !important; }
       .tk-ca {
-        position: absolute; left: 8px; right: 8px; bottom: 8px; transform: translateY(6px);
+        position: absolute; left: var(--tk-ca-inset, 8px); right: var(--tk-ca-inset, 8px); bottom: 8px; transform: translateY(6px);
         display: flex; justify-content: space-between; z-index: 40; opacity: 0; pointer-events: none;
         transition: opacity .16s ease, transform .18s cubic-bezier(.2,.8,.25,1);
       }
@@ -26,7 +26,7 @@
         opacity: 1; pointer-events: auto; transform: translateY(0);
       }
       .tk-ca-btn {
-        width: 28px; height: 28px; border-radius: 28%; display: grid; place-items: center;
+        width: 32px; height: 32px; border-radius: 28%; display: grid; place-items: center;
         cursor: pointer; color: #fff; border: 1px solid rgba(255,255,255,.22); padding: 0;
         background: linear-gradient(160deg, #4d8bf0, #2f6ad6);
         box-shadow: 0 0 0 1.5px rgba(0,0,0,.22), 0 4px 12px rgba(0,0,0,.42), inset 0 1px 0 rgba(255,255,255,.3);
@@ -71,6 +71,45 @@
   }
   function hideTip() { if (_tip) _tip.classList.remove('on'); }
 
+  // Roblox kartının üç-nokta (⋯) menü butonunu thumbnail'ın ÜST-SAĞ bölgesinde bul → rect (viewport). Bulamazsa null.
+  function findMenuRect(scope, tr) {
+    if (!scope || !tr || !tr.width) return null;
+    let best = null, bs = Infinity;
+    let els;
+    try { els = scope.querySelectorAll('button, [role="button"], a[aria-haspopup], [class*="menu" i], [class*="context" i], [class*="overflow" i]'); }
+    catch (_) { return null; }
+    for (const el of els) {
+      if (el.closest('.tk-ca')) continue;
+      const r = el.getBoundingClientRect();
+      if (r.width < 12 || r.width > 52 || r.height < 12 || r.height > 52) continue;
+      const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+      const rx = (cx - tr.left) / tr.width, ry = (cy - tr.top) / tr.height;
+      if (rx < 0.6 || rx > 1.1 || ry < -0.1 || ry > 0.5) continue;   // üst-sağ bölge
+      const s = ry + (1 - rx);   // en üst-sağ olanı seç
+      if (s < bs) { bs = s; best = r; }
+    }
+    return best;
+  }
+
+  // ⋯'nin konumunu BİR KEZ ölç → global --tk-ca-inset (tüm kartlara uygulanır, tutarlı + ⋯ ile hizalı).
+  // ⋯ sağ-kenardan hep aynı px uzaklıkta olduğu için tek ölçüm tüm kartlara yeter.
+  const BTN = 32;   // .tk-ca-btn boyutuyla aynı
+  let _insetSet = false;
+  function measureInset(scope, thumb) {
+    if (_insetSet) return;
+    try {
+      const tr = thumb.getBoundingClientRect();
+      const r = findMenuRect(scope, tr);
+      if (r && tr.width > 40) {
+        // oto-pilot (sağ buton) merkezi ⋯ merkezinin tam altına gelsin:
+        const inset = Math.round((tr.right - (r.left + r.width / 2)) - BTN / 2);
+        const clamped = Math.max(4, Math.min(Math.floor(tr.width / 2 - BTN - 4), inset));
+        document.documentElement.style.setProperty('--tk-ca-inset', clamped + 'px');
+        _insetSet = true;
+      }
+    } catch (_) {}
+  }
+
   // Bir oyun kartını (link) işle: thumbnail'a 2 buton overlay ekle.
   function enhance(link) {
     if (!link || link.getAttribute(HOST_ATTR)) return;
@@ -99,6 +138,11 @@
       `<button class="tk-ca-btn tk-ca-play" type="button" aria-label="Hemen oyna">${PLAY_SVG}</button>` +
       `<button class="tk-ca-btn tk-ca-ap" type="button" aria-label="Oto-Pilot">${AP_SVG}</button>`;
     thumb.appendChild(ov);
+
+    // ⋯ konumunu bir kez ölç (global inset). ⋯ çoğunlukla hover'da gelir → enhance'te + ilk hover'da dene.
+    const scope = link.parentElement || link;
+    measureInset(scope, thumb);
+    if (!_insetSet) link.addEventListener('mouseenter', function once() { measureInset(scope, thumb); if (_insetSet) link.removeEventListener('mouseenter', once); });
 
     const playBtn = ov.querySelector('.tk-ca-play');
     const apBtn = ov.querySelector('.tk-ca-ap');
