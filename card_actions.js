@@ -108,21 +108,6 @@
         const clamped = Math.max(4, Math.min(Math.floor(tr.width / 2 - BTN - 4), inset));
         document.documentElement.style.setProperty('--tk-ca-inset', clamped + 'px');
         _insetSet = true;
-        // GARANTİ DOĞRULAMA: bir sonraki frame'de gerçek buton merkezini ölç, ⋯ ile karşılaştır → konsola yaz
-        requestAnimationFrame(() => {
-          try {
-            const ap = thumb.querySelector('.tk-ca-ap');
-            const mr = findMenuRect(scope, thumb.getBoundingClientRect());
-            if (!ap || !mr) return;
-            const ar = ap.getBoundingClientRect();
-            const apCx = ar.left + ar.width / 2, mCx = mr.left + mr.width / 2, diff = apCx - mCx;
-            console.log('%c[Tracked] Kart hizalama (garanti ölçüm)', 'color:#5b9cff;font-weight:700;font-size:12px',
-              '\n  ⋯ menü       → merkez X:', mCx.toFixed(2), '| sağ kenar:', mr.right.toFixed(1), '| çap:', mr.width.toFixed(1),
-              '\n  oto-pilot    → merkez X:', apCx.toFixed(2), '| sağ kenar:', ar.right.toFixed(1), '| boy:', ar.width.toFixed(1),
-              '\n  MERKEZ FARKI:', diff.toFixed(2) + 'px', Math.abs(diff) < 0.6 ? '✓ tam hizalı' : '(NUDGE_LEFT ile düzelt)',
-              '\n  sağ-kenar farkı:', (ar.right - mr.right).toFixed(1) + 'px', '(⋯ daha büyük olduğundan kenarlar normalde uyuşmaz)');
-          } catch (_) {}
-        });
       }
     } catch (_) {}
   }
@@ -188,8 +173,16 @@
     } catch (_) {}
   }
 
-  let _t = 0;
-  function scheduleScan() { clearTimeout(_t); _t = setTimeout(scan, 220); }
+  // Throttle (debounce DEĞİL): sayfa yüklenirken DOM sürekli değişir; saf debounce her
+  // mutasyonda sıfırlandığı için tarama mutasyonlar durana dek (~1-2sn) hiç çalışmıyordu →
+  // butonlar geç geliyordu. Throttle, sürekli mutasyonda bile ~180ms'de bir tarar → kartlar
+  // çıkar çıkmaz yakalanır, hover'da anında görünür.
+  let _t = 0, _last = 0;
+  function scheduleScan() {
+    const now = Date.now(), since = now - _last;
+    if (since >= 180) { _last = now; scan(); }
+    else { clearTimeout(_t); _t = setTimeout(() => { _last = Date.now(); scan(); }, 180 - since); }
+  }
 
   function start() {
     injectStyles();
@@ -198,6 +191,8 @@
       const mo = new MutationObserver(scheduleScan);
       mo.observe(document.documentElement, { childList: true, subtree: true });
     } catch (_) {}
+    // İlk render'ı hızlı yakala (lazy görseller + React kademeli render): erken birkaç tarama
+    [100, 300, 600, 1000, 1600].forEach((ms) => setTimeout(scan, ms));
     // SPA gezinmesinde de tara
     window.addEventListener('popstate', scheduleScan);
     setInterval(scan, 2500);   // güvenlik ağı (React kartları geç gelebilir / overlay'i silebilir)
