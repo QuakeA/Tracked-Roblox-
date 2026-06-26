@@ -1188,7 +1188,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             // accessCode → ÖZEL sunucu; jobId → belirli sunucu (oto-pilot/derin); ikisi de yok → rastgele ("Oyna").
             // Hepsi Roblox'un kendi "now loading / connecting" overlay'ini gösterir.
             if (accessCode && typeof GL.joinPrivateGame === 'function') {
-              GL.joinPrivateGame(pid, accessCode);
+              // Yakalanan gerçek imza: (placeId, accessCode, linkCode="", gameJoinAttemptId, joinOrigin)
+              const attemptId = (self.crypto && crypto.randomUUID) ? crypto.randomUUID() : (Date.now() + '_' + Math.random().toString(36).slice(2));
+              GL.joinPrivateGame(pid, accessCode, '', attemptId, 'privateServerListJoin');
               return 'native';
             }
             if (jobId && typeof GL.joinGameInstance === 'function') {
@@ -3564,44 +3566,34 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true;
   }
 
-  // ── KART ÖZEL SUNUCU — KATIL: varsa kendi bedava sunucuna gir; yoksa BEDAVA oluştur+gir ────
-  // GÜVENLİK: oluşturma expectedPrice:0 → ücretli oyunda Roblox reddeder, ASLA Robux harcamaz.
+  // ── KART ÖZEL SUNUCU — KATIL: sahip olunan sunucunun accessCode'unu çekip döndür ───────────
+  // Doğru uç (placeId ile!): /v1/games/{placeId}/private-servers → her sunucuda accessCode + vipServerId.
+  // privateServerId (= vipServerId) ile EŞLEŞTİR → kullanıcının KENDİ sunucusunun kodunu al
+  // (başkasınınkine girmemek için). Kart bu accessCode ile joinPrivateGame yapar.
   if (request.action === "cardPrivateJoin") {
     (async () => {
       try {
         const placeId = String(request.placeId || '');
         if (!/^\d{4,}$/.test(placeId)) return sendResponse({ ok: false, error: 'bad_place' });
-        const universeId = request.universeId || await tkUniverseId(placeId);
-        if (!universeId) return sendResponse({ ok: false, error: 'no_universe' });
-
-        // 1) Mevcut özel sunucularım — varsa İLKİNİ kullan (tekrar oluşturma)
-        let code = null;
-        try {
-          const r = await fetch(`https://games.roblox.com/v1/games/${universeId}/private-servers`, { credentials: 'include' });
-          if (r.ok) {
-            const list = (await r.json()).data || [];
-            for (const s of list) {
-              const c = (s && (s.accessCode || tkExtractCode(s.link) || s.vipServerId)) || null;
-              if (c) { code = String(c); break; }
-            }
+        const wantVip = request.privateServerId ? String(request.privateServerId) : null;
+        let accessCode = null, cursor = '';
+        for (let p = 0; p < 6; p++) {   // sahip olunan sunucu genelde ilk sayfada; güvenlik max 6
+          const url = `https://games.roblox.com/v1/games/${placeId}/private-servers${cursor ? '?cursor=' + encodeURIComponent(cursor) : ''}`;
+          let d;
+          try { const r = await fetch(url, { credentials: 'include' }); if (!r.ok) break; d = await r.json(); }
+          catch (_) { break; }
+          if (!d || !Array.isArray(d.data)) break;
+          for (const s of d.data) {
+            if (!s || !s.accessCode) continue;
+            if (wantVip) { if (String(s.vipServerId) === wantVip) { accessCode = s.accessCode; break; } }
+            else { accessCode = s.accessCode; break; }   // vipServerId yoksa ilk erişilebilir sunucu
           }
-        } catch (_) {}
-
-        // 2) Yoksa BEDAVA oluştur
-        if (!code) {
-          const body = JSON.stringify({ name: 'Tracked', expectedPrice: 0 });
-          const cr = await tkCsrfPost(`https://games.roblox.com/v1/games/vip-servers/${universeId}`, body);
-          if (!cr.ok) {
-            const txt = await cr.text().catch(() => '');
-            console.warn('[Tracked PS] oluşturma başarısız:', cr.status, txt.slice(0, 200));
-            return sendResponse({ ok: false, error: 'create_failed', status: cr.status });
-          }
-          const cd = await cr.json().catch(() => null);
-          code = (cd && (cd.accessCode || cd.joinCode || tkExtractCode(cd.link) || (cd.vipServerId && String(cd.vipServerId)))) || null;
+          if (accessCode) break;
+          cursor = d.nextPageCursor;
+          if (!cursor) break;
         }
-
-        if (!code) return sendResponse({ ok: false, error: 'no_code' });
-        return sendResponse({ ok: true, placeId, accessCode: code });
+        if (!accessCode) { console.warn('[Tracked PS] accessCode bulunamadı:', placeId, 'vip=', wantVip); return sendResponse({ ok: false, error: 'no_accesscode' }); }
+        return sendResponse({ ok: true, placeId, accessCode });
       } catch (e) { return sendResponse({ ok: false, error: String(e && e.message || e) }); }
     })();
     return true;
