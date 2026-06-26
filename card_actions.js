@@ -111,12 +111,9 @@
     if (jobId) dl += '&gameInstanceId=' + encodeURIComponent(jobId);
     else if (accessCode) dl += '&accessCode=' + encodeURIComponent(accessCode);
     const deeplink = () => { try { window.location.href = dl; } catch (_) {} };
-    // Özel sunucu: DOĞRUDAN protokol (deep-link). joinPrivateGame taskbar'da takılıp öne gelmiyordu;
-    // deep-link Roblox'u öne getirir + DOĞRU (kendi) özel sunucuna sokar (kullanıcı doğruladı).
-    if (accessCode) { deeplink(); return; }
-    // Oyna/oto-pilot: native launcher (Roblox'un "now loading" overlay'i + öne gelir).
+    // Hepsi native launcher (Roblox'un kendi "now loading" overlay'i); başarısızsa deep-link fallback.
     try {
-      chrome.runtime.sendMessage({ action: 'launchRobloxGame', placeId: String(placeId), jobId: jobId ? String(jobId) : '', gameTitle: (document.title || '') }, (r) => {
+      chrome.runtime.sendMessage({ action: 'launchRobloxGame', placeId: String(placeId), jobId: jobId ? String(jobId) : '', accessCode: accessCode ? String(accessCode) : '', gameTitle: (document.title || '') }, (r) => {
         if (chrome.runtime.lastError || !r || !r.success) deeplink();
       });
     } catch (_) { deeplink(); }
@@ -255,30 +252,32 @@
       // Normal giriş: rastgele sunucu (Roblox "Play" gibi) — native launcher → Roblox'un "now loading" overlay'i çıkar
       launchJoin(placeId, null);
     });
-    // Özel sunucu: kendi bedava sunucuna anında gir; yoksa SW bedava oluşturup verir (expectedPrice:0
-    // → ücretliyse Robux harcanmaz). Sayfa değişmez. "Hallediyor" spinner'ı.
+    // Özel sunucu: kendi sunucuna gir. accessCode hover'da önceden çekilir → tıklamada hızlı.
+    // Spinner Roblox öne gelene (sayfa blur) ya da 2.5sn'ye kadar döner → "açılıyor" feedback'i.
     let _privBusy = false;
+    const privLaunch = (accessCode) => {
+      privBtn._accessCode = accessCode;
+      launchJoin(placeId, null, accessCode);
+      let off = false;
+      const endSpin = () => { if (off) return; off = true; _privBusy = false; privBtn.classList.remove('tk-ca-busy'); window.removeEventListener('blur', endSpin); };
+      window.addEventListener('blur', endSpin);   // Roblox öne gelince dur
+      setTimeout(endSpin, 2500);                  // gelmezse 2.5sn sonra dur
+    };
     privBtn.addEventListener('click', (e) => {
       stop(e);
-      // HIZLI YOL: accessCode hover'da önceden çekildiyse → tıklama jesti İÇİNDE anında launch
-      if (privBtn._accessCode) { launchJoin(placeId, null, privBtn._accessCode); return; }
       if (_privBusy) return;
-      _privBusy = true; privBtn.classList.add('tk-ca-busy'); hideTip();
+      _privBusy = true; privBtn.classList.add('tk-ca-busy'); hideTip();   // dönen spinner hemen başlar
+      if (privBtn._accessCode) { privLaunch(privBtn._accessCode); return; }   // hazırsa hızlı
       let done = false;
-      const finish = (ok, accessCode) => {
-        if (done) return; done = true;
-        clearTimeout(guard);
-        _privBusy = false; privBtn.classList.remove('tk-ca-busy');
-        if (ok && accessCode) { privBtn._accessCode = accessCode; launchJoin(placeId, null, accessCode); }
-        else { showTip(privBtn, 'Özel sunucu açılamadı — tekrar dene', 'left'); setTimeout(hideTip, 2400); }
-      };
-      const guard = setTimeout(() => finish(false), 25000);
+      const fail = () => { if (done) return; done = true; clearTimeout(guard); _privBusy = false; privBtn.classList.remove('tk-ca-busy'); showTip(privBtn, 'Özel sunucu açılamadı — tekrar dene', 'left'); setTimeout(hideTip, 2400); };
+      const guard = setTimeout(fail, 25000);
       try {
         chrome.runtime.sendMessage({ action: 'cardPrivateJoin', placeId, privateServerId: privBtn._psid || undefined }, (resp) => {
-          if (chrome.runtime.lastError) return finish(false);
-          finish(!!(resp && resp.ok && resp.accessCode), resp && resp.accessCode);
+          if (done) return;
+          if (chrome.runtime.lastError || !resp || !resp.ok || !resp.accessCode) return fail();
+          done = true; clearTimeout(guard); privLaunch(resp.accessCode);
         });
-      } catch (_) { finish(false); }
+      } catch (_) { fail(); }
     });
     // Oto-Pilot: oyun sayfasına GİTMEDEN, kartın üstünden en yakın sunucuyu bul (SW cardAutoPilot)
     // → native başlat (sekme yok, sayfa değişmez). Pro-gate + "buluyor" spinner'ı.
