@@ -273,6 +273,9 @@ async function tkResolveUserGeo() {
 }
 
 // ── ÖZEL SUNUCU (private/VIP) yardımcıları — kart "Özel sunucum" butonu için ───────────────
+// Sahip olunan aktif özel sunucu haritası önbelleği (MODÜL seviyesi — listener içinde OLMAMALI,
+// yoksa her mesajda sıfırlanır ve önbellek hiç tutmaz). cardPrivateList kullanır.
+let _tkPrivOwnedCache = null, _tkPrivOwnedAt = 0;
 // placeId → universeId (24s önbellek; özel sunucu API'leri universeId ister).
 const TK_UNIV_TTL = 24 * 60 * 60 * 1000;
 const _tkUnivCache = new Map();
@@ -3535,8 +3538,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
   // ── KART ÖZEL SUNUCU — LİSTE: kullanıcının TÜM aktif özel sunucularını TEK çağrıda getir ────
   // my-private-servers tüm sunucuları (oyun farketmeksizin) döndürür → kart tarafı placeId'ye göre
-  // anında eşler (per-kart API yok). 90sn önbellek. Dönen: { placeId(string): privateServerId }.
-  let _tkPrivOwnedCache = null, _tkPrivOwnedAt = 0;
+  // anında eşler (per-kart API yok). 90sn önbellek (_tkPrivOwnedCache modül seviyesinde). Dönen:
+  // { placeId(string): privateServerId }.
   if (request.action === "cardPrivateList") {
     (async () => {
       try {
