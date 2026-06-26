@@ -94,11 +94,13 @@
   function hideTip() { if (_tip) _tip.classList.remove('on'); }
 
   // Sekme açmadan, sayfadan ayrılmadan oyuna gir: SW launchRobloxGame (mevcut sekmenin MAIN
-  // world'ünde Roblox.GameLauncher.joinGameInstance) → başarısızsa roblox:// deep-link fallback.
+  // world'ünde Roblox'un kendi launcher'ı → "now loading" overlay'i çıkar). jobId VAR → belirli
+  // sunucu (oto-pilot); YOK → rastgele sunucu ("Oyna"). Başarısızsa roblox:// deep-link fallback.
   function launchJoin(placeId, jobId) {
-    const deeplink = () => { try { window.location.href = `roblox://experiences/start?placeId=${encodeURIComponent(placeId)}&gameInstanceId=${encodeURIComponent(jobId)}`; } catch (_) {} };
+    const dl = 'roblox://experiences/start?placeId=' + encodeURIComponent(placeId) + (jobId ? '&gameInstanceId=' + encodeURIComponent(jobId) : '');
+    const deeplink = () => { try { window.location.href = dl; } catch (_) {} };
     try {
-      chrome.runtime.sendMessage({ action: 'launchRobloxGame', placeId: String(placeId), jobId: String(jobId), gameTitle: (document.title || '') }, (r) => {
+      chrome.runtime.sendMessage({ action: 'launchRobloxGame', placeId: String(placeId), jobId: jobId ? String(jobId) : '', gameTitle: (document.title || '') }, (r) => {
         if (chrome.runtime.lastError || !r || !r.success) deeplink();
       });
     } catch (_) { deeplink(); }
@@ -181,7 +183,7 @@
 
     const playBtn = ov.querySelector('.tk-ca-play');
     const apBtn = ov.querySelector('.tk-ca-ap');
-    playBtn.addEventListener('mouseenter', () => showTip(playBtn, 'Hemen oyna (rastgele sunucu)', 'left'));   // sola uzar
+    playBtn.addEventListener('mouseenter', () => showTip(playBtn, 'Oyna', 'left'));   // sola uzar
     apBtn.addEventListener('mouseenter', () => showTip(apBtn, 'Oto-Pilot — en yakın sunucuya bağlan', 'right')); // sağa uzar
     playBtn.addEventListener('mouseleave', hideTip);
     apBtn.addEventListener('mouseleave', hideTip);
@@ -189,8 +191,8 @@
     const stop = (e) => { e.preventDefault(); e.stopPropagation(); hideTip(); };
     playBtn.addEventListener('click', (e) => {
       stop(e);
-      // Normal giriş: rastgele sunucu (Roblox "Play" gibi)
-      try { window.location.href = 'roblox://experiences/start?placeId=' + encodeURIComponent(placeId); } catch (_) {}
+      // Normal giriş: rastgele sunucu (Roblox "Play" gibi) — native launcher → Roblox'un "now loading" overlay'i çıkar
+      launchJoin(placeId, null);
     });
     // Oto-Pilot: oyun sayfasına GİTMEDEN, kartın üstünden en yakın sunucuyu bul (SW cardAutoPilot)
     // → native başlat (sekme yok, sayfa değişmez). Pro-gate + "buluyor" spinner'ı.

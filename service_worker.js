@@ -1150,25 +1150,35 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       func: (placeId, jobId) => {
         try {
           const pid = parseInt(placeId, 10);
-          if (window.Roblox && Roblox.GameLauncher && typeof Roblox.GameLauncher.joinGameInstance === 'function') {
-            Roblox.GameLauncher.joinGameInstance(pid, jobId);
-            return 'native';
+          const GL = window.Roblox && Roblox.GameLauncher;
+          if (GL) {
+            // jobId VAR → belirli sunucu (oto-pilot/derin); YOK → rastgele sunucu ("Oyna").
+            // İkisi de Roblox'un kendi "now loading / connecting" overlay'ini gösterir.
+            if (jobId && typeof GL.joinGameInstance === 'function') {
+              GL.joinGameInstance(pid, jobId);
+              return 'native';
+            }
+            if (!jobId && typeof GL.joinMultiplayerGame === 'function') {
+              GL.joinMultiplayerGame(pid);
+              return 'native';
+            }
           }
         } catch (e) {
           console.warn('[Tracked] Native launcher hata:', e);
         }
         try {
-          window.location.href = 'roblox://experiences/start?placeId=' + encodeURIComponent(placeId) + '&gameInstanceId=' + encodeURIComponent(jobId);
+          window.location.href = 'roblox://experiences/start?placeId=' + encodeURIComponent(placeId) + (jobId ? '&gameInstanceId=' + encodeURIComponent(jobId) : '');
           return 'deeplink';
         } catch (e) {
           return 'fail';
         }
       },
-      args: [String(request.placeId), String(request.jobId)]
+      args: [String(request.placeId), request.jobId ? String(request.jobId) : '']
     }).then(results => {
       const method = results && results[0] && results[0].result;
-      // Auto-Reconnect: native launcher tetiklendiğinde session kaydet
-      if (method === 'native' || method === 'deeplink') {
+      // Auto-Reconnect: SADECE belirli sunucuda (jobId var) session kaydet — rastgele "Oyna"da değil
+      // (random sunucunun jobId'sini bilmeyiz → reconnect anlamsız; ayrıca "Oyna" featureless kalmalı).
+      if ((method === 'native' || method === 'deeplink') && request.jobId) {
         saveActiveSession(request.placeId, request.jobId, request.gameTitle).catch(() => {});
       }
       sendResponse({ success: method !== 'fail', method });
