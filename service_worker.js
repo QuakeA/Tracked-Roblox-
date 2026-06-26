@@ -272,6 +272,39 @@ async function tkResolveUserGeo() {
   return tkGeoOut(loc.lat, loc.lon, loc.city);
 }
 
+// ── ÖZEL SUNUCU (private/VIP) yardımcıları — kart "Özel sunucum" butonu için ───────────────
+// placeId → universeId (24s önbellek; özel sunucu API'leri universeId ister).
+const TK_UNIV_TTL = 24 * 60 * 60 * 1000;
+const _tkUnivCache = new Map();
+async function tkUniverseId(placeId) {
+  const hit = _tkUnivCache.get(placeId);
+  if (hit && (Date.now() - hit.at) < TK_UNIV_TTL) return hit.id;
+  try {
+    const r = await fetch(`https://apis.roblox.com/universes/v1/places/${placeId}/universe`, { credentials: 'omit' });
+    if (!r.ok) return null;
+    const id = (await r.json()).universeId || null;
+    if (id) _tkUnivCache.set(placeId, { id, at: Date.now() });
+    return id;
+  } catch (_) { return null; }
+}
+// CSRF'li authed POST (403 → token al → retry). Roblox standardı.
+async function tkCsrfPost(url, bodyStr) {
+  const doPost = (tok) => fetch(url, {
+    method: 'POST', credentials: 'include',
+    headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': tok || '', 'Accept': 'application/json' },
+    body: bodyStr
+  });
+  let r = await doPost('');
+  if (r.status === 403) { const t = r.headers.get('x-csrf-token'); if (t) r = await doPost(t); }
+  return r;
+}
+// link/accessCode'u private-server link'inden çıkar
+function tkExtractCode(link) {
+  if (!link || typeof link !== 'string') return null;
+  const m = /(?:privateServerLinkCode|linkCode|accessCode)=([^&]+)/.exec(link);
+  return m ? decodeURIComponent(m[1]) : null;
+}
+
 // ── BTRoblox yöntemi: gamejoin'i Roblox İSTEMCİ User-Agent'ı ile çağır → joinScript (IP) açılır.
 // Tarayıcı UA'sıyla status 12 alınır; BAT/CSRF gerekmez. UA, fetch'ten değiştirilemediği için
 // declarativeNetRequest SESSION kuralıyla değiştirilir; initiatorDomains=[extension id] ile
@@ -1147,18 +1180,22 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     chrome.scripting.executeScript({
       target: { tabId },
       world: 'MAIN',
-      func: (placeId, jobId) => {
+      func: (placeId, jobId, accessCode) => {
         try {
           const pid = parseInt(placeId, 10);
           const GL = window.Roblox && Roblox.GameLauncher;
           if (GL) {
-            // jobId VAR → belirli sunucu (oto-pilot/derin); YOK → rastgele sunucu ("Oyna").
-            // İkisi de Roblox'un kendi "now loading / connecting" overlay'ini gösterir.
+            // accessCode → ÖZEL sunucu; jobId → belirli sunucu (oto-pilot/derin); ikisi de yok → rastgele ("Oyna").
+            // Hepsi Roblox'un kendi "now loading / connecting" overlay'ini gösterir.
+            if (accessCode && typeof GL.joinPrivateGame === 'function') {
+              GL.joinPrivateGame(pid, accessCode);
+              return 'native';
+            }
             if (jobId && typeof GL.joinGameInstance === 'function') {
               GL.joinGameInstance(pid, jobId);
               return 'native';
             }
-            if (!jobId && typeof GL.joinMultiplayerGame === 'function') {
+            if (!jobId && !accessCode && typeof GL.joinMultiplayerGame === 'function') {
               GL.joinMultiplayerGame(pid);
               return 'native';
             }
@@ -1167,13 +1204,16 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           console.warn('[Tracked] Native launcher hata:', e);
         }
         try {
-          window.location.href = 'roblox://experiences/start?placeId=' + encodeURIComponent(placeId) + (jobId ? '&gameInstanceId=' + encodeURIComponent(jobId) : '');
+          let url = 'roblox://experiences/start?placeId=' + encodeURIComponent(placeId);
+          if (jobId) url += '&gameInstanceId=' + encodeURIComponent(jobId);
+          else if (accessCode) url += '&accessCode=' + encodeURIComponent(accessCode);
+          window.location.href = url;
           return 'deeplink';
         } catch (e) {
           return 'fail';
         }
       },
-      args: [String(request.placeId), request.jobId ? String(request.jobId) : '']
+      args: [String(request.placeId), request.jobId ? String(request.jobId) : '', request.accessCode ? String(request.accessCode) : '']
     }).then(results => {
       const method = results && results[0] && results[0].result;
       // Auto-Reconnect: SADECE belirli sunucuda (jobId var) session kaydet — rastgele "Oyna"da değil
@@ -3487,6 +3527,79 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       } catch (e) {
         return sendResponse({ ok: false, error: String(e && e.message || e) });
       }
+    })();
+    return true;
+  }
+
+  // ── KART ÖZEL SUNUCU — DURUM: butonu göster mi? (özel sunucu AÇIK ve BEDAVA ise) ──────────
+  // Mass çağrı olmasın diye karttan HOVER'da tembel sorulur, oyun başına önbelleklenir.
+  if (request.action === "cardPrivateStatus") {
+    (async () => {
+      try {
+        const placeId = String(request.placeId || '');
+        if (!/^\d{4,}$/.test(placeId)) return sendResponse({ ok: false, show: false });
+        const universeId = await tkUniverseId(placeId);
+        if (!universeId) return sendResponse({ ok: false, show: false });
+        // 1) Özel sunucu İZİNLİ mi? (oyun ayarı)
+        let allowed = false;
+        try {
+          const g = await fetch(`https://games.roblox.com/v1/games?universeIds=${universeId}`, { credentials: 'include' });
+          if (g.ok) allowed = !!((await g.json()).data?.[0]?.createVipServersAllowed);
+        } catch (_) {}
+        if (!allowed) return sendResponse({ ok: true, show: false, universeId });
+        // 2) BEDAVA mı? vip-servers config (price). Fiyat çözülemezse GÖSTERME (güvenli: ücretli görünmesin).
+        let price = null;
+        try {
+          const v = await fetch(`https://games.roblox.com/v1/games/vip-servers/${universeId}`, { credentials: 'include' });
+          if (v.ok) { const d = await v.json(); if (typeof d.price === 'number') price = d.price; }
+        } catch (_) {}
+        const show = (price === 0);
+        if (!show) console.log('[Tracked PS] durum:', placeId, 'allowed=', allowed, 'price=', price, '(buton gizli — fiyat 0 değil/çözülemedi)');
+        return sendResponse({ ok: true, show, universeId, price });
+      } catch (e) { return sendResponse({ ok: false, show: false, error: String(e && e.message || e) }); }
+    })();
+    return true;
+  }
+
+  // ── KART ÖZEL SUNUCU — KATIL: varsa kendi bedava sunucuna gir; yoksa BEDAVA oluştur+gir ────
+  // GÜVENLİK: oluşturma expectedPrice:0 → ücretli oyunda Roblox reddeder, ASLA Robux harcamaz.
+  if (request.action === "cardPrivateJoin") {
+    (async () => {
+      try {
+        const placeId = String(request.placeId || '');
+        if (!/^\d{4,}$/.test(placeId)) return sendResponse({ ok: false, error: 'bad_place' });
+        const universeId = request.universeId || await tkUniverseId(placeId);
+        if (!universeId) return sendResponse({ ok: false, error: 'no_universe' });
+
+        // 1) Mevcut özel sunucularım — varsa İLKİNİ kullan (tekrar oluşturma)
+        let code = null;
+        try {
+          const r = await fetch(`https://games.roblox.com/v1/games/${universeId}/private-servers`, { credentials: 'include' });
+          if (r.ok) {
+            const list = (await r.json()).data || [];
+            for (const s of list) {
+              const c = (s && (s.accessCode || tkExtractCode(s.link) || s.vipServerId)) || null;
+              if (c) { code = String(c); break; }
+            }
+          }
+        } catch (_) {}
+
+        // 2) Yoksa BEDAVA oluştur
+        if (!code) {
+          const body = JSON.stringify({ name: 'Tracked', expectedPrice: 0 });
+          const cr = await tkCsrfPost(`https://games.roblox.com/v1/games/vip-servers/${universeId}`, body);
+          if (!cr.ok) {
+            const txt = await cr.text().catch(() => '');
+            console.warn('[Tracked PS] oluşturma başarısız:', cr.status, txt.slice(0, 200));
+            return sendResponse({ ok: false, error: 'create_failed', status: cr.status });
+          }
+          const cd = await cr.json().catch(() => null);
+          code = (cd && (cd.accessCode || cd.joinCode || tkExtractCode(cd.link) || (cd.vipServerId && String(cd.vipServerId)))) || null;
+        }
+
+        if (!code) return sendResponse({ ok: false, error: 'no_code' });
+        return sendResponse({ ok: true, placeId, accessCode: code });
+      } catch (e) { return sendResponse({ ok: false, error: String(e && e.message || e) }); }
     })();
     return true;
   }
