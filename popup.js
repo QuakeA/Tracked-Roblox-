@@ -2442,64 +2442,47 @@ function renderServerWatch() {
     } catch (_) { panel.style.display = 'none'; }
 }
 
+// Son Oynananlar imzası → veri değişmediyse re-render YOK (flicker/kart oynaması yok)
+let _lastRecentSig = '';
 async function loadRecentGames() {
     const container = document.getElementById('recent-games-list');
     if (!container) return;
-    
+
+    let recentGames = [], favorites = [];
     try {
         const storage = await chrome.storage.local.get(['rota_recent_games', 'rota_favorites']);
-        const recentGames = storage.rota_recent_games || [];
-        const favorites = storage.rota_favorites || [];
-        
-        if (recentGames.length === 0) {
+        recentGames = storage.rota_recent_games || [];
+        favorites = storage.rota_favorites || [];
+    } catch (_) {}
+
+    if (recentGames.length === 0) {
+        if (_lastRecentSig !== 'EMPTY') {
             container.innerHTML = `
                 <div class="empty-state">
                     <div class="empty-icon" style="margin-bottom:8px;"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.7"><rect x="2" y="6" width="20" height="12" rx="2"></rect><path d="M6 12h4"></path><path d="M8 10v4"></path><circle cx="15" cy="13" r="1"></circle><circle cx="18" cy="11" r="1"></circle></svg></div>
                     <div class="empty-desc">${TrackedI18n.t('emptyRecentGames')}</div>
                 </div>
             `;
-            return;
+            _lastRecentSig = 'EMPTY';
         }
-        
-        const gamesToShow = recentGames.slice(0, 10);
-        
-        // --- ADDED: Fetching Game Icons ---
-        const placeIds = gamesToShow.map(g => g.placeId);
-        
-        // 1. Resolve placeIds to universeIds
-        const query = placeIds.map(id => `placeIds=${id}`).join('&');
-        const gamesRes = await fetch(`https://games.roblox.com/v1/games/multiget-place-details?${query}`, { credentials: 'include' });
-        if (!gamesRes.ok) throw new Error('API failed');
-        const gamesData = await gamesRes.json();
+        return;
+    }
 
-        // Build ID maps — API order is not guaranteed
-        const universeToPlace = {};
-        const nameMap = {};
-        gamesData.forEach(d => {
-            if (d.universeId && d.placeId) universeToPlace[d.universeId] = d.placeId;
-            if (d.placeId && d.name) nameMap[d.placeId] = d.name;
-        });
-        const universeIds = Object.keys(universeToPlace);
+    const gamesToShow = recentGames.slice(0, 10);
+    const placeIds = gamesToShow.map(g => g.placeId);
 
-        // 2. Fetch icons for the universeIds
-        const iconsRes = await fetch(`https://thumbnails.roblox.com/v1/games/icons?universeIds=${universeIds.join(',')}&returnPolicy=PlaceHolder&size=150x150&format=Png&isCircular=false`);
-        if (!iconsRes.ok) throw new Error('API failed');
-        const iconsData = await iconsRes.json();
-
-        const iconMap = {}; // Maps placeId to imageUrl
-        if (iconsData && iconsData.data) {
-            iconsData.data.forEach((iconInfo) => {
-                const placeId = universeToPlace[iconInfo.targetId];
-                if (placeId) iconMap[placeId] = iconInfo.imageUrl;
-            });
-        }
-        
+    // İçerik bas + event bağla. İmza aynıysa hiç dokunma (flicker yok).
+    const render = (nameMap, iconMap) => {
+        const sig = gamesToShow.map(g => (nameMap[g.placeId] || g.title) + '|' + (iconMap[g.placeId] || '') + '|' + getTimeAgo(g.timestamp)).join(',')
+                  + '#' + favorites.map(f => f.placeId).join(',');
+        if (sig === _lastRecentSig) return;
+        _lastRecentSig = sig;
         container.innerHTML = gamesToShow.map(game => {
             const isAdded = favorites.some(f => String(f.placeId) === String(game.placeId));
             const timeAgo = getTimeAgo(game.timestamp);
             const checkIcon = '<polyline points="20 6 9 17 4 12"></polyline>';
             const plusIcon = '<line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line>';
-            
+
             const iconUrl = iconMap[game.placeId];
             const displayTitle = nameMap[game.placeId] || game.title;
             const iconHtml = iconUrl
@@ -2522,13 +2505,12 @@ async function loadRecentGames() {
                 </div>
             `;
         }).join('');
-        
+
         container.querySelectorAll('.recent-game-item').forEach(item => {
             item.querySelector('.btn-join-small')?.addEventListener('click', () => {
                 joinGame(item.dataset.placeId);
             });
         });
-        
         container.querySelectorAll('.recent-game-add:not(.added)').forEach(btn => {
             btn.addEventListener('click', async () => {
                 const placeId = btn.dataset.placeId;
@@ -2541,13 +2523,49 @@ async function loadRecentGames() {
                 }
             });
         });
-        
+    };
+
+    // 1) ANINDA: storage başlığı + cache'li ikon (24sa) → spinner/boş bekleme YOK
+    const cachedIcons = {};
+    try {
+        const cache = await getThumbCache();
+        const now = Date.now();
+        for (const id of placeIds) { const e = cache[String(id)]; if (e && e.url && (now - e.ts) < THUMB_CACHE_TTL) cachedIcons[id] = e.url; }
+    } catch (_) {}
+    render({}, cachedIcons);
+
+    // 2) ARKA PLAN: taze isim + EKSİK ikonlar → cache'le → yalnız değiştiyse güncelle
+    try {
+        const query = placeIds.map(id => `placeIds=${id}`).join('&');
+        const gamesRes = await fetch(`https://games.roblox.com/v1/games/multiget-place-details?${query}`, { credentials: 'include' });
+        if (!gamesRes.ok) return;   // cache zaten gösterildi
+        const gamesData = await gamesRes.json();
+        const universeToPlace = {}, nameMap = {};
+        gamesData.forEach(d => {
+            if (d.universeId && d.placeId) universeToPlace[d.universeId] = d.placeId;
+            if (d.placeId && d.name) nameMap[d.placeId] = d.name;
+        });
+
+        const iconMap = { ...cachedIcons };
+        // Yalnız cache'de OLMAYAN ikonları çek (cache'dekiler URL'sini korur → re-render/flicker yok)
+        const staleUniverses = Object.keys(universeToPlace).filter(uid => !cachedIcons[universeToPlace[uid]]);
+        if (staleUniverses.length) {
+            const iconsRes = await fetch(`https://thumbnails.roblox.com/v1/games/icons?universeIds=${staleUniverses.join(',')}&returnPolicy=PlaceHolder&size=150x150&format=Png&isCircular=false`);
+            if (iconsRes.ok) {
+                const iconsData = await iconsRes.json();
+                const freshIcons = {};
+                if (iconsData?.data) iconsData.data.forEach(info => {
+                    const pid = universeToPlace[info.targetId];
+                    if (pid && info.imageUrl) { iconMap[pid] = info.imageUrl; freshIcons[pid] = info.imageUrl; }
+                });
+                if (Object.keys(freshIcons).length) saveThumbCache(freshIcons);   // fire-and-forget
+            }
+        }
+        render(nameMap, iconMap);
     } catch (err) {
         const isNetworkBlock = err && (err.message?.includes('Failed to fetch') || err.message?.includes('NetworkError'));
-        if (!isNetworkBlock) {
-            // Sadece gerçek hatalar — ad-blocker engelleri sessizce geçer
-            console.error('[Recent Games] Load error:', err);
-        }
+        if (!isNetworkBlock) console.error('[Recent Games] Load error:', err);
+        // cache zaten gösterildi → sessizce geç
     }
 }
 
