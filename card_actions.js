@@ -18,7 +18,7 @@
     s.textContent = `
       .tk-ca-thumb { position: relative !important; }
       .tk-ca {
-        position: absolute; left: 7px; right: 7px; bottom: 7px; transform: translateY(6px);
+        position: absolute; left: 8px; right: 8px; bottom: 8px; transform: translateY(6px);
         display: flex; justify-content: space-between; z-index: 40; opacity: 0; pointer-events: none;
         transition: opacity .16s ease, transform .18s cubic-bezier(.2,.8,.25,1);
       }
@@ -26,7 +26,7 @@
         opacity: 1; pointer-events: auto; transform: translateY(0);
       }
       .tk-ca-btn {
-        width: var(--tk-ca-sz, 28px); height: var(--tk-ca-sz, 28px); border-radius: 28%; display: grid; place-items: center;
+        width: 28px; height: 28px; border-radius: 28%; display: grid; place-items: center;
         cursor: pointer; color: #fff; border: 1px solid rgba(255,255,255,.22); padding: 0;
         background: linear-gradient(160deg, #4d8bf0, #2f6ad6);
         box-shadow: 0 4px 11px rgba(20,50,120,.5), inset 0 1px 0 rgba(255,255,255,.28);
@@ -53,27 +53,6 @@
     const href = link.getAttribute('href') || '';
     const m = href.match(/\/games\/(\d{4,})/);
     return m ? m[1] : null;
-  }
-
-  // Roblox kartının üç-nokta (⋯) menü butonunu thumbnail'ın ÜST-SAĞ bölgesinde bul →
-  // { x: merkez-x (thumb soluna göre px), size: ⋯ boyutu (px) }. Bulamazsa null.
-  function findMenu(scope, tr) {
-    if (!scope || !tr || !tr.width) return null;
-    let best = null, bs = Infinity;
-    let els;
-    try { els = scope.querySelectorAll('button, [role="button"], a[aria-haspopup], [class*="menu" i], [class*="context" i], [class*="overflow" i]'); }
-    catch (_) { return null; }
-    for (const el of els) {
-      if (el.closest('.tk-ca')) continue;
-      const r = el.getBoundingClientRect();
-      if (r.width < 10 || r.width > 50 || r.height < 10 || r.height > 50) continue;
-      const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
-      const rx = (cx - tr.left) / tr.width, ry = (cy - tr.top) / tr.height;
-      if (rx < 0.62 || rx > 1.08 || ry < -0.08 || ry > 0.48) continue;   // üst-sağ bölge
-      const s = ry + (1 - rx);   // en üst-sağ olanı seç
-      if (s < bs) { bs = s; best = { x: cx - tr.left, size: Math.max(r.width, r.height) }; }
-    }
-    return best;
   }
 
   // Yön kontrollü tooltip (fixed → overflow:hidden thumb'da KESİLMEZ). dir: 'left' (sola uzar) | 'right'.
@@ -118,24 +97,6 @@
       `<button class="tk-ca-btn tk-ca-play" type="button" aria-label="Hemen oyna">${PLAY_SVG}</button>` +
       `<button class="tk-ca-btn tk-ca-ap" type="button" aria-label="Oto-Pilot">${AP_SVG}</button>`;
     thumb.appendChild(ov);
-
-    // Butonları Roblox'un üç-nokta (⋯) menüsüyle hizala + BOYUTUNU eşitle: SAĞ buton ⋯'nin
-    // altına ve aynı boyuta, SOL buton simetrik karşısına. ⋯ hover'da gelebilir → ilk hover'da tekrar dener.
-    const realign = () => {
-      try {
-        const tr = thumb.getBoundingClientRect();
-        const m = findMenu(link.parentElement || link, tr);
-        if (m && tr.width > 40) {
-          const sz = Math.max(20, Math.min(40, Math.round(m.size)));
-          const inset = Math.max(4, Math.min(tr.width / 2 - sz / 2 - 2, Math.round(tr.width - m.x - sz / 2)));
-          ov.style.left = inset + 'px'; ov.style.right = inset + 'px';
-          ov.style.setProperty('--tk-ca-sz', sz + 'px');
-          return true;
-        }
-      } catch (_) {}
-      return false;
-    };
-    if (!realign()) link.addEventListener('mouseenter', function once() { if (realign()) link.removeEventListener('mouseenter', once); });
 
     const playBtn = ov.querySelector('.tk-ca-play');
     const apBtn = ov.querySelector('.tk-ca-ap');
