@@ -224,9 +224,9 @@
 
     const playBtn = ov.querySelector('.tk-ca-play');
     const apBtn = ov.querySelector('.tk-ca-ap');
-    privBtn.addEventListener('mouseenter', () => showTip(privBtn, 'Özel sunucu (bedava)', 'left'));   // sola uzar
+    privBtn.addEventListener('mouseenter', () => showTip(privBtn, 'Özel sunucu', 'left'));   // sola uzar
     playBtn.addEventListener('mouseenter', () => showTip(playBtn, 'Oyna', 'left'));   // sola uzar
-    apBtn.addEventListener('mouseenter', () => showTip(apBtn, 'Oto-Pilot — en yakın sunucuya bağlan', 'right')); // sağa uzar
+    apBtn.addEventListener('mouseenter', () => showTip(apBtn, 'Oto-pilot', 'right')); // sağa uzar
     privBtn.addEventListener('mouseleave', hideTip);
     playBtn.addEventListener('mouseleave', hideTip);
     apBtn.addEventListener('mouseleave', hideTip);
