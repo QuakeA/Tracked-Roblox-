@@ -115,7 +115,8 @@
     },
     {
       "matches": [
-        "https://www.roblox.com/games/*"
+        "https://www.roblox.com/games/*",
+        "https://www.roblox.com/*/games/*"
       ],
       "css": [
         "content_styles.css",
@@ -137,7 +138,8 @@
     },
     {
       "matches": [
-        "https://www.roblox.com/games/*"
+        "https://www.roblox.com/games/*",
+        "https://www.roblox.com/*/games/*"
       ],
       "js": [
         "tracked_debug.js",
@@ -150,7 +152,8 @@
         "https://www.roblox.com/*"
       ],
       "exclude_matches": [
-        "https://www.roblox.com/games/*"
+        "https://www.roblox.com/games/*",
+        "https://www.roblox.com/*/games/*"
       ],
       "css": [
         "content_styles.css"
@@ -167,7 +170,8 @@
     },
     {
       "matches": [
-        "https://www.roblox.com/games/*"
+        "https://www.roblox.com/games/*",
+        "https://www.roblox.com/*/games/*"
       ],
       "js": [
         "tracked_debug.js",
@@ -182,7 +186,9 @@
     {
       "matches": [
         "https://www.roblox.com/users/*/inventory*",
-        "https://www.roblox.com/users/inventory*"
+        "https://www.roblox.com/users/inventory*",
+        "https://www.roblox.com/*/users/*/inventory*",
+        "https://www.roblox.com/*/users/inventory*"
       ],
       "js": [
         "tracked_debug.js",
@@ -193,7 +199,8 @@
     },
     {
       "matches": [
-        "https://www.roblox.com/users/*/profile*"
+        "https://www.roblox.com/users/*/profile*",
+        "https://www.roblox.com/*/users/*/profile*"
       ],
       "js": [
         "tracked_debug.js",
@@ -204,7 +211,8 @@
     },
     {
       "matches": [
-        "https://www.roblox.com/catalog/*"
+        "https://www.roblox.com/catalog/*",
+        "https://www.roblox.com/*/catalog/*"
       ],
       "js": [
         "tracked_debug.js",
@@ -215,7 +223,9 @@
     {
       "matches": [
         "https://www.roblox.com/my/avatar*",
-        "https://www.roblox.com/users/*/avatar*"
+        "https://www.roblox.com/users/*/avatar*",
+        "https://www.roblox.com/*/my/avatar*",
+        "https://www.roblox.com/*/users/*/avatar*"
       ],
       "js": [
         "tracked_debug.js",
