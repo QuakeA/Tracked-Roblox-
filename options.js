@@ -24,7 +24,13 @@
     const cl = localStorage.getItem('tk_opt_changelog_badge');
     if (cl !== null) { const b = document.getElementById('changelog-badge'); if (b) b.style.display = cl === '1' ? '' : 'none'; }
   } catch (_) {}
-  // Önbellek vardı → toggle + Plus kuruldu → içeriği ANINDA göster (yoksa loadSettings+Plus sonrası açılır)
+  // Sürüm etiketi (manifest, SENKRON) → reveal'da "v—" placeholder görünmesin
+  try {
+    const v = 'v' + chrome.runtime.getManifest().version;
+    const vp = document.getElementById('version-pill'); if (vp) vp.textContent = v;
+    const fv = document.getElementById('footer-version'); if (fv) fv.textContent = 'Tracked ' + v;
+  } catch (_) {}
+  // Önbellek vardı → toggle+Plus+changelog+sürüm kuruldu → içeriği ANINDA aç (yoksa loadSettings+... sonrası açılır)
   if (haveToggles) document.documentElement.classList.remove('tk-pre');
 })();
 
@@ -107,9 +113,12 @@ let currentSettings = { ...DEFAULT_SETTINGS };
 
 document.addEventListener('DOMContentLoaded', async () => {
     loadVersionInfo();
-    await loadSettings();
-    try { await loadPlusStatus(); } catch (_) {}   // Plus durumu da kurulsun → reveal'da yükseklik kayması olmaz
-    // Toggle + Plus kuruldu → içeriği aç (FOUC + kayma bitti). tk-pre <head>'de eklenmişti.
+    // KÖK ÇÖZÜM: reveal'dan ÖNCE görünür durumu etkileyen HER ŞEYİ bekle → açılınca hiçbir şey değişmez/flaş etmez.
+    await loadSettings();                           // toggle'lar, girdiler, dil değeri
+    try { await loadPlusStatus(); } catch (_) {}    // Plus kutusu (Aktif/Ücretsiz, yükseklik)
+    try { await setupChangelog(); } catch (_) {}    // Sürüm Notları kırmızı noktası + changelog içeriği
+    applyTranslations();                            // dil etiketleri (TR→EN flash olmasın)
+    // Her şey kurulu → içeriği TEK SEFERDE aç. (Önbellekli açılışta IIFE zaten erkenden açtı.)
     try { document.documentElement.classList.remove('tk-pre'); } catch (_) {}
     setupStepperControls();
     setupSmartLanguageSelector();
@@ -117,10 +126,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     setupScrollSpy();
     setupProbeActions();
     setupDataActions();
-    applyTranslations();
     loadDiagnostics();
     clearUnsaved();
-    setupChangelog();
     setupPlus();
 });
 

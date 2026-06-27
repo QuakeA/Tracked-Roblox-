@@ -9,11 +9,11 @@
   <style>
     /* Scrollbar yerini HER ZAMAN ayır → içerik yüksekliği değişince (Plus kutusu vb.) genişlik kaymaz. */
     html { scrollbar-gutter: stable; }
-    /* Ayar (toggle + Plus durumu) yüklenene kadar yalnız İÇERİK alanını (<main>) gizle → hiçbir yanlış
-       durum/kayma görünmez. SIDEBAR (.toc) gizlenmez → hep görünür, flash etmez. Önbellekli açılışta
-       options.js IIFE'si senkron kurup ANINDA açar; ilkinde loadSettings+loadPlusStatus sonrası açılır. */
-    html.tk-pre main { opacity: 0; }
-    main { transition: opacity .18s ease; }
+    /* KÖK ÇÖZÜM: TÜM içerik (sidebar + main + her dinamik eleman) HER ŞEY hazır olana kadar görünmez.
+       visibility (opacity-fade DEĞİL) → açılınca ANINDA belirir, fade/flash yok. Önbellekli açılışta
+       options.js IIFE'si toggle+Plus+changelog'u senkron kurup ANINDA açar (F5'te göze çarpmaz);
+       ilk açılışta loadSettings+loadPlusStatus+setupChangelog bitince tek seferde açılır. Arka plan açık. */
+    html.tk-pre .layout { visibility: hidden; }
   </style>
   <!-- Toggle FOUC önleme: paint öncesi tk-pre ekler (inline script CSP'ye takıldığı için ayrı dosya) -->
   <script src="options_preload.js"></script>
