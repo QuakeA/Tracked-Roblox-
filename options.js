@@ -12,6 +12,11 @@
       document.documentElement.classList.remove('tk-pre');   // doğru durumla ANINDA göster
     }
   } catch (_) {}
+  // Plus kutusunu da senkron kur → "Ücretsiz/Plus'a Yükselt → Aktif" sıçraması + altın layout kayması olmasın
+  try {
+    const p = JSON.parse(localStorage.getItem('tk_opt_plus') || 'null');
+    if (p && typeof p === 'object') applyPlusState(p);
+  } catch (_) {}
 })();
 
 const DEFAULT_SETTINGS = {
@@ -112,20 +117,27 @@ document.addEventListener('DOMContentLoaded', async () => {
 // ── Tracked Plus (Lemon Squeezy lisans) ──
 const PLUS_CHECKOUT_URL = 'https://tracked.lemonsqueezy.com/buy/REPLACE-ME'; // TODO: gerçek checkout URL
 function setPlusMsg(t, cls) { if (!ui.plusMsg) return; ui.plusMsg.textContent = t; ui.plusMsg.className = 'plus-msg ' + (cls || ''); }
+// Plus durumunu DOM'a uygula — loadPlusStatus + açılıştaki SENKRON önbellek ORTAK kullanır.
+// getElementById ile (ui henüz kurulmamış olabilir, IIFE'den de çağrılıyor). Function decl = hoisted.
+function applyPlusState(p) {
+    const badge = document.getElementById('plus-badge');
+    if (badge) {
+        badge.classList.remove('active', 'trial');
+        if (p.isPlus) { badge.textContent = 'Aktif'; badge.classList.add('active'); }
+        else if (p.status === 'expired') badge.textContent = 'Süresi Dolmuş';
+        else badge.textContent = 'Ücretsiz';
+    }
+    const name = document.getElementById('plus-name'); if (name) name.textContent = p.name || '';
+    const deact = document.getElementById('plus-deactivate'); if (deact) deact.style.display = p.hasKey ? '' : 'none';
+    const upg = document.getElementById('plus-upgrade'); if (upg) upg.style.display = p.isPlus ? 'none' : '';
+    const key = document.getElementById('plus-key'); if (key && p.hasKey && p.keyMasked) key.placeholder = p.keyMasked;
+}
 async function loadPlusStatus() {
     let r = null;
     try { r = await chrome.runtime.sendMessage({ action: 'licenseGet' }); } catch (_) {}
-    const isPlus = !!(r && r.isPlus), status = (r && r.status) || 'free';
-    if (ui.plusBadge) {
-        ui.plusBadge.classList.remove('active', 'trial');
-        if (isPlus) { ui.plusBadge.textContent = 'Aktif'; ui.plusBadge.classList.add('active'); }
-        else if (status === 'expired') ui.plusBadge.textContent = 'Süresi Dolmuş';
-        else ui.plusBadge.textContent = 'Ücretsiz';
-    }
-    if (ui.plusName) ui.plusName.textContent = (r && r.name) || '';
-    if (ui.plusDeactivate) ui.plusDeactivate.style.display = (r && r.hasKey) ? '' : 'none';
-    if (ui.plusKey && r && r.hasKey && r.keyMasked) ui.plusKey.placeholder = r.keyMasked;
-    if (ui.plusUpgrade) ui.plusUpgrade.style.display = isPlus ? 'none' : '';
+    const p = { isPlus: !!(r && r.isPlus), status: (r && r.status) || 'free', hasKey: !!(r && r.hasKey), name: (r && r.name) || '', keyMasked: (r && r.keyMasked) || '' };
+    applyPlusState(p);
+    try { localStorage.setItem('tk_opt_plus', JSON.stringify(p)); } catch (_) {}   // sonraki açılış FOUC'suz
 }
 async function activateLicense() {
     const key = (ui.plusKey?.value || '').trim();
