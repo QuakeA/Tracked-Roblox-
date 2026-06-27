@@ -117,7 +117,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     // PARALEL (sıralı await değil) → ilk açılış bekleme süresi ~3 kat azalır (hepsi bağımsız storage okuması).
     await Promise.allSettled([loadSettings(), loadPlusStatus(), setupChangelog()]);
     applyTranslations();                            // dil etiketleri (loadSettings dili kurduktan sonra)
-    // Her şey kurulu → içeriği TEK SEFERDE aç. (Önbellekli açılışta IIFE zaten erkenden açtı.)
+    // KRİTİK: tk-pre kalkmadan ÖNCE zorlanmış reflow → toggle 'checked' durumu (transition:none iken)
+    // COMMIT edilsin. Yoksa tarayıcı set-checked + transition-restore'u batch'leyip knob'u 0→20 KAYDIRIYOR
+    // (ilk açılış FOUC'u). Önbellekli açılışta IIFE ilk-paint öncesi yaptığı için bu gerekmez.
+    void document.documentElement.offsetHeight;
+    // Her şey kurulu → içeriği TEK SEFERDE aç.
     try { document.documentElement.classList.remove('tk-pre'); } catch (_) {}
     setupStepperControls();
     setupSmartLanguageSelector();
