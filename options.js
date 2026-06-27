@@ -114,10 +114,9 @@ let currentSettings = { ...DEFAULT_SETTINGS };
 document.addEventListener('DOMContentLoaded', async () => {
     loadVersionInfo();
     // KÖK ÇÖZÜM: reveal'dan ÖNCE görünür durumu etkileyen HER ŞEYİ bekle → açılınca hiçbir şey değişmez/flaş etmez.
-    await loadSettings();                           // toggle'lar, girdiler, dil değeri
-    try { await loadPlusStatus(); } catch (_) {}    // Plus kutusu (Aktif/Ücretsiz, yükseklik)
-    try { await setupChangelog(); } catch (_) {}    // Sürüm Notları kırmızı noktası + changelog içeriği
-    applyTranslations();                            // dil etiketleri (TR→EN flash olmasın)
+    // PARALEL (sıralı await değil) → ilk açılış bekleme süresi ~3 kat azalır (hepsi bağımsız storage okuması).
+    await Promise.allSettled([loadSettings(), loadPlusStatus(), setupChangelog()]);
+    applyTranslations();                            // dil etiketleri (loadSettings dili kurduktan sonra)
     // Her şey kurulu → içeriği TEK SEFERDE aç. (Önbellekli açılışta IIFE zaten erkenden açtı.)
     try { document.documentElement.classList.remove('tk-pre'); } catch (_) {}
     setupStepperControls();
