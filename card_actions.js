@@ -174,13 +174,16 @@
     return best;
   }
 
-  // ⋯'nin konumunu BİR KEZ ölç → global --tk-ca-inset (tüm kartlara uygulanır, tutarlı + ⋯ ile hizalı).
-  // ⋯ sağ-kenardan hep aynı px uzaklıkta olduğu için tek ölçüm tüm kartlara yeter.
+  // ⋯'nin konumunu ölç → --tk-ca-inset (oto-pilot butonu ⋯'nin TAM altına hizalanır).
+  // ov verilirse → O KARTA ÖZEL inset (ov.style'a yazılır, global'i ezer) → farklı boyutlu kartlarda
+  //   (home/arama/profil'de ⋯ ofseti değişebilir) kart-bazlı kesin hizalama → "ara sıra kayma" biter.
+  // ov yoksa → ilk başarılı ölçümde global default (henüz hover edilmemiş kartlar bir konum göstersin).
   const BTN = 32;        // .tk-ca-btn boyutuyla aynı
   const NUDGE_LEFT = 0;  // 0 = ölçülen ⋯ merkezine matematiksel kesin hizalama (göz kararı fudge yok)
   let _insetSet = false;
-  function measureInset(scope, thumb) {
-    if (_insetSet) return;
+  function measureInset(scope, thumb, ov) {
+    if (!ov && _insetSet) return;       // global default bir kez yeter
+    if (ov && ov._insetDone) return;    // kart-bazlı: her kart için bir kez
     try {
       const tr = thumb.getBoundingClientRect();
       const r = findMenuRect(scope, tr);
@@ -189,8 +192,8 @@
         const menuCx = r.left + r.width / 2;
         const inset = (tr.right - menuCx) - BTN / 2 + NUDGE_LEFT;
         const clamped = Math.max(4, Math.min(Math.floor(tr.width / 2 - BTN - 4), inset));
-        document.documentElement.style.setProperty('--tk-ca-inset', clamped + 'px');
-        _insetSet = true;
+        if (ov) { ov.style.setProperty('--tk-ca-inset', clamped + 'px'); ov._insetDone = true; }
+        else { document.documentElement.style.setProperty('--tk-ca-inset', clamped + 'px'); _insetSet = true; }
       }
     } catch (_) {}
   }
@@ -234,7 +237,7 @@
     measureInset(scope, thumb);
     // Özel sunucu durumu yalnız HOVER'da sorulur (her kart için kitlesel API çağrısı olmasın).
     link.addEventListener('mouseenter', function once() {
-      measureInset(scope, thumb);
+      measureInset(scope, thumb, ov);   // bu KARTA özel inset (hover'da ⋯ görünür → kesin ölçüm)
       checkPriv(placeId, ov, privBtn);
       link.removeEventListener('mouseenter', once);
     });
