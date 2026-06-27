@@ -132,7 +132,7 @@
       #${PANE_ID} .tk-board{display:flex;gap:16px;overflow-x:auto;overflow-y:hidden;padding:16px 4px 20px;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.26) transparent;}
       #${PANE_ID} .tk-board::-webkit-scrollbar{height:11px;}
       #${PANE_ID} .tk-board::-webkit-scrollbar-thumb{background:rgba(255,255,255,.22);border-radius:8px;border:2px solid transparent;background-clip:content-box;}
-      #${PANE_ID} .tk-col{flex:0 0 345px;max-width:345px;max-height:920px;display:flex;flex-direction:column;
+      #${PANE_ID} .tk-col{flex:0 0 345px;max-width:345px;max-height:min(560px,72vh);display:flex;flex-direction:column;
         background:linear-gradient(180deg,rgba(27,30,38,.975),rgba(20,22,29,.985));
         border:1px solid rgba(255,255,255,.09);border-radius:16px;padding:13px 11px 11px;
         box-shadow:0 12px 32px rgba(0,0,0,.42);backdrop-filter:blur(6px);}
