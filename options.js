@@ -18,6 +18,12 @@
     const p = JSON.parse(localStorage.getItem('tk_opt_plus') || 'null');
     if (p && typeof p === 'object') applyPlusState(p);
   } catch (_) {}
+  // Sidebar'daki Sürüm Notları kırmızı noktası (changelog "okunmadı") — önbellekten senkron
+  // (sidebar gizlenmediği için bu nokta async gelince sonradan beliriyordu → flash).
+  try {
+    const cl = localStorage.getItem('tk_opt_changelog_badge');
+    if (cl !== null) { const b = document.getElementById('changelog-badge'); if (b) b.style.display = cl === '1' ? '' : 'none'; }
+  } catch (_) {}
   // Önbellek vardı → toggle + Plus kuruldu → içeriği ANINDA göster (yoksa loadSettings+Plus sonrası açılır)
   if (haveToggles) document.documentElement.classList.remove('tk-pre');
 })();
@@ -1083,11 +1089,14 @@ async function setupChangelog() {
 
     // Okunmamış sürüm varsa badge göster
     const { rota_changelog_seen: seen } = await chrome.storage.local.get('rota_changelog_seen');
-    if (seen !== CURRENT && badge) badge.style.display = '';
+    const unseen = seen !== CURRENT;
+    if (unseen && badge) badge.style.display = '';
+    try { localStorage.setItem('tk_opt_changelog_badge', unseen ? '1' : '0'); } catch (_) {}   // sonraki açılış senkron
 
     // Sürüm Notları nav'a tıklanınca → okundu say
     document.getElementById('toc-changelog')?.addEventListener('click', async () => {
         if (badge) badge.style.display = 'none';
+        try { localStorage.setItem('tk_opt_changelog_badge', '0'); } catch (_) {}
         await chrome.storage.local.set({ rota_changelog_seen: CURRENT });
     });
 
@@ -1097,6 +1106,7 @@ async function setupChangelog() {
     const obs = new IntersectionObserver(([entry]) => {
         if (entry.isIntersecting) {
             if (badge) badge.style.display = 'none';
+            try { localStorage.setItem('tk_opt_changelog_badge', '0'); } catch (_) {}
             chrome.storage.local.set({ rota_changelog_seen: CURRENT });
             obs.disconnect();
         }
