@@ -710,6 +710,14 @@ function fixCardTextBorders() {
     el.style.setProperty('outline', 'none', 'important');
     el.style.setProperty('background-color', 'transparent', 'important');
   });
+  // "By X" yaratıcı pill'i + caption/info içindeki diğer alt-öğeler: gelişmiş kart modu
+  // (tke-card-adv) bunlardaki bg-surface'leri accent-tint ile boyuyor (katalogda KIRMIZI pill).
+  // CSS'teki `.item-card-caption *` transparent kuralı, card-adv'nin yüksek özgüllüğünü
+  // (≈0,12,2) yenemediği için işe yaramıyor → inline ile kesin sıfırla. (Yalnız metin/caption
+  // alanı; kart gövdesine DOKUNMA → kartın kendi arka planı korunur.) Observer async kartları tarıyor.
+  document.querySelectorAll('.item-card-caption *,.game-card-info *,.game-card-name *,.game-card-price-container *').forEach(el => {
+    el.style.setProperty('background-color', 'transparent', 'important');
+  });
 }
 
 function onNavChange(rawUrl) {
