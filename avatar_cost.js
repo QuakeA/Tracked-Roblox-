@@ -147,17 +147,9 @@
       const key = ids.slice().sort().join(',');
       if (key === lastIdsKey) { busy = false; return; }
       lastIdsKey = key;
-      setLabel(0, 0, ids.length, true);
-      // fiyat map'i (catalog data)
-      const pmap = new Map();
-      (resp.prices || []).forEach(it => pmap.set(it.id, (typeof it.price === 'number') ? it.price : null));
-      let total = 0, offsale = 0;
-      ids.forEach(id => {
-        const p = pmap.get(id);
-        if (typeof p === 'number' && p > 0) total += p;
-        else offsale++;
-      });
-      setLabel(total, offsale, ids.length, false);
+      // Toplam değer + satışta-değil sayısı SW'de hesaplanır (BUNDLE-farkında: karakter/gövde
+      // bundle'ları tek tek satılmaz → bundle fiyatı bir kez sayılır; limited resale floor dahil).
+      setLabel(resp.total || 0, resp.offsale || 0, ids.length, false);
     } catch (_) { /* sessiz */ }
     busy = false;
   }

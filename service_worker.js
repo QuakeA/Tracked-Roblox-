@@ -411,22 +411,57 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         if (!av.ok) { sendResponse({ ok: false, error: "avatar_" + av.status }); return; }
         const avd = await av.json();
         const ids = (avd.assets || []).map(a => a.id).filter(Boolean);
-        if (!ids.length) { sendResponse({ ok: true, ids: [], prices: [] }); return; }
-        // 2) Fiyatlar — catalog batch (CSRF 403-retry)
-        const body = JSON.stringify({ items: ids.map(id => ({ itemType: "Asset", id })) });
-        const doPost = (tok) => fetch("https://catalog.roblox.com/v1/catalog/items/details", {
-          method: "POST", credentials: "include",
-          headers: { "Content-Type": "application/json", "X-CSRF-TOKEN": tok || "", "Accept": "application/json" },
-          body
-        });
-        let pr = await doPost("");
-        if (pr.status === 403) {
-          const t = pr.headers.get("x-csrf-token");
-          if (t) pr = await doPost(t);
+        if (!ids.length) { sendResponse({ ok: true, ids: [], total: 0, offsale: 0 }); return; }
+        // catalog/items/details — CSRF 403-retry helper → data[]
+        const csrfDetails = async (itemsArr) => {
+          const body = JSON.stringify({ items: itemsArr });
+          const doPost = (tok) => fetch("https://catalog.roblox.com/v1/catalog/items/details", {
+            method: "POST", credentials: "include",
+            headers: { "Content-Type": "application/json", "X-CSRF-TOKEN": tok || "", "Accept": "application/json" }, body
+          });
+          let r = await doPost("");
+          if (r.status === 403) { const t = r.headers.get("x-csrf-token"); if (t) r = await doPost(t); }
+          return r.ok ? ((await r.json()).data || []) : [];
+        };
+        const usable = (it) => (typeof it.price === "number") ? it.price
+                             : (typeof it.lowestPrice === "number") ? it.lowestPrice : null;  // satış ya da resale floor
+        // 2) Bireysel asset fiyatları
+        const aDetails = await csrfDetails(ids.map(id => ({ itemType: "Asset", id })));
+        const priceOf = {};
+        aDetails.forEach(it => { priceOf[it.id] = usable(it); });
+        // 3) Fiyatsız asset'ler → ait oldukları BUNDLE'ı bul. Karakter/gövde bundle'ları (ör. Mini
+        //    Rabbit) tek tek satılmaz; satılan bundle'dır → bundle başına BİR kez say (dedupe).
+        const noPrice = ids.filter(id => priceOf[id] == null);
+        const bundleOf = {};
+        await Promise.all(noPrice.map(async id => {
+          try {
+            const br = await fetch(`https://catalog.roblox.com/v1/assets/${id}/bundles`, { credentials: "include" });
+            if (!br.ok) return;
+            const bd = await br.json();
+            const arr = Array.isArray(bd) ? bd : (bd.data || []);
+            if (arr.length && arr[0] && arr[0].id != null) bundleOf[id] = arr[0].id;
+          } catch (_) {}
+        }));
+        const bundleIds = [...new Set(Object.values(bundleOf))];
+        const bundlePrice = {};
+        if (bundleIds.length) {
+          const bDetails = await csrfDetails(bundleIds.map(id => ({ itemType: "Bundle", id })));
+          bDetails.forEach(it => { bundlePrice[it.id] = usable(it); });
         }
-        let prices = [];
-        if (pr.ok) { const pd = await pr.json(); prices = pd.data || []; }
-        sendResponse({ ok: true, ids, prices });
+        // 4) Toplam: bireysel fiyatlar + benzersiz bundle fiyatları; kalan = satışta değil
+        let total = 0, offsale = 0;
+        const counted = new Set();
+        ids.forEach(id => {
+          const p = priceOf[id];
+          if (typeof p === "number" && p > 0) { total += p; return; }
+          const bId = bundleOf[id];
+          if (bId != null && typeof bundlePrice[bId] === "number" && bundlePrice[bId] > 0) {
+            if (!counted.has(bId)) { total += bundlePrice[bId]; counted.add(bId); }
+            return;   // bundle parçası → bundle fiyatına dahil, offsale sayma
+          }
+          offsale++;
+        });
+        sendResponse({ ok: true, ids, total, offsale });
       } catch (e) {
         sendResponse({ ok: false, error: String(e && e.message || e) });
       }
