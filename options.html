@@ -7,12 +7,13 @@
   <link rel="stylesheet" href="options.css">
   <link rel="stylesheet" href="lib/flags.css">
   <style>
-    /* Ayar (toggle + Plus durumu + layout) tamamen yüklenene kadar TÜM içeriği gizle → hiçbir yanlış
-       durum (kapalı toggle / "Plus'a Yükselt") ne de yükseklik-kayması görünmez. Önbellekli açılışta
-       options.js IIFE'si senkron kurup ANINDA açar; ilk açılışta loadSettings+loadPlusStatus sonrası açılır.
-       Arka plan (.bg-noise) açık kalır → boş ekran değil, koyu zemin görünür. */
-    html.tk-pre .layout { opacity: 0; }
-    .layout { transition: opacity .18s ease; }
+    /* Scrollbar yerini HER ZAMAN ayır → içerik yüksekliği değişince (Plus kutusu vb.) genişlik kaymaz. */
+    html { scrollbar-gutter: stable; }
+    /* Ayar (toggle + Plus durumu) yüklenene kadar yalnız İÇERİK alanını (<main>) gizle → hiçbir yanlış
+       durum/kayma görünmez. SIDEBAR (.toc) gizlenmez → hep görünür, flash etmez. Önbellekli açılışta
+       options.js IIFE'si senkron kurup ANINDA açar; ilkinde loadSettings+loadPlusStatus sonrası açılır. */
+    html.tk-pre main { opacity: 0; }
+    main { transition: opacity .18s ease; }
   </style>
   <!-- Toggle FOUC önleme: paint öncesi tk-pre ekler (inline script CSP'ye takıldığı için ayrı dosya) -->
   <script src="options_preload.js"></script>
