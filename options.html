@@ -7,12 +7,12 @@
   <link rel="stylesheet" href="options.css">
   <link rel="stylesheet" href="lib/flags.css">
   <style>
-    /* Ayar yüklenene kadar toggle'ları gizle → açılışta "kapalı→yeşil" sıçraması (FOUC) olmasın.
-       KRİTİK: gizliyken slider animasyonunu da KAPAT → checked set edilince knob/renk kaymadan
-       ANINDA oturur (gizliyken). Sonra .switch opacity ile statik-yeşil belirir. Kayma görünmez. */
-    html.tk-pre .switch { opacity: 0; }
-    html.tk-pre .slider, html.tk-pre .slider::before { transition: none !important; }
-    .switch { transition: opacity .2s ease; }
+    /* Ayar (toggle + Plus durumu + layout) tamamen yüklenene kadar TÜM içeriği gizle → hiçbir yanlış
+       durum (kapalı toggle / "Plus'a Yükselt") ne de yükseklik-kayması görünmez. Önbellekli açılışta
+       options.js IIFE'si senkron kurup ANINDA açar; ilk açılışta loadSettings+loadPlusStatus sonrası açılır.
+       Arka plan (.bg-noise) açık kalır → boş ekran değil, koyu zemin görünür. */
+    html.tk-pre .layout { opacity: 0; }
+    .layout { transition: opacity .18s ease; }
   </style>
   <!-- Toggle FOUC önleme: paint öncesi tk-pre ekler (inline script CSP'ye takıldığı için ayrı dosya) -->
   <script src="options_preload.js"></script>

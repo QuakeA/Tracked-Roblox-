@@ -5,18 +5,21 @@
 // yol açıyordu. Bu önbellek her load + save'de tazelenir; ilk açılışta yoksa <head>'deki tk-pre hide
 // devreye girer (loadSettings'e kadar gizler). options.js body sonunda yüklendiği için toggle'lar burada hazır.
 (function () {
+  let haveToggles = false;
   try {
     const c = JSON.parse(localStorage.getItem('tk_opt_toggles') || 'null');
     if (c && typeof c === 'object') {
       for (const id in c) { const el = document.getElementById(id); if (el) el.checked = !!c[id]; }
-      document.documentElement.classList.remove('tk-pre');   // doğru durumla ANINDA göster
+      haveToggles = true;
     }
   } catch (_) {}
-  // Plus kutusunu da senkron kur → "Ücretsiz/Plus'a Yükselt → Aktif" sıçraması + altın layout kayması olmasın
+  // Plus kutusunu da senkron kur → "Plus'a Yükselt → Aktif" sıçraması + yükseklik kayması olmasın
   try {
     const p = JSON.parse(localStorage.getItem('tk_opt_plus') || 'null');
     if (p && typeof p === 'object') applyPlusState(p);
   } catch (_) {}
+  // Önbellek vardı → toggle + Plus kuruldu → içeriği ANINDA göster (yoksa loadSettings+Plus sonrası açılır)
+  if (haveToggles) document.documentElement.classList.remove('tk-pre');
 })();
 
 const DEFAULT_SETTINGS = {
@@ -99,7 +102,8 @@ let currentSettings = { ...DEFAULT_SETTINGS };
 document.addEventListener('DOMContentLoaded', async () => {
     loadVersionInfo();
     await loadSettings();
-    // Ayarlar uygulandı → toggle'ları aç (FOUC sıçraması bitti). tk-pre <head>'de eklenmişti.
+    try { await loadPlusStatus(); } catch (_) {}   // Plus durumu da kurulsun → reveal'da yükseklik kayması olmaz
+    // Toggle + Plus kuruldu → içeriği aç (FOUC + kayma bitti). tk-pre <head>'de eklenmişti.
     try { document.documentElement.classList.remove('tk-pre'); } catch (_) {}
     setupStepperControls();
     setupSmartLanguageSelector();
