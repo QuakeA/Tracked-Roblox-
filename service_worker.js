@@ -430,31 +430,46 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         const priceOf = {};
         aDetails.forEach(it => { priceOf[it.id] = usable(it); });
         // 3) Fiyatsız asset'ler → ait oldukları BUNDLE'ı bul. Karakter/gövde bundle'ları (ör. Mini
-        //    Rabbit) tek tek satılmaz; satılan bundle'dır → bundle başına BİR kez say (dedupe).
+        //    Rabbit) tek tek satılmaz; satılan bundle'dır. AMA bir asset BİRDEN ÇOK bundle'a ait
+        //    olabilir (paylaşılan kafa/yüz, ör. 10 bundle) → ilk bundle'ı körü körüne saymak YANLIŞ
+        //    fiyat verir. DÜRÜST kural: asset tek bundle'a aitse onu seç; çok bundle'a aitse,
+        //    kullanıcının ≥2 fiyatsız parçasını giydiği ORTAK bundle'ı seç (giyilen set sinyali);
+        //    netleşmezse TAHMİN ETME → satışta değil say.
         const noPrice = ids.filter(id => priceOf[id] == null);
-        const bundleOf = {};
+        const assetBundles = {};   // assetId -> [bundleId...]
         await Promise.all(noPrice.map(async id => {
           try {
             const br = await fetch(`https://catalog.roblox.com/v1/assets/${id}/bundles`, { credentials: "include" });
             if (!br.ok) return;
             const bd = await br.json();
             const arr = Array.isArray(bd) ? bd : (bd.data || []);
-            if (arr.length && arr[0] && arr[0].id != null) bundleOf[id] = arr[0].id;
+            assetBundles[id] = arr.map(b => b && b.id).filter(x => x != null);
           } catch (_) {}
         }));
-        const bundleIds = [...new Set(Object.values(bundleOf))];
+        const memberCount = {};    // bundleId -> giyilen kaç fiyatsız asset onu içeriyor
+        for (const id of noPrice) for (const bId of (assetBundles[id] || [])) memberCount[bId] = (memberCount[bId] || 0) + 1;
+        const chosen = {};         // assetId -> seçilen bundleId
+        for (const id of noPrice) {
+          const bs = assetBundles[id] || [];
+          if (bs.length === 1) { chosen[id] = bs[0]; continue; }          // tek bundle → kesin
+          let best = null, bestN = 1;
+          for (const bId of bs) if (memberCount[bId] > bestN) { bestN = memberCount[bId]; best = bId; }
+          if (best != null) chosen[id] = best;                            // ≥2 giyilen parça paylaşıyor → giyilen bundle
+          // aksi halde belirsiz → chosen yok → offsale (tahmin yok)
+        }
+        const bundleIds = [...new Set(Object.values(chosen))];
         const bundlePrice = {};
         if (bundleIds.length) {
           const bDetails = await csrfDetails(bundleIds.map(id => ({ itemType: "Bundle", id })));
           bDetails.forEach(it => { bundlePrice[it.id] = usable(it); });
         }
-        // 4) Toplam: bireysel fiyatlar + benzersiz bundle fiyatları; kalan = satışta değil
+        // 4) Toplam: bireysel fiyatlar + benzersiz seçilen bundle fiyatları; kalan = satışta değil
         let total = 0, offsale = 0;
         const counted = new Set();
         ids.forEach(id => {
           const p = priceOf[id];
           if (typeof p === "number" && p > 0) { total += p; return; }
-          const bId = bundleOf[id];
+          const bId = chosen[id];
           if (bId != null && typeof bundlePrice[bId] === "number" && bundlePrice[bId] > 0) {
             if (!counted.has(bId)) { total += bundlePrice[bId]; counted.add(bId); }
             return;   // bundle parçası → bundle fiyatına dahil, offsale sayma
