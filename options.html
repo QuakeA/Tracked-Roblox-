@@ -14,6 +14,10 @@
        options.js IIFE'si toggle+Plus+changelog'u senkron kurup ANINDA açar (F5'te göze çarpmaz);
        ilk açılışta loadSettings+loadPlusStatus+setupChangelog bitince tek seferde açılır. Arka plan açık. */
     html.tk-pre .layout { visibility: hidden; }
+    /* KRİTİK: gizliyken (durum kurulurken) toggle slider animasyonunu KAPAT → checked set edilince
+       beyaz top KAYMADAN anında oturur. Açılınca statik görünür; kayma asla görünmez. (Açıldıktan
+       sonra transition geri gelir, normal tıklama animasyonu çalışır.) */
+    html.tk-pre .slider, html.tk-pre .slider::before { transition: none !important; }
   </style>
   <!-- Toggle FOUC önleme: paint öncesi tk-pre ekler (inline script CSP'ye takıldığı için ayrı dosya) -->
   <script src="options_preload.js"></script>
