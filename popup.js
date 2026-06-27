@@ -179,6 +179,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.body.classList.add('reduced-motion');
     }
 
+    // Footer sürümü: manifest'ten DİNAMİK oku → bir daha bayatlamaz (sidepanel ile aynı desen)
+    try {
+        const pv = document.getElementById('popup-version');
+        if (pv) pv.textContent = 'v' + chrome.runtime.getManifest().version;
+    } catch (_) {}
+
     // v3.7: Apply language from settings
     if (state.settings.language) {
         TrackedI18n.setLocale(state.settings.language);
