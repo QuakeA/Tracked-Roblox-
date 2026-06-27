@@ -23,7 +23,8 @@
 | `inventory_rac.js` | `/users/*/inventory*` | Envanter RAP/değer hesaplayıcı paneli |
 | `catalog_enhancer.js` | `/catalog/*` | Item sayfasına RAP/Floor/Demand/Trend/Value widget'ı |
 | `avatar_cost.js` | `/my/avatar*`, `/users/*/avatar*` | Giyili item'ların toplam Robux değeri |
-| `avatar_sandbox.js` | `/my/avatar*` | Avatar Try-On (Marketplace/Inventory'den dene, 2B/3B render) |
+| `card_actions.js` | oyun kartı olan TÜM sayfalar (home / charts / discover / arama / profil) | **Kart hover butonları** — karta gelince Oyna / Oto-pilot / Özel sunucu; sayfadan ayrılmadan, sekme açmadan native join (§18) |
+| ~~`avatar_sandbox.js`~~ | **SİLİNDİ** | Avatar Try-On kaldırıldı (kullanıcı kararı). Bkz. §4. SW `trackedSandbox*` handler'ları + `lib/three.min.js` artık ölü |
 | `profile_insight.js` (+`i18n.js`) | `/users/*/profile*` | **Oyuncu İçgörü Paneli** — profil sayfasına sağda yüzen kart: künye (yaş/oluşturma/doğrulanmış/eski adlar) + değer (RAP+değer+top item) + sosyal (sayımlar+ortak arkadaş+presence+Katıl) + dürüst güven sinyalleri (§16) |
 | `now_playing.js` | tüm roblox.com (all + games) | **Şu An Çalıyor** — opt-in medya widget'ı; Spotify/YT/YT Music'te çalanı sol-altta animasyonlu kartta gösterir + kontrol (§17) |
 | `popup.js` (`popup.html`) | toolbar popup | Ping ölçümü, VPN tespiti, arkadaşlar, kayıtlı sunucular, ping grafiği |
@@ -31,7 +32,7 @@
 | `options.js` (`options.html`) | ayarlar | Tüm ayarlar + changelog |
 | `instance_trigger.js` | **SİLİNDİ** | Eski blok-bazlı tetikleyici; dosya kaldırıldı, force-join mantığı scanner.js'te |
 
-**Storage (`chrome.storage.local`) ana anahtarlar:** `rota_settings` (ayarlar), `rota_theme`, `rota_ping_cache`/`rota_ping_results` (popup bölgesel ping), NetID cache, `tracked_active_session` (auto-reconnect), `tracked_sandbox_session` + `tracked_sandbox_mkt_state` + `tracked_sandbox_inv_state` (avatar try-on), `tracked_themes_ui`, `tracked_rolimons_cache`, free items history, `tracked_sidepanel_open`, `tracked_server_watch` (Bekçi).
+**Storage (`chrome.storage.local`) ana anahtarlar:** `rota_settings` (ayarlar), `rota_theme`, `rota_ping_cache`/`rota_ping_results` (popup bölgesel ping), NetID cache, `tracked_active_session` (auto-reconnect), ~~`tracked_sandbox_session` + `tracked_sandbox_mkt_state` + `tracked_sandbox_inv_state`~~ (avatar try-on **kaldırıldı** → bu anahtarlar artık inert), `tracked_themes_ui`, `tracked_rolimons_cache`, free items history, `tracked_sidepanel_open`, `tracked_server_watch` (Bekçi).
 **Bölge/ping (v1.9.3):** `tracked_region_cache` (jobId→bölge, 6 saat TTL), `tracked_region_pings` (SW'nin ölçtüğü 20 küresel probe ping'i {ts, probes:[{cc,lat,lon,ms}]}, 30 dk TTL), `tracked_user_geo` (kullanıcı konumu, 7 gün).
 **Themes:** `tracked_color_theme`, `tracked_theme_adj`, `tracked_page_overrides`, `tracked_custom_accent`, `tracked_panel_color/opacity/blur`, `tracked_header_opacity`, `tracked_card_frame/adv/color/opacity/blur`, `tracked_search_custom/color/opacity`, `tracked_text_color/font/contrast`, `tracked_wallpaper`, `tracked_theme_enabled`.
 
@@ -155,20 +156,9 @@ Bardaki butonlar (ui.js): **Yeni · Derin · ID · Oto-Pilot · Bekçi**.
 
 ---
 
-## 4. Avatar Try-On Sandbox (2B/3B)
+## 4. Avatar Try-On Sandbox — KALDIRILDI
 
-**Nerede:** `/my/avatar` → [avatar_sandbox.js](../avatar_sandbox.js) + SW sandbox handler'ları.
-
-- Avatar editörüne **"Avatar Try-On"** paneli enjekte eder. Item'ları **satın almadan** dener.
-- **Kaynaklar:** Inventory (sahip olunan giyilebilirler) ve **Marketplace** (gerçek Roblox kataloğu).
-- **Marketplace** (`trackedSandboxCatalogSearch`): gerçek marketplace kategori ağacıyla birebir (Body/Makeup/Clothing/Accessories/Animations + alt-kategoriler), tek nested menü. Değer formatı `Category~Subcategory~BundleType`. SW bir **deneme zinciri** uygular (cat+sub → sub → cat → keyword) → uyumsuz enum 400 vermez. **Sonsuz kaydırma** (cursor pagination), 7'li grid kart (thumbnail + isim + geliştirici + Robux ikonu).
-- **Full Bodies = bundle** (`trackedSandboxBundleDetails`): bundle'lar itemType="Bundle", ayrı thumbnail ucu (`/v1/bundles/thumbnails`), try-on'da bundle → asset'lere çözülür. Tek slot (1 gövde).
-- **Render** (`trackedSandboxRender`): Roblox'un avatar/render API'si → 2B (PNG) veya 3B (OBJ manifest). **Hibrit**: varsayılan **2B** (Roblox'un kendi render'ı, her zaman kusursuz), tek tıkla **3B** (Three.js, döndürülebilir, best-effort).
-  - 3B teknik: manifest (camera/obj/mtl/textures hash'leri) → SW veya **sayfa context'inden** (ad-blocker/SW bloklanırsa) t0-t7 rbxcdn node'larından çekilir; obj/mtl için boş-olmayan içerik bulunana kadar denenir; 403/propagation için retry.
-  - 3B materyal: texture eşleme (URLModifier + fuzzy hash + materyal-adı eşleme); texture **içerik analizi** (açık+düşük doygunluk = ten texture'ı → kullanıcının **skin tone**'u ile çarp, Roblox gibi); başarısız texture → nötr ten (asla parlak beyaz). Sculpted (Advanced/PBR) gövdeler 3B'de best-effort, 2B'de kusursuz.
-- **Hafıza:** son kategori/filtre/arama hatırlanır (`tracked_sandbox_mkt_state`/`inv_state`). **Canlı senkron** (`trackedSandboxAvatarState`): native editörden item ekle/çıkar yapınca ~5sn'de render güncellenir.
-- **For You feed** (`trackedSandboxRecommended`): giydiklerine göre popüler öneriler.
-- **Three.js** talep üzerine yüklenir (`trackedSandboxLoadThree`, [lib/](../lib/)).
+Avatar Try-On özelliği (`avatar_sandbox.js`) **tamamen kaldırıldı** (kullanıcı kararı). Manifest content_scripts girişi çıkarıldı, dosya artık yüklenmiyor. **Ölü kalan (temizlenebilir):** SW `trackedSandbox*` handler'ları (`trackedSandboxCatalogSearch`/`Render`/`BundleDetails`/`Recommended`/`AvatarState`/`LoadThree` vb.) + `lib/three.min.js` (3B render). Storage anahtarları `tracked_sandbox_session` / `tracked_sandbox_mkt_state` / `tracked_sandbox_inv_state` inert. Giyili-değer özelliği (§5, `avatar_cost.js`) AYRI ve duruyor.
 
 ---
 
@@ -200,6 +190,10 @@ Animasyonlu avatar çerçevesi özelliği (`avatar_frames.js`) **tamamen kaldır
 - `themes_critical.js`: WebGL clearColor patch (avatar/profil canvas'ı şeffaf → wallpaper görünür).
 - ⚠️ **panelWidth ayarı v1.9.0'da kaldırıldı** (daima %100 — UI kayma bug'ı). Kalıntı temizlendi: import artık eski panelWidth'i yoksayar/reddetmez. `#tto-panel-w` HTML'den çıkık (guard'lı null referanslar zararsız).
 - ⚠️ **"Metin opaklığı" (adj.fgOpacity → --tk-fg) v1.9.3'te kaldırıldı** — ÖLÜ ayardı: `--tk-fg`'yi hiçbir CSS kuralı tüketmiyordu (kaydırıcı hiçbir şeyi değiştirmiyordu). UI satırı + handler + üretim (themes_content `computeThemeVars` + themes_critical) temizlendi. `VALID_ADJ_BOUNDS.fgOpacity` eski export'ları reddetmemek için bilerek duruyor (kabul+yoksay). `fgBase` (wallpaper luma) borusu yerinde — başka kullanım ihtimaline karşı dokunulmadı.
+- ⚠️ **KART/RECOMMENDED tint kuralı 3 KOPYA** (kritik bakım notu): kart/panel arka-plan tint selektörü (`[class*="recommended"]...`, `[class*="bg-surface"]...`) themes_content.js'te ÜÇ yerde tekrarlanır — **temel** (`body ...`, `--tk-panel-rgb`, tema açıkken hep aktif), **gelişmiş kart** (`html.tke-card-adv body ...`, `--tk-card-rgb`), **cam** (`html.tke-glass body ...`). Bir selector istisnası eklerken **üçüne de** ekle, yoksa o an aktif olmayan moddaki düzeltme **sessizce çalışmaz**. Hangi kuralın boyadığını DevTools `$0` + **box-shadow imzasıyla** bul (temel kural gölgesi `rgba(0,0,0,.18) 0 2px 8px`). Bkz. hafıza `project_theme_tint_triplicated`.
+- 🐞 **Katalog "By X" yaratıcı pill kırmızı sızması (düzeltildi):** kart/panel rengi (kullanıcı `#880808` örneği) `.recommended-creator-container`'a sızıyordu — o öğe "recommended" içerip "recommended-item" içermediği için tint selektörüne takılıyordu. Çözüm: 3 kopyaya da `:not([class*="creator"])` eklendi → yaratıcı kutusu dışlanır, gerçek "recommended" bölümleri rengini korur.
+- **`fixCardTextBorders()` + `_cardBorderObserver`:** katalog/oyun kartı caption/isim/fiyat öğelerinin border/box-shadow/background'unu inline sıfırlar (tint kuralının yüksek özgüllüğünü yenmek için inline şart). MutationObserver async/"Recommended" kartlarını yakalar (tab görünürken; hidden'da disconnect → CPU tasarrufu).
+- **Locale-prefix dayanıklılığı (çok-dilli Roblox):** Roblox İngilizce-dışı dilde URL'ye 2-harfli önek koyar (`/de/home`, `/tr/games/123/`). `findSidebarUL()` artık sabit yol eşleşmesi değil **en çok nav-link içeren `<ul>`'yi** seçer → "Themes" sol-nav öğesi her dilde doğru yere enjekte olur. (Manifest content_scripts'e de `/*/games/*` vb. locale varyantları eklendi — bkz. §14.)
 
 ---
 
@@ -238,7 +232,7 @@ Animasyonlu avatar çerçevesi özelliği (`avatar_frames.js`) **tamamen kaldır
 
 ## 11. Recent Games & Canlı Etkinlik
 
-- **Recent Games** ([recent_games_content.js](../recent_games_content.js)): ziyaret edilen oyunları "son oyunlar"a kaydeder (popup'ta gösterilir).
+- **Recent Games** ([recent_games_content.js](../recent_games_content.js)): ziyaret edilen oyunları "son oyunlar"a kaydeder (popup'ta gösterilir). Popup `loadRecentGames()` **stale-while-revalidate**: önce storage başlığı + `rota_thumb_cache` (24sa ikon önbelleği) ile anında render (`_lastRecentSig` ile gereksiz yeniden-çizim yok), arkada yalnız bayatları tazeler → popup boş/yavaş açılmaz.
 - **Canlı Etkinlik Algılama** (SW: `refreshGameLibrary`, `analyzeGame`, `testEventDetection`, `getEventHistory`): favori/kütüphane oyunlarında oyuncu sayısı spike'larını izler (5dk poll) → "X oyununda etkinlik" bildirimi. Aktif tab açıkken playtime sayacı.
 - **Etkinlik Analizi — İKİ KATMANLI** (kütüphane kartındaki "Analiz" butonu → `showEventAnalysis` → SW `analyzeGame`):
   - **KATMAN 1 — RESMİ Experience Events (ground truth, `fetchVirtualEvents`):** Roblox'un `apis.roblox.com/virtual-events/v1/universes/{universeId}/virtual-events` API'si. Geliştiricinin BİZZAT beyan ettiği etkinlik → ad (`displayTitle`) + başlangıç/bitiş (`eventTime.startUtc/endUtc`) + durum (canlı/yakında/bitti, zamandan hesaplanır) + düzenleyen (`host.hostName` + doğrulanmış rozeti). Tahmin YOK. Modalda en üstte mavi "Roblox onaylı" kartı, canlıysa pulse'lı CANLI rozeti + "X saat sonra bitiyor" geri sayımı. 12 saatten eski bitmişler elenir; canlı > yakında > yeni bitmiş sıralanır.
@@ -255,6 +249,7 @@ Animasyonlu avatar çerçevesi özelliği (`avatar_frames.js`) **tamamen kaldır
 - **Options** ([options.js](../options.js) / [options.html](../options.html)): bölümler — **Görünüm** (dil TR/EN, sessiz mod, reduced motion) · **Bağlantı** (ping timeout, cache TTL, yeni sekmede aç, URL bölge parametresi) · **Auto-Reconnect** (aç/kapa + native bildirim) · **Problar** (ping noktaları + **bölge şablonları** EU/NA/Asya/SA/AU/Global + test) · **Tanılama** (diag + export/import) · **Sürüm Notları** (changelog) · **Veri Yönetimi** (favori/cache/Oto-Pilot blocklist temizle, fabrika ayarları). Tüm `getElementById` referansları HTML'de mevcut (yetim element yok — v1.9.3 audit).
   - `appendRegionParam` ("URL Bölge Parametresi") **KALDIRILDI** — hiçbir akış tüketmiyordu, Roblox `rotaRegion` parametresini zaten tanımıyordu (çifte ölü). Gerçek bölge hedefleme = popup "Hedef Bölge" (§1.5).
   - `openInNewTab` ("Yeni Sekmede Aç") **KALDIRILDI** — yalnız "Normal Giriş" (web) stratejisinde etkiliydi; varsayılan "Hızlı Rota" deeplink'tir (sekme yok) ve Katılma Modu UI'sı kaldırıldığı için strateji değiştirilemiyordu → fiilen ölüydü. Bağlantı Ayarları'nda kalanlar: Ping Zaman Aşımı + Önbellek Süresi (ikisi de gerçek/çalışıyor).
+  - **FOUC kök-çözümü (açılışta yanlış-durum flaşı):** Ayarlar açılışında toggle'lar/Plus kutusu/sidebar yanlış durumda görünüp düzeliyordu. Çözüm katmanları: (1) `options_preload.js` `<html>`'e `tk-pre` ekler → `.layout` `visibility:hidden`; (2) baştaki senkron IIFE localStorage önbelleğini (`tk_opt_toggles` / `tk_opt_plus` / `tk_opt_changelog_badge`) + sürümü ilk-paint ÖNCESİ uygular; (3) ilk açılışta `loadSettings`+`loadPlusStatus`+`setupChangelog` **paralel** (`Promise.allSettled`) → ~3× hızlı reveal; (4) `html.tk-pre .slider{transition:none}` → toggle knob'u set edilince KAYMADAN oturur; (5) tk-pre kalkmadan **zorlanmış reflow** (`void documentElement.offsetHeight`) → ilk açılışta knob 0→20 batch-kaymasını engeller; (6) sidebar varsayılan aktif öğe HTML'de baştan doğru (Tracked Plus). **Doğrulama:** Playwright kare-kare (önbellekli + ilk açılış) — 5 toggle knob=20'den başlıyor, 0 kayma/yanlış-durum karesi.
 
 ---
 
@@ -284,6 +279,7 @@ Roller:
 - **datacenters.js statik snapshot** (BTRoblox kaynaklı) — bilinmeyen /24 prefix → "Bilinmeyen DC (x.x.x)"; Roblox IP bloğu eklerse güncelleme gerekir.
 - **gamejoin bölge çözümü** CSRF + istemci-UA (DNR) gerektirir; jobId başına 1 çağrı (6 saat cache + aşamalı + tek-atış → anti-abuse).
 - **instance_trigger.js SİLİNDİ** — force-join mantığı scanner.js'te.
+- **Roblox locale URL öneki (İngilizce-dışı diller):** İngilizce-dışı dilde Roblox yola 2-harfli önek koyar (`/de/home`, `/tr/games/123/`). Sabit yol eşleşmesi (`===`, çapalı regex) ve manifest `/games/*` deseni bunu KAÇIRIR → özellikler o dillerde görünmez. Çözüm: manifest path-özel content_scripts girişlerine locale varyantları eklendi (`/*/games/*`, `/*/users/*/inventory*`, `/*/catalog/*`, `/*/my/avatar*` vb.) + alt-string/regex eşleşmeler (`/\/games\/(\d+)\//`) öneki sağ-çıkar + `findSidebarUL()` yola değil nav-link sayısına bakar. Yeni path-özel content script eklerken locale varyantını da ekle.
 
 ---
 
@@ -330,6 +326,24 @@ Roller:
 - **now_playing.js:** yoklama görünürlük-kapılı + backoff (çalıyor 1.5sn / duraklatılmış·küçük 3sn / boş 5sn); ilerleme **yerel interpolasyon** (akıcı, render'sız); kontrolde **optimistic** UI; full render yalnız şarkı/durum değişince (track key). SPA nav'da sürekli (sabit overlay, watchNavigation gerekmez).
 - **Dürüstlük:** ekolayzer GERÇEK spektrum değil → sadece "çalıyor" durum animasyonu (FFT başka sekmeden alınamaz). Metadata `escapeHtml` (XSS). Emoji yok (marka SVG'leri inline). `prefers-reduced-motion` → animasyon durur.
 - **Sınırlar:** yalnız WEB oynatıcılar (Spotify masaüstü uygulaması ALGILANAMAZ); next/prev sıradaki şarkı; buton selektörleri site değişirse güncellenir. `mediaSession` evrensel → 3 sitenin ötesi (SoundCloud vb.) basit play/pause/seek otomatik.
+
+---
+
+## 18. Kart Hover Butonları (Hızlı Giriş)
+
+**Nerede:** oyun kartı olan TÜM sayfalar (home / charts / discover / arama / profil) → [card_actions.js](../card_actions.js) + SW `cardAutoPilot` / `cardPrivateList` / `cardPrivateJoin` + `launchRobloxGame`.
+
+- **Ne yapar:** Bir oyun kartının üzerine gelince thumbnail'in alt köşesinde 1-3 buton belirir (yukarı süzülen "havalı" giriş animasyonu). **Sayfadan ayrılmadan, sekme açmadan** mevcut sekmenin MAIN world'ünde `Roblox.GameLauncher` ile oyuna sokar; başarısızsa `roblox://` deep-link fallback.
+- **Butonlar (sol sütun: Özel üstte, Oyna altta; sağda Oto-pilot):**
+  - **Oyna** (`PLAY_SVG`, üçgen): rastgele sunucu — native `joinMultiplayerGame` (Roblox'un "Play"i gibi, özelliksiz). Roblox'un kendi "now loading" overlay'i görünür. Tooltip sadece "Oyna".
+  - **Oto-pilot** (`AP_SVG`, kalkan): EN YAKIN sunucu — SW `cardAutoPilot` (autoPilotPickClosest aynası: `tkResolveUserGeo` + `tkResolveServerRegion` → jobId) → native `joinGameInstance(placeId, jobId)`. **Tracked Plus**. Sekme/navigasyon YOK.
+  - **Özel sunucu** (`PRIV_SVG`, alet/wrench): YALNIZCA o oyunda sahip olduğun **aktif ücretsiz özel sunucu** varsa görünür → tıkla → kendi özel sunucuna anında gir (native `joinPrivateGame(placeId, accessCode, '', uuid, 'privateServerListJoin')`). Tooltip "Özel sunucu".
+- **Özel sunucu tespiti/join:**
+  - `cardPrivateList`: `games.roblox.com/v1/private-servers/my-private-servers` (sahip olunan TÜMÜ, sayfalı, `active===true` → `{placeId: privateServerId}`). **90sn modül-seviyesi önbellek** (`_tkPrivOwnedCache` — listener İÇİNDE değil, yoksa her mesajda sıfırlanır). Toplu prefetch (kartlar görününce buton görünürlüğü hızlı belirir).
+  - `cardPrivateJoin`: `games.roblox.com/v1/games/{placeId}/private-servers` (accessCode + vipServerId burada; `my-private-servers`'da accessCode YOK) → `vipServerId===privateServerId` eşleşmesinden accessCode.
+- **Boyut/hizalama:** butonlar ⋯ menüsüyle aynı 32px; `--tk-ca-inset` ölçümle hizalanır (`measureInset`/`findMenuRect`); ikon optik ortalama. Kontrast için halo + entrance animasyonu (translateY+overshoot, opacity stagger).
+- **Dayanıklılık:** SPA + React re-render'a karşı MutationObserver + throttle (`scheduleScan` 180ms) + erken taramalar [100,300,600,1000,1600]ms; `reheal()` React overlay'i silerse 2.5sn interval'de geri ekler. İzole IIFE (`window.__tkCardActions` guard), kendi `<style id="tk-ca-style">`'ı.
+- **launchRobloxGame (SW, genişletildi):** accessCode → joinPrivateGame; jobId → joinGameInstance; ikisi de yoksa → joinMultiplayerGame. `saveActiveSession` yalnız jobId varsa (auto-reconnect için).
 
 ---
 
