@@ -710,14 +710,6 @@ function fixCardTextBorders() {
     el.style.setProperty('outline', 'none', 'important');
     el.style.setProperty('background-color', 'transparent', 'important');
   });
-  // "By X" yaratıcı pill'i + caption/info içindeki diğer alt-öğeler: gelişmiş kart modu
-  // (tke-card-adv) bunlardaki bg-surface'leri accent-tint ile boyuyor (katalogda KIRMIZI pill).
-  // CSS'teki `.item-card-caption *` transparent kuralı, card-adv'nin yüksek özgüllüğünü
-  // (≈0,12,2) yenemediği için işe yaramıyor → inline ile kesin sıfırla. (Yalnız metin/caption
-  // alanı; kart gövdesine DOKUNMA → kartın kendi arka planı korunur.) Observer async kartları tarıyor.
-  document.querySelectorAll('.item-card-caption *,.game-card-info *,.game-card-name *,.game-card-price-container *').forEach(el => {
-    el.style.setProperty('background-color', 'transparent', 'important');
-  });
 }
 
 function onNavChange(rawUrl) {
@@ -1624,8 +1616,8 @@ html.tke-card-adv body .section.rbx-section,
 html.tke-card-adv body .rbx-page-content,
 html.tke-card-adv body [class*="content-section"]:not(.left-nav),
 html.tke-card-adv body [class*="ContentSection"]:not(.left-nav),
-html.tke-card-adv body [class*="recommended"]:not([class*="recommended-item"]):not(a):not(.left-nav),
-html.tke-card-adv body [class*="Recommended"]:not([class*="Item"]):not(a):not(.left-nav),
+html.tke-card-adv body [class*="recommended"]:not([class*="recommended-item"]):not([class*="creator"]):not(a):not(.left-nav),
+html.tke-card-adv body [class*="Recommended"]:not([class*="Item"]):not([class*="reator"]):not(a):not(.left-nav),
 html.tke-card-adv body .rbx-tabs-horizontal:not([data-place-id]),
 html.tke-card-adv body.tk-communities-page .group-profile-header,
 html.tke-card-adv body.tk-communities-page .section.group-announcements,
