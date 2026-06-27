@@ -27,6 +27,13 @@ document.addEventListener('DOMContentLoaded', () => {
         chrome.storage?.local?.set({ tracked_sidepanel_open: false }).catch(() => {});
     });
 
+    // Footer sürümü: manifest'ten DİNAMİK oku → bir daha bayatlamaz (sabit v1.9.5 sorunu çözüldü)
+    try {
+        const v = chrome.runtime.getManifest().version;
+        const sv = document.getElementById('sp-version');
+        if (sv) sv.textContent = 'v' + v;
+    } catch (_) {}
+
     // Reduced motion (accessibility): options'tan kontrol oku, body class'ı ekle
     chrome.storage?.local?.get('rota_settings').then(d => {
         if (d?.rota_settings?.reducedMotion === true) {

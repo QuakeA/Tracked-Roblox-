@@ -399,7 +399,7 @@ const TrackedI18n = {
             settingsBtn: 'Ayarlar',
             toggleGraph: 'Grafik',
             pinPanel: 'Yan Panele Sabitle',
-            closePanel: 'Paneyi Kapat',
+            closePanel: 'Paneli Kapat',
             refreshFriends: 'Arkadaşları Yenile',
             clearRecent: 'Geçmişi Temizle',
             cooldownWait: 'Lütfen {n} saniye bekleyiniz',
