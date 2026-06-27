@@ -203,7 +203,14 @@
     if (!link || link.getAttribute(HOST_ATTR)) return;
     const placeId = placeIdOf(link);
     if (!placeId) return;
-    const img = link.querySelector('img');
+    // EN BÜYÜK img'i seç (ilk değil) → çok-resimli kartlarda küçük oyun-ikonu yerine asıl ekran
+    // görüntüsünü yakalar. Normal kartta ilk img zaten en büyük → davranış aynı.
+    let img = null, imgArea = -1;
+    for (const im of link.querySelectorAll('img')) {
+      const r = im.getBoundingClientRect();
+      const a = r.width * r.height;
+      if (a > imgArea) { imgArea = a; img = im; }
+    }
     if (!img) return;                                  // thumbnail yoksa atla (kart değil)
     // Thumbnail kutusu = img'in en yakın blok kapsayıcısı (kareye yakın, makul boyut)
     let thumb = img.parentElement;
@@ -214,6 +221,19 @@
     }
     if (!thumb || thumb === document.body) thumb = img.parentElement;
     if (!thumb || thumb.querySelector(':scope > .tk-ca')) { link.setAttribute(HOST_ATTR, '1'); return; }
+    // GÜVENLİK: thumb gerçek RESİM kutusu mu? Metin/info satırına düştüysek (ör. game-card-info
+    // 275x20, aspect 13.75) bozuk buton koymaktansa bu kartı ATLA — kök sebep buydu (çok-resimli
+    // kartlarda ilk img = küçük ikon → overlay info satırına monte oluyordu).
+    const _r = thumb.getBoundingClientRect();
+    const _tcls = String(thumb.getAttribute('class') || '');
+    const _isTextRow = /(^|[-_ ])(info|caption|footer|byline|stats|name|title|rating)([-_ ]|$)/i.test(_tcls);
+    const _aspect = _r.height ? _r.width / _r.height : 99;
+    if (thumb === link || _isTextRow || _aspect > 4) {
+      link.setAttribute(HOST_ATTR, '1'); return;        // resim kutusu değil (info/metin satırı / tüm kart) → atla
+    }
+    if (_r.height < 60) {
+      return;                                           // muhtemelen henüz yüklenmedi → İŞARETLEME, sonraki taramada tekrar dene
+    }
 
     link.setAttribute(HOST_ATTR, '1');
     link.classList.add('tk-ca-card');
