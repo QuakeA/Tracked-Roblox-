@@ -165,7 +165,10 @@ Avatar Try-On özelliği (`avatar_sandbox.js`) **tamamen kaldırıldı** (kullan
 ## 5. Avatar Cost (Giyili Değer)
 
 **Nerede:** `/my/avatar`, `/users/*/avatar` → [avatar_cost.js](../avatar_cost.js) + SW `trackedAvatarCost`.
-- Avatar önizlemesinin altına **üstündeki item'ların toplam Robux değerini** native görünümlü ibareyle gösterir, canlı güncellenir.
+- Avatar önizlemesinin altına **üstündeki item'ların toplam Robux değerini** native görünümlü ibareyle (`#tracked-outfit-cost`, "Üzerindekiler") gösterir, equip/unequip'te canlı güncellenir (MutationObserver + settle/burst). Alt satır: "N parça · M satışta değil".
+- **Değer hesabı SW'de** (`trackedAvatarCost`): giyili asset'ler (`avatar.roblox.com/v1/users/{id}/avatar`) → catalog details (`catalog/items/details`, CSRF 403-retry). Kullanılabilir fiyat = `price` (satış) ya da `lowestPrice` (limited **resale floor**).
+- **BUNDLE-FARKINDA (v1.9.6, kritik):** Karakter/gövde bundle'ları (ör. "Mini Rabbit") **tek tek satılmaz** → parça asset'lerinin `price`/`lowestPrice`'ı yok → eskiden **0** gösteriyordu (çoğu karakter-avatarı bundle). Fix: fiyatsız asset'ler için `catalog/v1/assets/{id}/bundles` ile bundle bulunur, bundle fiyatı (`itemType:Bundle`) çekilir, **bundle başına BİR kez** sayılır (dedupe).
+- **DÜRÜST atıf (honest-data):** Bir asset **birden çok** bundle'a ait olabilir (paylaşılan kafa/yüz → 10+ bundle). Yanlış/uydurma fiyat vermemek için: asset **tek** bundle'a aitse onu say; **çok** bundle'a aitse kullanıcının **≥2 fiyatsız parçasını giydiği ortak bundle**'ı seç (giyilen-set sinyali); **netleşmezse TAHMİN ETME** → "satışta değil" say. SW `{ ok, ids, total, offsale }` döndürür; avatar_cost.js sadece gösterir.
 
 ---
 
