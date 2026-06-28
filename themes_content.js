@@ -651,6 +651,9 @@ function applyTextColor(color) {
 // 30 gömülü fontu @font-face ile tanımla (chrome-extension:// URL → Roblox CSP'sinden BAĞIMSIZ,
 // web_accessible_resources sayesinde). Sadece CSS tanımı — font dosyası ancak KULLANILINCA/önizlenince
 // indirilir (font-display:swap). Idempotent (id guard). key+'.woff2' = fonts/ dosyası.
+// Font dropdown'ın son scroll konumu (panel/dropdown kapanıp açılınca "baştan" değil KALDIĞIN
+// yerden göstersin). Modül-seviyesi → panel yeniden kurulsa da sayfa oturumu boyunca yaşar.
+let _fontDDScroll = null;
 // Font-başına boyut state'ini ayıkla: yalnız geçerli font key'i + 50..150 aralığı + 100 olmayan
 // (100 = varsayılan, saklamaya gerek yok → obje minimal kalır). Bozuk/eski kayıtları eler.
 function sanitizeTextSizes(v) {
@@ -4380,7 +4383,7 @@ async function openThemesPage(opts) {
         else { menu.style.top = Math.round(r.bottom + 6) + 'px'; menu.style.bottom = 'auto'; }
       };
       const close = () => {
-        if (menu) { menu.remove(); menu = null; }
+        if (menu) { _fontDDScroll = menu.scrollTop; menu.remove(); menu = null; }   // bıraktığın konumu hatırla
         fdd.classList.remove('open'); fbtn.setAttribute('aria-expanded', 'false');
         document.removeEventListener('mousedown', onOut, true);
         document.removeEventListener('scroll', onScroll, true);
@@ -4396,8 +4399,8 @@ async function openThemesPage(opts) {
         document.body.appendChild(menu);
         place();
         fdd.classList.add('open'); fbtn.setAttribute('aria-expanded', 'true');
-        const act = menu.querySelector('.tto-fontdd-opt.active');
-        if (act) act.scrollIntoView({ block: 'nearest' });   // seçili fontu görünür yap
+        if (_fontDDScroll != null) menu.scrollTop = _fontDDScroll;   // KALDIĞIN yerden göster (baştan değil)
+        else { const act = menu.querySelector('.tto-fontdd-opt.active'); if (act) act.scrollIntoView({ block: 'nearest' }); }   // ilk açılış → seçili fontu göster
         menu.querySelectorAll('.tto-fontdd-opt').forEach(opt => {
           opt.addEventListener('click', (e) => {
             e.stopPropagation();
