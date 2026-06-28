@@ -4400,7 +4400,7 @@ async function openThemesPage(opts) {
         place();
         fdd.classList.add('open'); fbtn.setAttribute('aria-expanded', 'true');
         if (_fontDDScroll != null) menu.scrollTop = _fontDDScroll;   // KALDIĞIN yerden göster (baştan değil)
-        else { const act = menu.querySelector('.tto-fontdd-opt.active'); if (act) act.scrollIntoView({ block: 'nearest' }); }   // ilk açılış → seçili fontu göster
+        else { const act = menu.querySelector('.tto-fontdd-opt.active'); if (act) act.scrollIntoView({ block: 'center' }); }   // ilk açılış → seçili fontu ORTADA göster (altı da görünür, en dipte kalmaz)
         menu.querySelectorAll('.tto-fontdd-opt').forEach(opt => {
           opt.addEventListener('click', (e) => {
             e.stopPropagation();
