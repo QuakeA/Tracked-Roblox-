@@ -45,20 +45,56 @@ const TEXT_COLOR_KEY = 'tracked_text_color';
 const TEXT_FONT_KEY  = 'tracked_text_font';
 const DEFAULT_TEXT_COLOR = '';   // '' = tema/Roblox varsayılan rengi (dokunma)
 const DEFAULT_TEXT_FONT  = '';   // '' = varsayılan font
+// Dropdown tema başlıkları (font gruplaması). Sıra = görünüm sırası.
+const FONT_GROUPS = {
+  cyber:   'Cyberpunk / Tech',
+  pixel:   'Pixel / Retro',
+  horror:  'Vampir / Gotik',
+  elegant: 'Şık / Display',
+  bold:    'Kalın / İmza',
+  clean:   'Temiz / Modern',
+};
+// 30 temalı font — hepsi Google Fonts (OFL/açık → gömülebilir). Her biri `fonts/<key>.woff2`
+// dosyası + @font-face (injectFontFaces). stack'teki İLK tırnaklı ad = @font-face ailesi; dosya
+// adı key'den türer (key+'.woff2'). group = dropdown tema başlığı. '' = Roblox varsayılanı.
 const TEXT_FONTS = {
-  '':           { label: 'Varsayılan (Roblox)', stack: '' },
-  'system':     { label: 'Sistem',          stack: 'system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif' },
-  'rounded':    { label: 'Yuvarlak',        stack: 'ui-rounded,"SF Pro Rounded","Segoe UI",system-ui,sans-serif' },
-  'serif':      { label: 'Serif',           stack: 'Georgia,"Times New Roman",Times,serif' },
-  'slab':       { label: 'Slab Serif',      stack: '"Rockwell","Roboto Slab","Bookman Old Style",Georgia,serif' },
-  'mono':       { label: 'Monospace',       stack: 'ui-monospace,"SF Mono",Menlo,Consolas,"Courier New",monospace' },
-  'verdana':    { label: 'Verdana',         stack: 'Verdana,Geneva,Tahoma,sans-serif' },
-  'tahoma':     { label: 'Tahoma',          stack: 'Tahoma,Verdana,Geneva,sans-serif' },
-  'trebuchet':  { label: 'Trebuchet',       stack: '"Trebuchet MS","Lucida Grande",Tahoma,sans-serif' },
-  'condensed':  { label: 'Dar (Condensed)', stack: '"Bahnschrift","Arial Narrow","Roboto Condensed","Segoe UI",sans-serif' },
-  'impact':     { label: 'Impact',          stack: 'Impact,Haettenschweiler,"Franklin Gothic Bold","Arial Narrow",sans-serif' },
-  'comic':      { label: 'Komik',           stack: '"Comic Sans MS","Comic Sans","Chalkboard SE",cursive' },
-  'handwriting':{ label: 'El Yazısı',       stack: '"Segoe Script","Bradley Hand","Brush Script MT",cursive' },
+  '':             { label: 'Varsayılan (Roblox)', stack: '',                            group: '' },
+  // Cyberpunk / Tech
+  'bitcount':     { label: 'Bitcount',            stack: '"Bitcount",monospace',         group: 'cyber' },
+  'oxanium':      { label: 'Oxanium',             stack: '"Oxanium",sans-serif',         group: 'cyber' },
+  'rajdhani':     { label: 'Rajdhani',            stack: '"Rajdhani",sans-serif',        group: 'cyber' },
+  'chakra':       { label: 'Chakra Petch',        stack: '"Chakra Petch",sans-serif',    group: 'cyber' },
+  'audiowide':    { label: 'Audiowide',           stack: '"Audiowide",sans-serif',       group: 'cyber' },
+  'michroma':     { label: 'Michroma',            stack: '"Michroma",sans-serif',        group: 'cyber' },
+  'wallpoet':     { label: 'Wallpoet',            stack: '"Wallpoet",sans-serif',        group: 'cyber' },
+  // Pixel / Retro
+  'pressstart':   { label: 'Press Start 2P',      stack: '"Press Start 2P",monospace',   group: 'pixel' },
+  'vt323':        { label: 'VT323',               stack: '"VT323",monospace',            group: 'pixel' },
+  'pixelify':     { label: 'Pixelify Sans',       stack: '"Pixelify Sans",sans-serif',   group: 'pixel' },
+  'silkscreen':   { label: 'Silkscreen',          stack: '"Silkscreen",monospace',       group: 'pixel' },
+  'handjet':      { label: 'Handjet',             stack: '"Handjet",monospace',          group: 'pixel' },
+  // Vampir / Gotik / Horror
+  'creepster':    { label: 'Creepster',           stack: '"Creepster",cursive',          group: 'horror' },
+  'nosifer':      { label: 'Nosifer',             stack: '"Nosifer",cursive',            group: 'horror' },
+  'pirata':       { label: 'Pirata One',          stack: '"Pirata One",cursive',         group: 'horror' },
+  'eater':        { label: 'Eater',               stack: '"Eater",cursive',              group: 'horror' },
+  'unifraktur':   { label: 'UnifrakturMaguntia',  stack: '"UnifrakturMaguntia",cursive', group: 'horror' },
+  'butcherman':   { label: 'Butcherman',          stack: '"Butcherman",cursive',         group: 'horror' },
+  'vampiro':      { label: 'Vampiro One',         stack: '"Vampiro One",cursive',        group: 'horror' },
+  // Şık / Display
+  'cinzel':       { label: 'Cinzel',              stack: '"Cinzel",serif',               group: 'elegant' },
+  'cinzeldec':    { label: 'Cinzel Decorative',   stack: '"Cinzel Decorative",serif',    group: 'elegant' },
+  'playfair':     { label: 'Playfair Display',    stack: '"Playfair Display",serif',     group: 'elegant' },
+  'cormorant':    { label: 'Cormorant',           stack: '"Cormorant",serif',            group: 'elegant' },
+  'gilda':        { label: 'Gilda Display',       stack: '"Gilda Display",serif',        group: 'elegant' },
+  // Kalın / İmza
+  'bungee':       { label: 'Bungee',              stack: '"Bungee",sans-serif',          group: 'bold' },
+  'marker':       { label: 'Permanent Marker',    stack: '"Permanent Marker",cursive',   group: 'bold' },
+  'caveat':       { label: 'Caveat',              stack: '"Caveat",cursive',             group: 'bold' },
+  // Temiz / Modern
+  'inter':        { label: 'Inter',               stack: '"Inter",sans-serif',           group: 'clean' },
+  'spacegrotesk': { label: 'Space Grotesk',       stack: '"Space Grotesk",sans-serif',   group: 'clean' },
+  'outfit':       { label: 'Outfit',              stack: '"Outfit",sans-serif',          group: 'clean' },
 };
 const TEXT_COLOR_SWATCHES = [
   { hex: '',        label: 'Varsayılan' },
@@ -611,7 +647,30 @@ function applyTextColor(color) {
   else root.style.removeProperty('--tk-text-color');
 }
 // Yazı tipi: seçili font → içerik metninin fontunu değiştirir (ikon font'ları HARİÇ) + html.tke-text-font.
+// 30 gömülü fontu @font-face ile tanımla (chrome-extension:// URL → Roblox CSP'sinden BAĞIMSIZ,
+// web_accessible_resources sayesinde). Sadece CSS tanımı — font dosyası ancak KULLANILINCA/önizlenince
+// indirilir (font-display:swap). Idempotent (id guard). key+'.woff2' = fonts/ dosyası.
+let _fontFacesDone = false;
+function injectFontFaces() {
+  if (_fontFacesDone || document.getElementById('tk-fontfaces')) { _fontFacesDone = true; return; }
+  let css = '';
+  for (const k in TEXT_FONTS) {
+    const st = TEXT_FONTS[k].stack;
+    if (!k || !st) continue;
+    const m = st.match(/^"([^"]+)"/);
+    if (!m) continue;
+    let url; try { url = chrome.runtime.getURL('fonts/' + k + '.woff2'); } catch (_) { return; }
+    css += `@font-face{font-family:'${m[1]}';src:url('${url}') format('woff2');font-display:swap;}`;
+  }
+  const s = document.createElement('style');
+  s.id = 'tk-fontfaces';
+  s.textContent = css;
+  (document.head || document.documentElement).appendChild(s);
+  _fontFacesDone = true;
+}
+
 function applyTextFont(fontKey) {
+  injectFontFaces();   // seçili font woff2'si yüklenebilsin (idempotent)
   const root = document.documentElement;
   const f = TEXT_FONTS[fontKey];
   const on = !!(f && f.stack);
@@ -1507,13 +1566,22 @@ body[data-internal-page-name="Profile"] .rbx-tab-heading.active{box-shadow:0 -2p
 .tto-fontdd-cur{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .tto-fontdd-chev{flex-shrink:0;opacity:.55;transition:transform .2s;}
 .tto-fontdd.open .tto-fontdd-chev{transform:rotate(180deg);opacity:.85;}
-.tto-fontdd-menu{position:fixed;z-index:99999999;min-width:190px;max-height:320px;overflow-y:auto;overflow-x:hidden;background:#1c1e27;border:1px solid rgba(255,255,255,.12);border-radius:11px;box-shadow:0 14px 40px rgba(0,0,0,.55);padding:6px;display:flex;flex-direction:column;gap:3px;animation:ttoFontIn .16s cubic-bezier(.2,.9,.2,1.1);}
-.tto-fontdd-menu::-webkit-scrollbar{width:7px;}
-.tto-fontdd-menu::-webkit-scrollbar-thumb{background:rgba(255,255,255,.16);border-radius:4px;}
-/* Sabit satır yüksekliği + dikey ortalama + taşma kırpma → font ne olursa olsun üst üste binmez */
-.tto-fontdd-opt{display:flex;align-items:center;flex-shrink:0;box-sizing:border-box;height:38px;width:100%;text-align:left;background:transparent;border:none;border-radius:8px;color:rgba(255,255,255,.82);font-size:14px;line-height:1;padding:0 12px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:background .12s,color .12s;}
-.tto-fontdd-opt:hover{background:rgba(255,255,255,.07);color:#fff;}
-.tto-fontdd-opt.active{background:rgba(200,169,110,.16);color:#EBD8A9;}
+.tto-fontdd-menu{position:fixed;z-index:99999999;min-width:230px;max-width:300px;max-height:min(420px,72vh);overflow-y:auto;overflow-x:hidden;background:linear-gradient(180deg,#1f2230,#191b24);border:1px solid rgba(255,255,255,.13);border-radius:13px;box-shadow:0 18px 50px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.05);padding:7px;display:flex;flex-direction:column;gap:2px;animation:ttoFontIn .17s cubic-bezier(.2,.9,.2,1.1);overscroll-behavior:contain;}
+.tto-fontdd-menu::-webkit-scrollbar{width:8px;}
+.tto-fontdd-menu::-webkit-scrollbar-thumb{background:rgba(200,169,110,.32);border-radius:5px;border:2px solid transparent;background-clip:content-box;}
+.tto-fontdd-menu::-webkit-scrollbar-thumb:hover{background:rgba(200,169,110,.5);background-clip:content-box;}
+/* Tema başlığı (grup ayracı) */
+.tto-fontdd-grp{font-size:9.5px;font-weight:800;letter-spacing:.9px;text-transform:uppercase;color:rgba(200,169,110,.9);padding:9px 11px 4px;pointer-events:none;display:flex;align-items:center;gap:7px;}
+.tto-fontdd-grp::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,rgba(200,169,110,.28),transparent);}
+.tto-fontdd-menu > .tto-fontdd-grp:first-child{padding-top:3px;}
+/* Seçenek: min-yükseklik (dekoratif fontlar büyük olabilir) + isim KENDİ fontunda + aktif tik */
+.tto-fontdd-opt{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-shrink:0;box-sizing:border-box;min-height:42px;width:100%;text-align:left;background:transparent;border:none;border-radius:9px;color:rgba(255,255,255,.84);font-size:15px;line-height:1.1;padding:7px 12px;cursor:pointer;transition:background .12s,color .12s,transform .08s;}
+.tto-fontdd-opt:hover{background:rgba(255,255,255,.08);color:#fff;}
+.tto-fontdd-opt:active{transform:scale(.985);}
+.tto-fontdd-opt.active{background:rgba(200,169,110,.17);color:#EBD8A9;}
+.tto-fontdd-opt .tk-flabel{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;}
+.tto-fontdd-opt .tk-check{flex-shrink:0;opacity:0;color:#E7C98A;transition:opacity .12s;}
+.tto-fontdd-opt.active .tk-check{opacity:1;}
 @keyframes ttoFontIn{from{opacity:0;transform:translateY(-6px) scale(.98);}to{opacity:1;transform:none;}}
 
 /* ── Share / Import ── */
@@ -4233,35 +4301,55 @@ async function openThemesPage(opts) {
       const fbtn = overlay.querySelector('#tto-font-btn');
       const fcur = overlay.querySelector('#tto-font-cur');
       if (!fdd || !fbtn) return;
+      injectFontFaces();                 // önizlemeler için woff2'ler tanımlı olsun
       let menu = null;
-      const optsHTML = Object.keys(TEXT_FONTS).map(k => {
-        const f = TEXT_FONTS[k];
-        const fam = f.stack ? f.stack.replace(/"/g, '&quot;') : 'inherit';
-        const act = (k === (TEXT_FONTS[_state.textFont] ? _state.textFont : '')) ? ' active' : '';
-        return `<button type="button" class="tto-fontdd-opt${act}" data-font="${k}" style="font-family:${fam}">${f.label}</button>`;
-      }).join('');
+
+      // HER AÇILIŞTA taze üret → active vurgusu DOĞRU (eski bug: optsHTML bir kez üretiliyordu) +
+      // tema grup başlıkları + her seçenek KENDİ fontunda önizlenir + aktifte tik.
+      const buildHTML = () => {
+        const curKey = TEXT_FONTS[_state.textFont] ? _state.textFont : '';
+        const CHECK = '<svg class="tk-check" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+        let html = '', lastG = null;
+        for (const k in TEXT_FONTS) {
+          const f = TEXT_FONTS[k], g = f.group || '';
+          if (g !== lastG) { lastG = g; if (g && FONT_GROUPS[g]) html += `<div class="tto-fontdd-grp">${FONT_GROUPS[g]}</div>`; }
+          const fam = f.stack ? f.stack.replace(/"/g, '&quot;') : 'inherit';
+          const act = (k === curKey) ? ' active' : '';
+          html += `<button type="button" class="tto-fontdd-opt${act}" data-font="${k}" style="font-family:${fam}"><span class="tk-flabel">${f.label}</span>${CHECK}</button>`;
+        }
+        return html;
+      };
+
+      // Menüyü butona göre konumla (scroll/resize'da TEKRAR çağrılır → menü kayan panelle birlikte gelir).
+      const place = () => {
+        if (!menu) return;
+        const r = fbtn.getBoundingClientRect();
+        if (r.bottom < 4 || r.top > window.innerHeight - 4) { close(); return; }   // buton ekrandan çıktı → kapat
+        menu.style.minWidth = Math.max(230, r.width) + 'px';
+        menu.style.left = Math.round(Math.min(r.left, window.innerWidth - menu.offsetWidth - 12)) + 'px';
+        const spaceBelow = window.innerHeight - r.bottom;
+        if (spaceBelow < 320 && r.top > 320) { menu.style.bottom = Math.round(window.innerHeight - r.top + 6) + 'px'; menu.style.top = 'auto'; }
+        else { menu.style.top = Math.round(r.bottom + 6) + 'px'; menu.style.bottom = 'auto'; }
+      };
       const close = () => {
         if (menu) { menu.remove(); menu = null; }
         fdd.classList.remove('open'); fbtn.setAttribute('aria-expanded', 'false');
         document.removeEventListener('mousedown', onOut, true);
         document.removeEventListener('scroll', onScroll, true);
-        window.removeEventListener('resize', close);
+        window.removeEventListener('resize', place);
       };
       const onOut = (e) => { if (menu && !menu.contains(e.target) && !fdd.contains(e.target)) close(); };
-      // Menü İÇİ kaydırmada kapanma; sadece dışarıdaki (panel/sayfa) kaydırmada kapat.
-      const onScroll = (e) => { if (menu && menu.contains(e.target)) return; close(); };
+      // Menü İÇİ kaydırma → dokunma; dışarıdaki (panel/sayfa) kaydırma → menüyü KAPATMA, REPOZE et.
+      const onScroll = (e) => { if (menu && menu.contains(e.target)) return; place(); };
       const open = () => {
         menu = document.createElement('div');
         menu.className = 'tto-fontdd-menu';
-        menu.innerHTML = optsHTML;
+        menu.innerHTML = buildHTML();
         document.body.appendChild(menu);
-        const r = fbtn.getBoundingClientRect();
-        menu.style.minWidth = Math.max(190, r.width) + 'px';
-        menu.style.left = Math.round(Math.min(r.left, window.innerWidth - menu.offsetWidth - 12)) + 'px';
-        const spaceBelow = window.innerHeight - r.bottom;
-        if (spaceBelow < 260 && r.top > 260) menu.style.bottom = Math.round(window.innerHeight - r.top + 6) + 'px';
-        else menu.style.top = Math.round(r.bottom + 6) + 'px';
+        place();
         fdd.classList.add('open'); fbtn.setAttribute('aria-expanded', 'true');
+        const act = menu.querySelector('.tto-fontdd-opt.active');
+        if (act) act.scrollIntoView({ block: 'nearest' });   // seçili fontu görünür yap
         menu.querySelectorAll('.tto-fontdd-opt').forEach(opt => {
           opt.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -4276,7 +4364,7 @@ async function openThemesPage(opts) {
         setTimeout(() => {
           document.addEventListener('mousedown', onOut, true);
           document.addEventListener('scroll', onScroll, true);
-          window.addEventListener('resize', close);
+          window.addEventListener('resize', place);
         }, 0);
       };
       fbtn.addEventListener('click', (e) => { e.stopPropagation(); if (menu) close(); else open(); });

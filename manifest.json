@@ -95,7 +95,8 @@
   "web_accessible_resources": [
     {
       "resources": [
-        "lib/flags/*.svg"
+        "lib/flags/*.svg",
+        "fonts/*.woff2"
       ],
       "matches": [
         "https://www.roblox.com/*"
