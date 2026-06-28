@@ -43,6 +43,7 @@ const DEFAULT_SEARCH_OPACITY = 0.85;
 // ── Yazı rengi + yazı tipi (Gelişmiş) — default Varsayılan (dokunma) ──
 const TEXT_COLOR_KEY = 'tracked_text_color';
 const TEXT_FONT_KEY  = 'tracked_text_font';
+const TEXT_SIZE_KEY  = 'tracked_text_sizes';  // { fontKey: yüzde } — font-BAŞINA boyut (size-adjust çarpanı). 100 = normal.
 const DEFAULT_TEXT_COLOR = '';   // '' = tema/Roblox varsayılan rengi (dokunma)
 const DEFAULT_TEXT_FONT  = '';   // '' = varsayılan font
 // Dropdown tema başlıkları (font gruplaması). Sıra = görünüm sırası.
@@ -68,14 +69,14 @@ const TEXT_FONTS = {
   'michroma':     { label: 'Michroma',            stack: '"Michroma",sans-serif',        group: 'cyber' },
   'wallpoet':     { label: 'Wallpoet',            stack: '"Wallpoet",sans-serif',        group: 'cyber' },
   // Pixel / Retro
-  'pressstart':   { label: 'Press Start 2P',      stack: '"Press Start 2P",monospace',   group: 'pixel',  adj: '70%' },
+  'pressstart':   { label: 'Press Start 2P',      stack: '"Press Start 2P",monospace',   group: 'pixel',  adj: 70 },
   'vt323':        { label: 'VT323',               stack: '"VT323",monospace',            group: 'pixel' },
   'pixelify':     { label: 'Pixelify Sans',       stack: '"Pixelify Sans",sans-serif',   group: 'pixel' },
   'silkscreen':   { label: 'Silkscreen',          stack: '"Silkscreen",monospace',       group: 'pixel' },
   'handjet':      { label: 'Handjet',             stack: '"Handjet",monospace',          group: 'pixel' },
   // Vampir / Gotik / Horror
   'creepster':    { label: 'Creepster',           stack: '"Creepster",cursive',          group: 'horror' },
-  'nosifer':      { label: 'Nosifer',             stack: '"Nosifer",cursive',            group: 'horror', adj: '65%' },
+  'nosifer':      { label: 'Nosifer',             stack: '"Nosifer",cursive',            group: 'horror', adj: 65 },
   'pirata':       { label: 'Pirata One',          stack: '"Pirata One",cursive',         group: 'horror' },
   'eater':        { label: 'Eater',               stack: '"Eater",cursive',              group: 'horror' },
   'unifraktur':   { label: 'UnifrakturMaguntia',  stack: '"UnifrakturMaguntia",cursive', group: 'horror' },
@@ -650,9 +651,30 @@ function applyTextColor(color) {
 // 30 gömülü fontu @font-face ile tanımla (chrome-extension:// URL → Roblox CSP'sinden BAĞIMSIZ,
 // web_accessible_resources sayesinde). Sadece CSS tanımı — font dosyası ancak KULLANILINCA/önizlenince
 // indirilir (font-display:swap). Idempotent (id guard). key+'.woff2' = fonts/ dosyası.
-let _fontFacesDone = false;
+// Font-başına boyut state'ini ayıkla: yalnız geçerli font key'i + 50..150 aralığı + 100 olmayan
+// (100 = varsayılan, saklamaya gerek yok → obje minimal kalır). Bozuk/eski kayıtları eler.
+function sanitizeTextSizes(v) {
+  const out = {};
+  if (v && typeof v === 'object') {
+    for (const k in v) {
+      if (!k || !TEXT_FONTS[k]) continue;
+      const n = Math.round(Number(v[k]));
+      if (n >= 50 && n <= 150 && n !== 100) out[k] = n;
+    }
+  }
+  return out;
+}
+// Bir fontun EFEKTİF size-adjust'ı = BAZ (TEXT_FONTS[k].adj — ölçülmüş normalizasyon, çok geniş
+// fontları ~Arial'e çeker) × KULLANICI boyutu (_state.textSizes[k]/100, slider). 100×100/100=100.
+function fontSizeAdjust(k) {
+  const base = TEXT_FONTS[k] && TEXT_FONTS[k].adj ? TEXT_FONTS[k].adj : 100;
+  const usr  = (_state.textSizes && _state.textSizes[k]) ? _state.textSizes[k] : 100;
+  return Math.round(base * usr / 100);
+}
+// 30 fontun @font-face'ini (chrome-extension:// URL → Roblox CSP'siz) #tk-fontfaces'e yazar.
+// YENİDEN-KURULABİLİR: her çağrıda içeriği günceller (boyut slider'ı bunu canlı tetikler →
+// size-adjust değişir → font canlı büyür/küçülür, font-size'a/düzene dokunmadan).
 function injectFontFaces() {
-  if (_fontFacesDone || document.getElementById('tk-fontfaces')) { _fontFacesDone = true; return; }
   let css = '';
   for (const k in TEXT_FONTS) {
     const st = TEXT_FONTS[k].stack;
@@ -660,20 +682,17 @@ function injectFontFaces() {
     const m = st.match(/^"([^"]+)"/);
     if (!m) continue;
     let url; try { url = chrome.runtime.getURL('fonts/' + k + '.woff2'); } catch (_) { return; }
-    // adj = size-adjust% → çok büyük/geniş çizilen fontu (Press Start 2P, Nosifer) normale çeker,
-    // font-size'a/düzene DOKUNMADAN (ölçülerek belirlendi: ~Arial genişliği). Yoksa 100%.
-    const adj = TEXT_FONTS[k].adj ? `size-adjust:${TEXT_FONTS[k].adj};` : '';
-    css += `@font-face{font-family:'${m[1]}';src:url('${url}') format('woff2');font-display:swap;${adj}}`;
+    const eff = fontSizeAdjust(k);
+    const sa = (eff !== 100) ? `size-adjust:${eff}%;` : '';
+    css += `@font-face{font-family:'${m[1]}';src:url('${url}') format('woff2');font-display:swap;${sa}}`;
   }
-  const s = document.createElement('style');
-  s.id = 'tk-fontfaces';
+  let s = document.getElementById('tk-fontfaces');
+  if (!s) { s = document.createElement('style'); s.id = 'tk-fontfaces'; (document.head || document.documentElement).appendChild(s); }
   s.textContent = css;
-  (document.head || document.documentElement).appendChild(s);
-  _fontFacesDone = true;
 }
 
 function applyTextFont(fontKey) {
-  injectFontFaces();   // seçili font woff2'si yüklenebilsin (idempotent)
+  injectFontFaces();   // seçili font woff2'si yüklenebilsin (+ güncel boyutlar)
   const root = document.documentElement;
   const f = TEXT_FONTS[fontKey];
   const on = !!(f && f.stack);
@@ -735,7 +754,7 @@ function enableAllTheming() {
 
 // ── State loader ──────────────────────────────────────────────
 async function loadState() {
-  const d = await storeGet([THEME_KEY, ADJ_KEY, OVERRIDES_KEY, ACCENT_KEY, PANEL_COLOR_KEY, PANEL_OPACITY_KEY, PANEL_BLUR_KEY, HEADER_OPACITY_KEY, PANEL_WIDTH_KEY, CARD_FRAME_KEY, CARD_ADV_KEY, CARD_COLOR_KEY, CARD_OPACITY_KEY, CARD_BLUR_KEY, SEARCH_CUSTOM_KEY, SEARCH_COLOR_KEY, SEARCH_OPACITY_KEY, TEXT_COLOR_KEY, TEXT_FONT_KEY, TEXT_CONTRAST_KEY, THEME_ENABLED_KEY]);
+  const d = await storeGet([THEME_KEY, ADJ_KEY, OVERRIDES_KEY, ACCENT_KEY, PANEL_COLOR_KEY, PANEL_OPACITY_KEY, PANEL_BLUR_KEY, HEADER_OPACITY_KEY, PANEL_WIDTH_KEY, CARD_FRAME_KEY, CARD_ADV_KEY, CARD_COLOR_KEY, CARD_OPACITY_KEY, CARD_BLUR_KEY, SEARCH_CUSTOM_KEY, SEARCH_COLOR_KEY, SEARCH_OPACITY_KEY, TEXT_COLOR_KEY, TEXT_FONT_KEY, TEXT_SIZE_KEY, TEXT_CONTRAST_KEY, THEME_ENABLED_KEY]);
   _state.theme         = VALID_PRESETS.includes(d[THEME_KEY]) ? d[THEME_KEY] : 'midnight';
   _state.adj           = d[ADJ_KEY]      || {};
   _state.pageOverrides = sanitizeOverrides(d[OVERRIDES_KEY]);   // storage'daki bozuk anahtarlar yüklemede ayıklanır
@@ -755,6 +774,7 @@ async function loadState() {
   _state.searchOpacity = d[SEARCH_OPACITY_KEY]  != null ? clamp(Number(d[SEARCH_OPACITY_KEY]), 0.1, 1.0) : DEFAULT_SEARCH_OPACITY;
   _state.textColor     = (/^#[0-9a-f]{6}$/i.test(d[TEXT_COLOR_KEY] || '')) ? d[TEXT_COLOR_KEY] : DEFAULT_TEXT_COLOR;
   _state.textFont      = (d[TEXT_FONT_KEY] != null && TEXT_FONTS[d[TEXT_FONT_KEY]]) ? d[TEXT_FONT_KEY] : DEFAULT_TEXT_FONT;
+  _state.textSizes     = sanitizeTextSizes(d[TEXT_SIZE_KEY]);   // { fontKey: 50..150 } — bilinmeyen key/aralık dışı ayıklanır
   _state.textContrast  = d[TEXT_CONTRAST_KEY]   != null ? !!d[TEXT_CONTRAST_KEY]                          : DEFAULT_TEXT_CONTRAST;
   _state.themeEnabled  = d[THEME_ENABLED_KEY]   != null ? !!d[THEME_ENABLED_KEY]                          : DEFAULT_THEME_ENABLED;
 }
@@ -905,7 +925,7 @@ function exportTheme() {
     panelColor: _state.panelColor, panelOpacity: _state.panelOpacity, panelBlur: _state.panelBlur,
     headerOpacity: _state.headerOpacity, panelWidth: _state.panelWidth, cardFrame: _state.cardFrame,
     cardAdv: _state.cardAdv, cardColor: _state.cardColor, cardOpacity: _state.cardOpacity, cardBlur: _state.cardBlur,
-    textColor: _state.textColor, textFont: _state.textFont, textContrast: _state.textContrast,
+    textColor: _state.textColor, textFont: _state.textFont, textSizes: _state.textSizes, textContrast: _state.textContrast,
     searchCustom: _state.searchCustom, searchColor: _state.searchColor, searchOpacity: _state.searchOpacity,
   };
   try { return btoa(unescape(encodeURIComponent(JSON.stringify(obj)))); }
@@ -960,6 +980,7 @@ async function importTheme(str) {
   if (obj.cardBlur      !== undefined) updates[CARD_BLUR_KEY]      = Number(obj.cardBlur);
   if (obj.textColor     !== undefined) updates[TEXT_COLOR_KEY]     = obj.textColor || '';
   if (obj.textFont      !== undefined) updates[TEXT_FONT_KEY]      = obj.textFont || '';
+  if (obj.textSizes     !== undefined) updates[TEXT_SIZE_KEY]      = sanitizeTextSizes(obj.textSizes);
   if (obj.textContrast  !== undefined) updates[TEXT_CONTRAST_KEY]  = !!obj.textContrast;
   if (obj.searchCustom  !== undefined) updates[SEARCH_CUSTOM_KEY]  = !!obj.searchCustom;
   if (obj.searchColor   !== undefined) updates[SEARCH_COLOR_KEY]   = obj.searchColor;
@@ -981,7 +1002,9 @@ async function importTheme(str) {
   if (obj.cardOpacity   !== undefined) _state.cardOpacity   = Number(obj.cardOpacity);
   if (obj.cardBlur      !== undefined) _state.cardBlur      = Number(obj.cardBlur);
   if (obj.textColor     !== undefined) { _state.textColor   = obj.textColor || '';  applyTextColor(_state.textColor); }
+  if (obj.textSizes     !== undefined) _state.textSizes = sanitizeTextSizes(obj.textSizes);   // applyTextFont'tan ÖNCE (injectFontFaces güncel boyutu kullansın)
   if (obj.textFont      !== undefined) { _state.textFont    = obj.textFont  || '';  applyTextFont(_state.textFont); }
+  else if (obj.textSizes !== undefined) injectFontFaces();                                     // sadece boyut değiştiyse de @font-face'i güncelle
   if (obj.textContrast  !== undefined) { _state.textContrast = !!obj.textContrast;  applyTextContrast(_state.textContrast); }
   if (obj.searchCustom !== undefined || obj.searchColor !== undefined || obj.searchOpacity !== undefined) {
     if (obj.searchCustom  !== undefined) _state.searchCustom  = !!obj.searchCustom;
@@ -1773,6 +1796,16 @@ html.tke-text-font body :is(
   .text-truncate-end,.see-all-link-icon,.friends-carousel-display-name,.friend-tile-non-styled-button,
   .friend-tile-dropdown-button,[class*="textIconRowText"],.age-rating-display-name,.text-link,h1,h2,h3,h4,h5,h6,p
 ):not([class*="icon-"]):not([class*="Icon"]):not(body [class*="tracked"] *):not(body [id*="tracked"] *):not(body [class*="tk-"] *){
+  font-family:var(--tk-text-font)!important;
+}
+/* Oyun KARTI başlıkları: yeni Roblox ana sayfası .game-card-name'i kendi CSS'iyle (yüksek
+   özgüllük) eziyordu → başlık tema fontunu almıyordu. İki class'ı (game-card-name +
+   game-card-title) zincirleyip ekstra özgüllükle zorla. Item kartları için de aynı desen. */
+html.tke-text-font body .game-card-name.game-card-title,
+html.tke-text-font body [class*="game-card-name"][class*="game-card-title"],
+html.tke-text-font body .item-card-name.item-card-name,
+html.tke-text-font body [class*="GameTile"] .game-card-name,
+html.tke-text-font body [class*="game-card"] [class*="title" i]:not([class*="icon"]){
   font-family:var(--tk-text-font)!important;
 }
 
@@ -3230,6 +3263,7 @@ async function openThemesPage(opts) {
   const curFontKey   = TEXT_FONTS[txtFont] ? txtFont : '';
   const curFontLabel = TEXT_FONTS[curFontKey].label;
   const curFontStack = TEXT_FONTS[curFontKey].stack ? TEXT_FONTS[curFontKey].stack.replace(/"/g, '&quot;') : 'inherit';
+  const curFontSize  = (curFontKey && _state.textSizes && _state.textSizes[curFontKey]) ? _state.textSizes[curFontKey] : 100;
 
   const ACCENT_SWATCHES_LIST = [
     { hex: '',        label: 'Tema varsayılanı' },
@@ -3559,6 +3593,13 @@ async function openThemesPage(opts) {
                         <svg class="tto-fontdd-chev" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
                       </button>
                     </div>
+                  </div>
+                </div>
+                <div class="tto-row" id="tto-font-size-row" title="Seçili yazı tipinin boyutu (her font kendi boyutunu hatırlar). Varsayılan font seçiliyse devre dışı.">
+                  <span class="tto-row-label">Yazı boyutu</span>
+                  <div class="tto-row-ctrl">
+                    <input type="range" class="tto-range" id="tto-font-size" min="50" max="150" step="5" value="${curFontSize}" ${curFontKey ? '' : 'disabled'} style="--pct:${(curFontSize-50)/100*100}%">
+                    <span class="tto-val" id="v-font-size">${curFontSize}%</span>
                   </div>
                 </div>
                 <div class="tto-row tto-toggle-row">
@@ -4104,6 +4145,7 @@ async function openThemesPage(opts) {
     // Yazı rengi + yazı tipi → varsayılan
     _state.textColor = DEFAULT_TEXT_COLOR;
     _state.textFont  = DEFAULT_TEXT_FONT;
+    _state.textSizes = {};                          // font boyutları sıfırla
     const tcSw  = overlay.querySelector('#tto-text-color-swatches');
     const tcHex = overlay.querySelector('#tto-text-color-hex');
     const tfCur = overlay.querySelector('#tto-font-cur');
@@ -4112,6 +4154,8 @@ async function openThemesPage(opts) {
       s.classList.toggle('active', s.dataset.hex ? false : true)
     );
     if (tfCur) { tfCur.textContent = TEXT_FONTS[DEFAULT_TEXT_FONT].label; tfCur.style.fontFamily = TEXT_FONTS[DEFAULT_TEXT_FONT].stack || 'inherit'; }
+    const fsR = overlay.querySelector('#tto-font-size'), fsvR = overlay.querySelector('#v-font-size');
+    if (fsR) { fsR.value = 100; fsR.disabled = true; if (fsvR) fsvR.textContent = '100%'; setPct(fsR); }
     applyCardFrame(DEFAULT_CARD_FRAME);
     applyPanelVars(DEFAULT_PANEL_COLOR, DEFAULT_PANEL_OPACITY, DEFAULT_PANEL_BLUR, DEFAULT_PANEL_WIDTH);
     applyHeaderOpacity(DEFAULT_HEADER_OPACITY);
@@ -4130,6 +4174,7 @@ async function openThemesPage(opts) {
       [SEARCH_OPACITY_KEY]: DEFAULT_SEARCH_OPACITY,
       [TEXT_COLOR_KEY]:     DEFAULT_TEXT_COLOR,
       [TEXT_FONT_KEY]:      DEFAULT_TEXT_FONT,
+      [TEXT_SIZE_KEY]:      {},
     });
   }
   // Sayfa Temaları: tüm pageOverrides'ı temizle
@@ -4361,6 +4406,9 @@ async function openThemesPage(opts) {
             applyTextFont(k);
             storeSet({ [TEXT_FONT_KEY]: k });
             if (fcur) { fcur.textContent = TEXT_FONTS[k].label; fcur.style.fontFamily = TEXT_FONTS[k].stack || 'inherit'; }
+            // Boyut slider'ını yeni fonta senkronla (her font kendi boyutunu hatırlar; varsayılanda devre dışı)
+            const fs = overlay.querySelector('#tto-font-size'), fsv = overlay.querySelector('#v-font-size');
+            if (fs) { const sz = (k && _state.textSizes[k]) ? _state.textSizes[k] : 100; fs.value = sz; fs.disabled = !k; if (fsv) fsv.textContent = sz + '%'; setPct(fs); }
             close();
           });
         });
@@ -4371,6 +4419,23 @@ async function openThemesPage(opts) {
         }, 0);
       };
       fbtn.addEventListener('click', (e) => { e.stopPropagation(); if (menu) close(); else open(); });
+    })();
+    // Yazı boyutu slider'ı: seçili fontun size-adjust'ını CANLI değiştirir → font büyür/küçülür
+    // (font-size'a/düzene dokunmaz). Her font kendi boyutunu hatırlar (_state.textSizes).
+    (function setupFontSize() {
+      const fs = overlay.querySelector('#tto-font-size'), fsv = overlay.querySelector('#v-font-size');
+      if (!fs) return;
+      let _t = null;
+      fs.addEventListener('input', () => {
+        setPct(fs);
+        const pct = parseInt(fs.value, 10);
+        if (fsv) fsv.textContent = pct + '%';
+        const k = _state.textFont;
+        if (!k) return;                                   // varsayılan font → boyut ayarı yok
+        if (pct === 100) delete _state.textSizes[k]; else _state.textSizes[k] = pct;
+        clearTimeout(_t); _t = setTimeout(injectFontFaces, 40);   // canlı önizleme (debounce'lu re-inject)
+      });
+      fs.addEventListener('change', () => { storeSet({ [TEXT_SIZE_KEY]: _state.textSizes }); });
     })();
     if (cSwatch) cSwatch.addEventListener('click', e => {
       const s = e.target.closest('.tto-swatch'); if (s) setCardColor(s.dataset.hex);
