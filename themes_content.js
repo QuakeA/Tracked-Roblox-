@@ -68,14 +68,14 @@ const TEXT_FONTS = {
   'michroma':     { label: 'Michroma',            stack: '"Michroma",sans-serif',        group: 'cyber' },
   'wallpoet':     { label: 'Wallpoet',            stack: '"Wallpoet",sans-serif',        group: 'cyber' },
   // Pixel / Retro
-  'pressstart':   { label: 'Press Start 2P',      stack: '"Press Start 2P",monospace',   group: 'pixel' },
+  'pressstart':   { label: 'Press Start 2P',      stack: '"Press Start 2P",monospace',   group: 'pixel',  adj: '70%' },
   'vt323':        { label: 'VT323',               stack: '"VT323",monospace',            group: 'pixel' },
   'pixelify':     { label: 'Pixelify Sans',       stack: '"Pixelify Sans",sans-serif',   group: 'pixel' },
   'silkscreen':   { label: 'Silkscreen',          stack: '"Silkscreen",monospace',       group: 'pixel' },
   'handjet':      { label: 'Handjet',             stack: '"Handjet",monospace',          group: 'pixel' },
   // Vampir / Gotik / Horror
   'creepster':    { label: 'Creepster',           stack: '"Creepster",cursive',          group: 'horror' },
-  'nosifer':      { label: 'Nosifer',             stack: '"Nosifer",cursive',            group: 'horror' },
+  'nosifer':      { label: 'Nosifer',             stack: '"Nosifer",cursive',            group: 'horror', adj: '65%' },
   'pirata':       { label: 'Pirata One',          stack: '"Pirata One",cursive',         group: 'horror' },
   'eater':        { label: 'Eater',               stack: '"Eater",cursive',              group: 'horror' },
   'unifraktur':   { label: 'UnifrakturMaguntia',  stack: '"UnifrakturMaguntia",cursive', group: 'horror' },
@@ -660,7 +660,10 @@ function injectFontFaces() {
     const m = st.match(/^"([^"]+)"/);
     if (!m) continue;
     let url; try { url = chrome.runtime.getURL('fonts/' + k + '.woff2'); } catch (_) { return; }
-    css += `@font-face{font-family:'${m[1]}';src:url('${url}') format('woff2');font-display:swap;}`;
+    // adj = size-adjust% → çok büyük/geniş çizilen fontu (Press Start 2P, Nosifer) normale çeker,
+    // font-size'a/düzene DOKUNMADAN (ölçülerek belirlendi: ~Arial genişliği). Yoksa 100%.
+    const adj = TEXT_FONTS[k].adj ? `size-adjust:${TEXT_FONTS[k].adj};` : '';
+    css += `@font-face{font-family:'${m[1]}';src:url('${url}') format('woff2');font-display:swap;${adj}}`;
   }
   const s = document.createElement('style');
   s.id = 'tk-fontfaces';
